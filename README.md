@@ -1,8 +1,36 @@
 # MangaFlow for Windows
 
-Version 0.2.0 adds a queue dashboard, selected retries, detailed preview, saved
-presets, folder rules, naming templates, retention cleanup, notifications,
-light/dark appearance and verified GitHub release updates.
+Convert downloaded comics with your existing KCC tools, preserve folder
+structure, and archive originals after verified conversion. Local and UNC
+network folders are supported, including processing on a network share.
+
+## What's new in 0.3.0
+
+This build delivers the installer, portable package, and the first priority:
+guided first-run setup. Further interface improvements are separate builds.
+
+- **Windows installer:** `MangaFlow-Setup.exe` installs for your account without
+  elevation, creates a Start menu shortcut, optionally creates a desktop shortcut,
+  and adds an uninstall entry in Windows Settings. KCC, KindleGen and djxl are
+  selected separately; they are not bundled.
+- **Portable ZIP:** extract `MangaFlow-Windows.zip` and open `MangaFlow.exe`.
+  Keep `portable.flag` and the companion files in place. Settings, presets,
+  downloaded tools and update backups live in the app's `data` subfolder.
+- **Guided setup:** six steps cover the reader, folders, installed tools, an
+  optional test conversion, daily check times and a final review. Reopen it with
+  **Guided setup** under Folders & tools. Access checks create missing destination
+  folders and tiny temporary probes, then remove the probes.
+- **Safe test book:** a verified copy is converted in an isolated `SetupTests`
+  area inside the chosen working folder. The selected original and normal
+  incoming/output/archive folders are untouched. Results remain there for review
+  and manual removal. Use a short working path for older tools such as KindleGen.
+- **KindleGen picker:** select its executable directly. Its folder is added to
+  conversion processes only, without changing the Windows PATH.
+
+The wizard saves only when you finish. **Set up later** discards draft settings;
+completed folder probes and optional test files remain as described above.
+Automatic checks are opt-in. Leaving the checkbox clear preserves any existing
+schedule. Preview the queue before starting a normal run.
 
 ## What's new in 0.2.0
 
@@ -69,8 +97,8 @@ whose published software you trust.
 Updates require published release assets; merely pushing source changes does
 not make an app update available. This project includes
 `.github/workflows/release.yml`, which builds and tests on Windows and attaches
-`MangaFlow-Windows.zip` and `SHA256SUMS` when a release is published. The release
-tag must match the compiled version, currently `v0.2.0`. A manual workflow run
+`MangaFlow-Setup.exe`, `MangaFlow-Windows.zip` and `SHA256SUMS` when a release is
+published. The release tag must match the compiled version, currently `v0.3.0`. A manual workflow run
 builds/tests/packages without publishing. No GitHub release has been published
 by the local build scripts.
 
@@ -79,25 +107,31 @@ manifest version and the release tag aligned when preparing a later version.
 `Package-App.ps1` builds the portable ZIP from an explicit file list, excluding
 test fixtures and settings. The updater checks this package layout before use.
 
-A portable desktop app for converting downloaded comics with your existing KCC
-installation. Choose folders, a reader profile and conversion options, then run
-the queue manually or let Windows check it on a daily schedule.
-
 ## Open the app
 
-Extract the entire portable ZIP to a permanent local folder, then double-click
-**MangaFlow.exe**. Keep the accompanying files beside it. Windows 11 includes
+Choose one distribution:
+
+- **Installed:** run `MangaFlow-Setup.exe`, then open MangaFlow from Start.
+  The default location is `%LOCALAPPDATA%\Programs\MangaFlow`.
+- **Portable:** extract the entire ZIP to a permanent, writable local folder,
+  then double-click **MangaFlow.exe**. Keep the accompanying files beside it.
+  Do not run directly inside the ZIP or use a protected Program Files folder.
+
+Windows 11 includes
 the .NET Framework and Windows PowerShell used by the app; no Python or .NET SDK
-is needed to run it. This first build is unsigned.
+is needed to run it. Both distributions are currently unsigned.
+
+The first launch opens guided setup. You can also configure everything manually:
 
 1. **Folders & tools:** choose a watch folder, converted-books folder and archive.
    Local and UNC network paths are supported. A separate working folder is
    suggested beside the watch folder. Choose a different location in the
    Working folder section if needed. None of the four folders may overlap.
 2. Select the KCC **c2e command-line executable**, not the graphical application.
-   For MOBI output, KindleGen must be available to KCC. Select libjxl's
+   For MOBI output, select KindleGen or ensure KCC already finds it. Select libjxl's
    **djxl.exe** if JPEG XL conversion is enabled. Companion files supplied with
-   these tools should stay together. Tools are not bundled or downloaded.
+   these tools should stay together. Tools are not bundled; downloads under
+   Settings & updates are explicit.
 3. **Conversion:** choose your device, output format and processing settings.
    Defaults match the original workflow: Kindle Scribe 2022/2024, MOBI,
    right-to-left, upscale, no explicit cropping, split wide pages, no autolevel.
@@ -109,10 +143,27 @@ is needed to run it. This first build is unsigned.
    registers a Windows task for your account. Disable any older conversion task
    first. There is no task installed until you click this button.
 
-Settings are stored in `%LOCALAPPDATA%\MangaFlow\settings.json`, with a backup
-from the previous save. They are independent of the portable app folder.
+Installed-mode settings are stored in `%LOCALAPPDATA%\MangaFlow\settings.json`;
+portable-mode settings are in `<app folder>\data\settings.json`. Each retains a
+backup from the previous save. Keep the portable folder together when moving it.
+Paths to books and external tools remain absolute; moving the app does not move
+those folders or make those paths portable across PCs.
+
+Version 0.2 used AppData even for ZIP copies. To reuse those settings with a
+fresh 0.3 portable ZIP, close MangaFlow and copy `settings.json` and `presets.json`
+from `%LOCALAPPDATA%\MangaFlow` into its `data` subfolder before opening it.
+Installing 0.3 reuses AppData automatically. An in-app update preserves the
+existing storage mode; it does not add or remove `portable.flag`.
+
 Updating conversion settings affects future scheduled checks; changing the check
 times or wake option requires clicking **Save & enable schedule** again.
+
+To remove an installed copy, close MangaFlow and use **Settings > Apps > Installed
+apps > MangaFlow > Uninstall**. It removes its application files, owned shortcuts
+and the schedule pointing to that installation. Books, settings, external tools
+and unknown files are retained. Reconnect the working share before uninstalling
+so the conversion lock can be checked. For a portable copy, disable its schedule
+before removing its folder; preserve `data` if you want to keep the configuration.
 
 ## Scheduling and operation
 
@@ -194,9 +245,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Workflow.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-JxlPreprocessing.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Upgrades.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Package-App.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Installer.ps1 -SkipPackage
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Installation.ps1
 ```
 
-The portable build is `dist\MangaFlow\MangaFlow.exe`. It uses Windows' .NET
+Distributable files are `dist\MangaFlow-Windows.zip`, `dist\MangaFlow-Setup.exe`
+and `dist\SHA256SUMS`. `Build-Installer.ps1` alone builds and packages both.
+The extracted portable build is `dist\MangaFlow\MangaFlow.exe`. It uses Windows' .NET
 Framework C# compiler and WPF, without fetching build packages. An offscreen
 desktop check can be run with `MangaFlow.exe --self-test <absolute-report-path>`;
 the report's parent folder must exist. It validates settings and renders screens.
@@ -208,5 +263,36 @@ conversion/update locking, installing/rolling back fixture app files, checksum
 validation and rejection of tampered staged files and unsafe ZIP entries.
 External converters are test doubles. Real KCC/KindleGen/JXL conversion and real
 scheduled execution with your network credentials still require a local test.
+Installation tests exercise embedded-payload verification, install/upgrade/remove
+in disposable fixtures, user-file preservation, unsafe targets, and an isolated
+wizard conversion. They do not register an application, shortcuts or tasks on
+the test PC; those Windows integration paths need a manual installation check.
+Test fixtures are retained in the test report folders or `%TEMP%` for inspection.
 The original standalone `Convert-Manga.ps1` remains usable with its old defaults,
 or accepts `-ConfigPath` for the app's saved settings.
+
+The source repository's `ROADMAP.md` tracks the one-improvement-per-build
+priority list. Simple and Advanced views are next; they are not in this build.
+
+## Repository license notice
+
+The repository's existing ISC notice is retained below and in `license.txt`.
+
+Copyright (c) 2012-2025 Ciro Mattia Gonano <ciromattia@gmail.com>
+Copyright (c) 2013-2019 Paweł Jastrzębski <pawelj@iosphe.re>
+Copyright (c) 2021-2023 Darodi (https://github.com/darodi)
+Copyright (c) 2023-2025 Alex Xu (https://github.com/axu2)
+
+Permission to use, copy, modify, and/or distribute this software for
+any purpose with or without fee is hereby granted, provided that the
+above copyright notice and this permission notice appear in all
+copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
+OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.

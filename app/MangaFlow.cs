@@ -68,6 +68,11 @@ namespace MangaFlow {
                     catch (Exception ex) { File.WriteAllText(args[1], ex.ToString()); Environment.ExitCode = 1; }
                     return;
                 }
+                if(args.Length==4&&args[0]=="--test-setup") {
+                    try{var settings=new JavaScriptSerializer().Deserialize<Settings>(File.ReadAllText(args[1]));var result=SetupChecks.ConvertTest(settings,args[2],AppDomain.CurrentDomain.BaseDirectory);File.WriteAllText(args[3],new JavaScriptSerializer().Serialize(result));Environment.ExitCode=result.Passed?0:1;}
+                    catch(Exception ex){File.WriteAllText(args[3],new JavaScriptSerializer().Serialize(new{Passed=false,Log=ex.ToString()}));Environment.ExitCode=1;}
+                    return;
+                }
                 bool created;
                 using (var mutex = new Mutex(true, @"Local\MangaFlow-Desktop", out created)) {
                     if (!created) { MessageBox.Show("MangaFlow is already open.", "MangaFlow"); return; }
@@ -94,9 +99,9 @@ namespace MangaFlow {
         bool closing;
         bool constructing = true;
         static readonly string[] BooleanFields = { "MangaStyle", "Upscale", "Stretch", "Autolevel", "NoAutocontrast", "ForceColor", "ForcePng", "Webtoon", "ConvertJxl", "OverwriteConverted", "WakeComputer" };
-        static readonly string[] PathFields = { "WatchFolder", "ConvertedFolder", "ArchiveFolder", "WorkFolder", "KccExe", "DjxlExe" };
+        static readonly string[] PathFields = { "WatchFolder", "ConvertedFolder", "ArchiveFolder", "WorkFolder", "KccExe", "DjxlExe", "KindlegenExe" };
         public Desktop(bool testing = false, string testDirectory = null) {
-            userDir = testing ? (testDirectory ?? Path.Combine(baseDir,"test-settings")) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MangaFlow");
+            userDir = testing ? (testDirectory ?? Path.Combine(baseDir,"test-settings")) : GetSettingsDirectory(baseDir);
             configPath = Path.Combine(userDir, "settings.json");
             using (var reader = new StreamReader(Path.Combine(baseDir, "MainWindow.xaml"))) Window = (Window)XamlReader.Load(reader.BaseStream);
             var devices = new[] {
@@ -126,6 +131,7 @@ namespace MangaFlow {
             if (!testing) {
                 timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
                 timer.Tick += Tick; timer.Start();
+                Window.ContentRendered+=delegate {if(!saved.SetupCompleted)ShowGuidedSetup();};
             }
         }
         T Find<T>(string name) where T : class {
@@ -145,11 +151,13 @@ namespace MangaFlow {
             Find<Button>(name).Click += delegate { try { action(); } catch (Exception ex) { Status(ex.Message); MessageBox.Show(Window, ex.Message, "MangaFlow", MessageBoxButton.OK, MessageBoxImage.Information); } };
         }
         void Wire() {
+            On("GuidedSetup",ShowGuidedSetup);
             On("FoldersNav", delegate { Navigate(0); }); On("ConversionNav", delegate { Navigate(1); });
             On("ScheduleNav", delegate { Navigate(2); }); On("ActivityNav", delegate { Navigate(3); });
             On("WatchBrowse", delegate { Folder("WatchFolder"); }); On("ConvertedBrowse", delegate { Folder("ConvertedFolder"); });
             On("ArchiveBrowse", delegate { Folder("ArchiveFolder"); }); On("WorkBrowse", delegate { Folder("WorkFolder"); });
             On("KccBrowse", delegate { Executable("KccExe"); }); On("DjxlBrowse", delegate { Executable("DjxlExe"); });
+            On("KindlegenBrowse",delegate {Executable("KindlegenExe");});
             On("KccLink", delegate { Open("https://github.com/ciromattia/kcc/releases"); });
             On("JxlLink", delegate { Open("https://github.com/libjxl/libjxl/releases"); });
             On("SaveSettings", delegate { Save(); Status("Conversion settings saved. To change scheduled times, use Save & enable schedule."); });
@@ -203,7 +211,7 @@ namespace MangaFlow {
             }
         }
         void Executable(string field) {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Windows programs (*.exe)|*.exe", Title = field == "KccExe" ? "Choose KCC c2e converter" : "Choose djxl decoder" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Windows programs (*.exe)|*.exe", Title = field == "KccExe" ? "Choose KCC c2e converter" : field=="KindlegenExe"?"Choose KindleGen":"Choose djxl decoder" };
             if (dialog.ShowDialog(Window) == true) Find<TextBox>(field).Text = dialog.FileName;
         }
         static void Open(string path) { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
@@ -262,6 +270,12 @@ namespace MangaFlow {
             return String.Join(", ", times);
         }
         public static void Validate(Settings s) {
+            ValidateFolders(s);
+            if (String.IsNullOrEmpty(s.KccExe) || !Path.IsPathRooted(s.KccExe) || !s.KccExe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase)) throw new Exception("Choose the KCC command-line .exe in Folders & tools.");
+            if (s.ConvertJxl && (String.IsNullOrEmpty(s.DjxlExe) || !Path.IsPathRooted(s.DjxlExe) || !s.DjxlExe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase))) throw new Exception("Choose djxl.exe, or turn off JPEG XL preprocessing.");
+            ValidateConversion(s);
+        }
+        public static void ValidateFolders(Settings s) {
             var paths = new[] {s.WatchFolder,s.ConvertedFolder,s.ArchiveFolder,s.WorkFolder};
             foreach (var path in paths) {
                 if (String.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path)) throw new Exception("Choose watch, converted, archive and working folders using full paths.");
@@ -273,9 +287,6 @@ namespace MangaFlow {
                 var b = Path.GetFullPath(paths[j]).TrimEnd('\\') + "\\";
                 if (a.StartsWith(b, StringComparison.OrdinalIgnoreCase) || b.StartsWith(a, StringComparison.OrdinalIgnoreCase)) throw new Exception("The four folders must be separate. None can be inside another.");
             }
-            if (String.IsNullOrEmpty(s.KccExe) || !Path.IsPathRooted(s.KccExe) || !s.KccExe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase)) throw new Exception("Choose the KCC command-line .exe in Folders & tools.");
-            if (s.ConvertJxl && (String.IsNullOrEmpty(s.DjxlExe) || !Path.IsPathRooted(s.DjxlExe) || !s.DjxlExe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase))) throw new Exception("Choose djxl.exe, or turn off JPEG XL preprocessing.");
-            ValidateConversion(s);
         }
         public static void ValidateConversion(Settings s) {
             if (String.IsNullOrEmpty(s.Profile)) throw new Exception("Choose a device profile.");
@@ -360,6 +371,7 @@ namespace MangaFlow {
             if (roundTrip.Profile != "KS" || !roundTrip.ConvertJxl || roundTrip.Autolevel) throw new Exception("Settings round trip failed");
             results.Add("PASS: settings round trip and user defaults");
             desktop.TestEnhancements(results,Path.GetDirectoryName(report));
+            desktop.TestGuidedSetup(results,Path.GetDirectoryName(report));
             results.Add("PASS: XAML loaded and named controls wired");
             var root = (FrameworkElement)desktop.Window.Content;
             root.Measure(new Size(1180,850)); root.Arrange(new Rect(0,0,1180,850)); root.UpdateLayout();

@@ -12,7 +12,7 @@ $ErrorActionPreference='Stop'
 $files=@('MangaFlow.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
 $target=[IO.Path]::GetFullPath($TargetDirectory).TrimEnd('\')
 $backup=[IO.Path]::GetFullPath($BackupDirectory).TrimEnd('\')
-if ($target -eq [IO.Path]::GetPathRoot($target).TrimEnd('\') -or $target -eq $backup -or ($backup+'\').StartsWith($target+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid update or backup location.' }
+if ($target -eq [IO.Path]::GetPathRoot($target).TrimEnd('\') -or $target -eq $backup) { throw 'Invalid update or backup location.' }
 $userDir=Split-Path $ConfigPath
 $resultPath=Join-Path $userDir 'last-update.txt'
 $lock=$null

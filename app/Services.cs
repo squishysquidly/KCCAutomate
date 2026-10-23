@@ -10,8 +10,8 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
-[assembly: AssemblyVersion("0.2.0.0")]
-[assembly: AssemblyFileVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.3.0.0")]
+[assembly: AssemblyFileVersion("0.3.0.0")]
 [assembly: AssemblyProduct("MangaFlow")]
 namespace MangaFlow {
     public partial class Settings {
@@ -73,7 +73,7 @@ namespace MangaFlow {
         public Dictionary<string,string> VerifiedToolFiles { get; set; }
     }
     public static class ReleaseClient {
-        public const string AppVersion="0.2.0";
+        public const string AppVersion="0.3.0";
         static readonly JavaScriptSerializer json=new JavaScriptSerializer { MaxJsonLength=8000000 };
         public static string Repository(string text) {
             text=(text ?? "").Trim().TrimEnd('/');

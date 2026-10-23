@@ -111,7 +111,7 @@ hash checks establish successful production and transfer, not visual correctness
    `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
 
    Arguments:
-   `-NoProfile -NonInteractive -File "C:\Users\Squishy\Documents\GitHub\KCCAutomate\Convert-Manga.ps1"`
+   `-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:\Users\Squishy\Documents\GitHub\KCCAutomate\Convert-Manga.ps1"`
 
    Start in:
    `C:\Users\Squishy\Documents\GitHub\KCCAutomate`
@@ -123,6 +123,7 @@ hash checks establish successful production and transfer, not visual correctness
 6. Run the saved task manually and inspect the network log. Test while signed
    out as well before considering unattended access verified.
 
-If PowerShell blocks the script, review your execution policy or organizational
-policy instead of blindly disabling it. No scheduled task is installed by this
-project; these steps configure it after your conversion test passes.
+The execution-policy bypass applies only to that PowerShell process and does
+not change the machine's permanent policy. Organization policy may take priority.
+These manual steps are for the standalone script. In the desktop app, scheduling
+is installed only when explicitly enabled in guided setup or Schedule.

@@ -32,6 +32,21 @@ jobs:
       - name: Package app
         shell: powershell
         run: ./Package-App.ps1 -SkipBuild
+      - name: Build Windows installer
+        shell: powershell
+        run: ./Build-Installer.ps1 -SkipPackage
+      - name: Test installation and isolated setup conversion
+        shell: powershell
+        run: ./Test-Installation.ps1
+      - name: Save build downloads
+        uses: actions/upload-artifact@v7
+        with:
+          name: MangaFlow-Windows
+          if-no-files-found: error
+          path: |
+            dist/MangaFlow-Setup.exe
+            dist/MangaFlow-Windows.zip
+            dist/SHA256SUMS
       - name: Verify release version and upload assets
         if: github.event_name == 'release'
         shell: powershell
@@ -42,5 +57,5 @@ jobs:
           $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'dist\MangaFlow\MangaFlow.exe')).Version
           $expected = '{0}.{1}.{2}' -f $version.Major, $version.Minor, $version.Build
           if ($env:RELEASE_TAG.TrimStart('v') -ne $expected) { throw 'Release tag must match the app version.' }
-          gh release upload $env:RELEASE_TAG dist/MangaFlow-Windows.zip dist/SHA256SUMS --clobber
+          gh release upload $env:RELEASE_TAG dist/MangaFlow-Setup.exe dist/MangaFlow-Windows.zip dist/SHA256SUMS --clobber
           if ($LASTEXITCODE) { throw 'Release upload failed.' }

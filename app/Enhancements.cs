@@ -85,7 +85,7 @@ namespace MangaFlow {
             });
             OnAsync("CheckUpdates",CheckUpdatesAsync); OnAsync("DownloadUpdate",DownloadUpdateAsync);
             On("InstallUpdate",InstallSelected); On("RollbackUpdate",RollbackSelected);
-            foreach(var name in new[]{"RefreshQueue","RetrySelected","CleanupNow","WorkspaceUsage","CheckUpdates","DownloadUpdate","InstallUpdate","RollbackUpdate","SavePreset","ApplyPreset","DeletePreset","ImportPresets","ExportPresets"}) actionButtons.Add(Find<Button>(name));
+            foreach(var name in new[]{"RefreshQueue","RetrySelected","CleanupNow","WorkspaceUsage","CheckUpdates","DownloadUpdate","InstallUpdate","RollbackUpdate","SavePreset","ApplyPreset","DeletePreset","ImportPresets","ExportPresets","GuidedSetup"}) actionButtons.Add(Find<Button>(name));
             foreach(var name in new[]{"OutputNaming","SuccessRetentionDays","FailureRetentionDays","QuietHoursStart","QuietHoursEnd","UpdateRepository"}) Find<TextBox>(name).TextChanged+=delegate {Dirty();};
             foreach(var name in new[]{"AutoCleanup","QuietHoursEnabled"}) {Find<CheckBox>(name).Checked+=delegate {Dirty();};Find<CheckBox>(name).Unchecked+=delegate {Dirty();};}
             Find<ComboBox>("Theme").SelectionChanged+=delegate {ApplyTheme(ComboText("Theme"));Dirty();};
@@ -117,6 +117,7 @@ namespace MangaFlow {
             rules.Clear();foreach(var r in s.FolderRules??new List<FolderRule>()) rules.Add(r);
         }
         void ReadExtras(Settings s) {
+            s.SetupCompleted=saved.SetupCompleted;
             s.OutputNaming=Text("OutputNaming");
             var testName=s.OutputNaming.Replace("{name}","Book").Replace("{format}","mobi").Replace("{profile}","KS");
             if(String.IsNullOrWhiteSpace(testName) || testName.IndexOfAny(Path.GetInvalidFileNameChars())>=0 || testName.Contains("{") || testName.Contains("}") || testName.EndsWith(".") || testName.EndsWith(" ")) throw new Exception("Use a filename template with {name}, {format} and {profile}, without folders or other braces.");
@@ -277,17 +278,17 @@ namespace MangaFlow {
             legacy.UpdateRepository="example/custom";MigrateUpdateSource(legacy);
             if(legacy.UpdateRepository!="example/custom") throw new Exception("Custom update source was changed.");
             results.Add("PASS: old update source migration and custom source preservation");
-            var settings=new Settings {WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work"};
+            var settings=new Settings {WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work",KindlegenExe=@"C:\tools\kindlegen.exe"};
             Fill(settings);Save();
             var stored=json.Deserialize<Settings>(File.ReadAllText(configPath));
-            if(stored.SuccessRetentionDays!=7 || stored.OutputNaming!="{name}" || stored.UpdateRepository!="squishysquidly/KCCAutomate") throw new Exception("Enhanced settings did not persist.");
+            if(stored.SuccessRetentionDays!=7 || stored.OutputNaming!="{name}" || stored.UpdateRepository!="squishysquidly/KCCAutomate" || stored.KindlegenExe!=settings.KindlegenExe) throw new Exception("Enhanced settings did not persist.");
             var preset=new Preset{Name="Scribe manga",Options=Options(settings)};ValidatePreset(preset);presets.Add(preset);SavePresets();
             if(preset.Options.ContainsKey("WatchFolder") || json.Deserialize<List<Preset>>(File.ReadAllText(presetPath)).Count<1) throw new Exception("Preset isolation or persistence failed.");
             var unsafePreset=new Preset{Name="Unsafe",Options=new Dictionary<string,object>{{"KccExe","bad.exe"}}};
             try {ValidatePreset(unsafePreset);throw new Exception("Unsafe preset accepted");}catch(Exception ex){if(!ex.Message.Contains("Invalid preset"))throw;}
             results.Add("PASS: preset isolation, persistence, unsafe import rejection and enhanced settings");
-            var release="{\"tag_name\":\"v0.3.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"MangaFlow-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.3.0/MangaFlow-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
-            var row=ReleaseClient.Parse("MangaFlow","squishysquidly/KCCAutomate","0.2.0",release);
+            var release="{\"tag_name\":\"v0.4.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"MangaFlow-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.4.0/MangaFlow-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
+            var row=ReleaseClient.Parse("MangaFlow","squishysquidly/KCCAutomate","0.3.0",release);
             if(row.Status!="Update available" || row.Asset==null)throw new Exception("Release parsing failed.");
             if(ReleaseClient.Repository("https://github.com/squishysquidly/KCCAutomate")!="squishysquidly/KCCAutomate")throw new Exception("Repository normalization failed.");
             try{ReleaseClient.Repository("https://evil.example/repo");throw new Exception("Invalid repository accepted");}catch(Exception ex){if(!ex.Message.Contains("owner/repository"))throw;}

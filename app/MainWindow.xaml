@@ -56,6 +56,7 @@
             <StackPanel>
               <Border Style="{StaticResource Card}"><StackPanel>
                 <TextBlock Text="A home for every stage" FontSize="20" FontWeight="SemiBold"/>
+                <Button x:Name="GuidedSetup" Content="Guided setup" HorizontalAlignment="Left" Margin="0,12,0,0"/>
                 <TextBlock Text="Local folders and network shares are welcome. Keep these locations separate." Style="{StaticResource Hint}"/>
                 <TextBlock Text="Watch folder" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="WatchBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="WatchFolder" AutomationProperties.Name="Watch folder"/></DockPanel>
@@ -73,6 +74,8 @@
                 <TextBlock Text="KCC command-line converter (c2e)" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="KccBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="KccExe" AutomationProperties.Name="KCC executable"/></DockPanel>
                 <TextBlock Text="For MOBI, place KindleGen beside KCC or install Kindle Previewer. The graphical KCC executable is not the c2e converter." Style="{StaticResource Hint}"/>
+                <TextBlock Text="KindleGen executable (optional if KCC already finds it)" Style="{StaticResource Label}"/>
+                <DockPanel><Button x:Name="KindlegenBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="KindlegenExe" AutomationProperties.Name="KindleGen executable"/></DockPanel>
                 <CheckBox x:Name="ConvertJxl" Content="Automatically convert JPEG XL pages to PNG"/>
                 <DockPanel><Button x:Name="DjxlBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="DjxlExe" AutomationProperties.Name="JPEG XL decoder executable"/></DockPanel>
                 <TextBlock Text="Choose libjxl's djxl.exe. Originals stay unchanged. JXL books are stopped if this is disabled." Style="{StaticResource Hint}"/>
@@ -165,7 +168,7 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="MangaFlow 0.2.0" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="AppVersion" Text="MangaFlow 0.3.0" Style="{StaticResource Hint}"/>
               <TextBlock Text="MangaFlow GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
               <TextBlock Text="Use the trusted repository publishing MangaFlow releases. Stable releases only. KCC and libjxl are checked separately against their official repositories." Style="{StaticResource Hint}"/>
               <Button x:Name="CheckUpdates" Content="Check GitHub for updates" HorizontalAlignment="Left"/>

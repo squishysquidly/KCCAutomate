@@ -5,7 +5,7 @@ $build=Join-Path $PSScriptRoot 'dist\MangaFlow'
 $stage=Join-Path $PSScriptRoot ('dist\package-'+[guid]::NewGuid().ToString('N'))
 $payload=Join-Path $stage 'MangaFlow'
 New-Item -ItemType Directory -Path $payload -Force | Out-Null
-$files=@('MangaFlow.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
+$files=@('MangaFlow.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md','portable.flag','license.txt')
 foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $build $file) -Destination $payload }
 $zip=Join-Path $PSScriptRoot 'dist\MangaFlow-Windows.zip'
 Compress-Archive -LiteralPath $payload -DestinationPath $zip -Force

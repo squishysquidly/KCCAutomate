@@ -25,6 +25,7 @@ $inputExtensions = @('.cbz')
 $outputExtension = '.mobi'
 $overwriteConverted = $false
 $convertJxl = $true
+$kindlegenExe = ''
 if ($ConfigPath) {
     $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
     $incoming = $config.WatchFolder
@@ -33,6 +34,7 @@ if ($ConfigPath) {
     $work = $config.WorkFolder
     $KccExe = $config.KccExe
     $DjxlExe = $config.DjxlExe
+    $kindlegenExe = $config.KindlegenExe
     $QuietMinutes = [int]$config.QuietMinutes
     $inputExtensions = @($config.InputExtensions)
     $overwriteConverted = [bool]$config.OverwriteConverted
@@ -112,6 +114,10 @@ function Invoke-Converter([string]$Executable, [string[]]$Options, [string]$LogF
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
     $start.StandardErrorEncoding = [Text.Encoding]::UTF8
     $start.EnvironmentVariables['PYTHONIOENCODING'] = 'utf-8'
+    if ($kindlegenExe) {
+        if (-not (Test-Path -LiteralPath $kindlegenExe -PathType Leaf)) { throw 'The selected KindleGen executable is missing.' }
+        $start.EnvironmentVariables['PATH'] = (Split-Path $kindlegenExe -Parent) + ';' + $start.EnvironmentVariables['PATH']
+    }
     $process = New-Object Diagnostics.Process
     $process.StartInfo = $start
     try {
