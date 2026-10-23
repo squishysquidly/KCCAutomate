@@ -4,6 +4,163 @@ Convert downloaded comics with your existing KCC tools, preserve folder
 structure, and archive originals after verified conversion. Local and UNC
 network folders are supported, including processing on a network share.
 
+## What's new in 0.6.1
+
+New setups supply and create Incoming, Converted, Originals and Working folders
+automatically on reaching the Folders page. Installed defaults are in
+**Documents\KCCAutomate**; portable defaults are in **data\Books**. Existing
+saved paths, including network locations, are preserved. You can change any
+folder during setup or later in Folders & tools. Missing incoming folders can
+now be created during setup as well as the other three folders.
+
+Each tool entry checks automatically after you choose or paste an executable
+or its containing folder. Completed checks stay green while another entry is
+edited; an older result cannot validate a path changed during the check.
+**Check tools** remains available for a manual recheck. JXL ZIP/7z packages
+are prepared and tested automatically after selection.
+
+7-Zip is detected in Program Files and PATH before asking for a location.
+Detection tests CLI archive creation and extraction, including its runtime DLL.
+A working detected installation completes that checklist item automatically;
+the manual picker is collapsed until needed. KindleGen is checked without input
+first. Amazon builds reporting `kindlgen` and the expected `E30010` unsupported
+`-help` response are recognized instead of being incorrectly rejected. Other
+unexpected KindleGen errors still fail validation.
+
+Setup downloads the exact approved **Windows command-line executable**:
+[tool_cli_c2e_12.0.0_AMD64.exe](https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_AMD64.exe).
+The GUI download `KCC_12.0.0.exe` is a separate application and is unnecessary
+for KCCAutomate. You may select the CLI's original filename or rename it to
+`kcc-c2e.exe`.
+
+The Python dependencies are still needed, and the approved standalone `.exe`
+already includes them. The Debian `apt-get` instructions apply to an unbundled
+Python/source installation. Here is their equivalent for this Windows setup:
+
+| Dependency | How it is supplied |
+| --- | --- |
+| Python (`python3`) | CPython 3.11 bundled inside the approved CLI |
+| Pillow (`python3-pil`) | Bundled in the CLI |
+| psutil (`python3-psutil`) | Bundled in the CLI |
+| python-slugify (`python3-slugify`) | Bundled in the CLI |
+| 7-Zip (`p7zip-full`) | Separate Windows 7-Zip download; select `7z.exe` in setup |
+| KindleGen | Separate selection for MOBI; follow KCC's linked guide |
+| JPEG XL decoding | Separate Windows libjxl/djxl download; imported in setup |
+
+KCC's [Windows packaging workflow](https://github.com/ciromattia/kcc/blob/v12.0.0/.github/workflows/package-windows.yml)
+installs its Python requirements before building the
+[standalone c2e executable](https://github.com/ciromattia/kcc/blob/v12.0.0/kcc-c2e.spec).
+We also checked the exact release download's SHA-256 and bundled runtime,
+then converted a generated two-page CBZ into EPUB with Python absent from PATH
+and Python environment overrides cleared. This verifies a real CLI startup
+and conversion, rather than relying only on the presence of a Python install.
+MOBI output and visual quality still need testing with KindleGen and a reader.
+
+**KCC stays on approved version 12.0.0.** Guided setup checks the version, the
+updater queries the approved release tag instead of GitHub's newest KCC release,
+and download/use checks enforce its exact asset and SHA-256. App-saved settings
+also carry this approval to normal and scheduled conversions; a different
+reported KCC version is rejected before conversion, retaining incoming originals.
+Legacy standalone script configurations without an approval field retain their
+existing behavior. App and JXL update checks continue to use stable releases.
+
+After a new KCC version has been manually tested, update the approval policy
+and publish a new KCCAutomate release as described in [RELEASING.md](RELEASING.md).
+Pushing source commits alone does not deliver an update to installed apps.
+
+## What's new in 0.6.0
+
+Setup now explains **MOBI (AZW3/kindle compatible)** and the purpose of each
+book folder. KCC and JPEG XL paths start empty until selected; existing saved
+selections, including KindleGen, are retained when setup is reopened.
+
+The Tools page has a separate checklist for KCC c2e, JPEG XL decoding,
+KindleGen and optional 7-Zip. Red crosses mean missing, unchecked or failed;
+green checks mean the executable started and identified itself. Optional tools
+are marked with a gray circle. These checks do not replace trying a book.
+KCC must be **kcc-c2e.exe** or the release's **tool_cli_c2e_…_AMD64.exe**,
+rather than the graphical KCC application or c2c tool.
+
+The setup links to the [approved 12.0.0 CLI release](https://github.com/ciromattia/kcc/releases/tag/v12.0.0),
+[KCC's dependency and KindleGen guide](https://github.com/ciromattia/kcc/wiki/Installation),
+[Windows JPEG XL tools](https://github.com/libjxl/libjxl/releases) and
+[official 7-Zip downloads](https://www.7-zip.org/). Version 12.0.0 is the known
+working version reported for this workflow, not a guarantee for all machines.
+The 12.1.1 c2e package reported a missing PySide6 module in this workflow.
+Packaged Windows executables include Python; installing Python separately
+does not repair missing modules in a frozen executable. Starting with 0.6.1,
+newer KCC versions need maintainer approval in a KCCAutomate release.
+
+Select **djxl.exe**, a **.zip**, or a **.7z** Windows JXL package. 7-Zip's
+**7z.exe** is required for .7z imports; .zip imports use Windows/.NET support.
+Setup automatically checks for an existing 7-Zip installation. Follow the
+official download link to install it if needed, then search again. KCC can
+use 7-Zip for archive and metadata support; it is optional for the usual CBZ
+workflow. No software is installed automatically or added to the system PATH.
+Archive imports reject unsafe paths, links, duplicate entries and oversized
+packages. A package must contain one Windows djxl.exe; use the package for
+your Windows architecture, or manually extract and select the correct decoder.
+
+**Continue on the Tools page copies and checks the tools again**. KCCAutomate
+preserves accompanying DLLs, common runtime folders and license files. For
+JXL package imports it preserves the package layout, including sibling libraries.
+Standalone executables must remain beside the runtime files supplied by their
+author when selected. Copied programs are hash-verified before being selected;
+the original downloads are neither moved nor deleted. Successful imports have
+a file-hash manifest, and a verified bundle is reused on returning to this page.
+Failed imports retain a diagnostic folder without changing saved settings.
+
+Installed tools live in **%LOCALAPPDATA%\KCCAutomate\Tools**. Portable tools
+live in **data\Tools** beside the portable settings. These folders are retained
+by app updates; uninstall retains user tools and settings. The app uses the
+copied paths only after finishing setup. Advanced path editing still uses the
+locations you enter directly; use guided setup to copy external tools.
+Selected KindleGen and 7-Zip folders are passed only to conversion processes.
+Books, archive and working folders remain wherever you choose, including a
+network share.
+
+Both installer and portable downloads are provided. Tray controls remain the
+next separate improvement.
+
+## What's new in 0.5.0
+
+This build adds duplicate handling and a startup folder availability check.
+Tray controls are next, followed by a reassessment. Archive versioning is
+deferred; sample-page preview is lower priority and automatic network retries
+are at the bottom of the backlog.
+
+In **Conversion**, choose what to do when converted output already exists:
+
+| Choice | Result |
+| --- | --- |
+| Review conflicts (default) | Preserve different existing output and incoming originals for review. Identical output can be reused after hash verification. |
+| Replace | Publish the newly converted output over existing files, verify it, then archive eligible originals. |
+| Keep both | Preserve different existing output and publish the new book with a free number, such as `Book (2).mobi`. All split parts share the same number. |
+| Skip | Keep existing output and incoming originals in place. A folder stays incoming until every selected input has a verified conversion. |
+
+The policy is available in both Simple and Advanced views. Earlier replacement
+preferences are preserved. Duplicates are detected at planned output paths;
+verification uses hashes. Separate input folders remain independent.
+
+For a conflict in **Queue dashboard**, select the affected rows, choose an
+**On retry** action, and click **Retry selected**. A one-run choice does not
+change the saved default and resets after starting. It applies only to the
+selected output conflicts. Two incoming files targeting one output name must
+be renamed or separated; even replacement cannot silently combine them.
+
+Valid conversion receipts are reused, including receipts for numbered output.
+Changed or missing output can be explicitly regenerated with Replace or Keep
+both. Skip avoids conversion when the primary output already exists. For split
+books, conversion may be needed to identify all output-part names before skipping.
+Unverified skipped originals are retained, with no automatic archival.
+
+At startup, the app checks whether the four saved folders exist and can be
+listed, using the same check for local and remote locations. An inline error
+identifies unavailable paths and offers **Open folders** and **Check saved
+folders again**. The check runs in the background, has a timeout, and creates
+or moves no book folders. Guided setup still checks write access. Automatic
+network retries are not added.
+
 ## What's new in 0.4.0
 
 This build adds **Simple and Advanced views**, the second priority. It includes
@@ -29,8 +186,8 @@ both the Windows installer and portable ZIP.
 - With configured folders, Simple view opens on the queue dashboard. Guided
   setup remains available from Folders & tools.
 
-The conversion engine and your existing conversion options are unchanged by
-this release. Sample-page preview is the next priority, in a later build.
+The conversion engine and your existing conversion options were unchanged by
+the 0.4.0 release.
 
 ## What's new in 0.3.0
 
@@ -126,7 +283,7 @@ Updates require published release assets; merely pushing source changes does
 not make an app update available. This project includes
 `.github/workflows/release.yml`, which builds and tests on Windows and attaches
 `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and `SHA256SUMS` when a release is
-published. The release tag must match the compiled version, currently `v0.4.0`. A manual workflow run
+published. The release tag must match the compiled version, currently `v0.6.1`. A manual workflow run
 builds/tests/packages without publishing. No GitHub release has been published
 by the local build scripts.
 
@@ -236,9 +393,9 @@ before removing its folder; preserve `data` if you want to keep the configuratio
   archive-only files are preserved. Source originals are removed after archive
   copies pass SHA-256 verification. This is a verified copy/remove operation,
   not an atomic network transaction. Do not modify active batches.
-- Converted books are protected against conflicting existing files by default.
-  There is an explicit option to replace them. Two selected inputs that would
-  produce the same book name are stopped for review, even with replacement on.
+- Converted books use your chosen duplicate policy: review, replace, keep both
+  or skip. Two selected inputs that would produce the same book name are stopped
+  for review, including loose inputs of different formats.
 - JPEG XL preprocessing currently applies to **CBZ only**. It creates a new
   CBZ with PNG replacements on the working share, retaining page paths and other
   contents. Original CBZs stay unchanged. A missing decoder, decoding failure
@@ -259,15 +416,16 @@ before removing its folder; preserve `data` if you want to keep the configuratio
 
 ## Tool sources and compatibility
 
-- [KCC releases](https://github.com/ciromattia/kcc/releases)
+- [Approved KCC CLI 12.0.0 release](https://github.com/ciromattia/kcc/releases/tag/v12.0.0)
 - [KCC KindleGen and 7-Zip setup](https://github.com/ciromattia/kcc/wiki/Installation)
 - [libjxl Windows tools](https://github.com/libjxl/libjxl/releases): choose
   `jxl-x64-windows-static.zip`, extract it, and locate `djxl.exe`.
 
-Device codes and exposed options are based on KCC v12.0.0. Check setup with the
-version you install. The v12.1.1 c2e executable reported a missing PySide6 module
-during the original setup; v12.0.0 was the suggested workaround. GUI/engine tests
-here do not establish compatibility with every device or tool version.
+Device codes, options and the current approval policy use KCC v12.0.0.
+The v12.1.1 c2e executable reported a missing PySide6 module during the original
+setup. The exact 12.0.0 Windows CLI now passes a real generated-CBZ-to-EPUB
+check without Python on PATH. This does not establish compatibility with every
+device, book or tool version; test MOBI output and visual quality on the reader.
 
 ## Build and verify
 
@@ -278,6 +436,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-App.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Workflow.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-JxlPreprocessing.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Upgrades.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Duplicates.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Package-App.ps1 -SkipBuild
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Installer.ps1 -SkipPackage
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Installation.ps1
@@ -305,8 +464,8 @@ Test fixtures are retained in the test report folders or `%TEMP%` for inspection
 The original standalone `Convert-Manga.ps1` remains usable with its old defaults,
 or accepts `-ConfigPath` for the app's saved settings.
 
-The source repository's `ROADMAP.md` tracks the one-improvement-per-build
-priority list. Sample-page preview is next; it is not in this build.
+The source repository's `ROADMAP.md` tracks the current build order. Tray
+controls are next. Archive versioning is deferred; reassessment follows tray work.
 
 ## Repository license notice
 

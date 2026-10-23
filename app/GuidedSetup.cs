@@ -5,6 +5,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace KCCAutomate {
     public partial class Desktop {
@@ -22,7 +24,8 @@ namespace KCCAutomate {
         }
         void ShowGuidedSetup() {
             if(running!=null||asyncBusy)throw new Exception("Finish the current operation before changing setup.");
-            var wizard=new SetupWizard(Window,saved,Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir);
+            string books=File.Exists(Path.Combine(baseDir,"portable.flag"))?Path.Combine(userDir,"Books"):Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"KCCAutomate");
+            var wizard=new SetupWizard(Window,saved,Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir,books);
             if(wizard.Window.ShowDialog()!=true)return;
             Fill(wizard.Result);saved.SetupCompleted=true;var settings=Save();
             if(wizard.EnableSchedule)Start("Manage-Schedule.ps1","-Action Enable","Saving your automatic-check schedule...",false,settings);
@@ -52,12 +55,26 @@ namespace KCCAutomate {
             File.WriteAllText(Path.Combine(current,"settings.json"),"new settings");ImportLegacySettings(current,legacy);
             if(File.ReadAllText(Path.Combine(current,"settings.json"))!="new settings")throw new Exception("Legacy import replaced current settings.");
             results.Add("PASS: earlier working-name settings import preserves originals and never replaces current settings");
-            var wizard=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir);
+            var wizard=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir,Path.Combine(root,"default-books"));
+            wizard.TestToolControls(results);
+            string fixtureSource=Path.Combine(root,"ToolFixtures.cs");
+            File.WriteAllText(fixtureSource,@"using System;using System.IO;using System.Threading;class Fixture{static int Main(){string name=Path.GetFileName(Environment.GetCommandLineArgs()[0]);if(name==""kindlegen.exe""){Console.WriteLine(""Amazon kindlgen(Windows) V2.0 build 0000-kdevld\nA command line e-book compiler"");return 1;}if(name==""djxl.exe""){Console.WriteLine(""JPEG XL decoder djxl"");return 0;}Thread.Sleep(350);Console.WriteLine(""comic2ebook v12.0.0 --profile --format"");return 0;}}");
+            string compiler=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),@"Microsoft.NET\Framework64\v4.0.30319\csc.exe");
+            var compiled=SetupChecks.Run(compiler,"/nologo /target:exe /out:"+Quote(Path.Combine(tools,"kcc-c2e.exe"))+" "+Quote(fixtureSource),20000);
+            if(compiled.Item1!=0)throw new Exception("Automatic-check fixture failed to compile: "+compiled.Item2);
+            File.Copy(Path.Combine(tools,"kcc-c2e.exe"),Path.Combine(tools,"djxl.exe"),true);File.Copy(Path.Combine(tools,"kcc-c2e.exe"),Path.Combine(tools,@"Kindle Previewer 4\lib\fc\bin\kindlegen.exe"),true);
+            var oldContext=System.Threading.SynchronizationContext.Current;System.Threading.SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Window.Dispatcher));
+            var automatic=wizard.TestAutomaticTools(tools,results);var frame=new DispatcherFrame();
+            var timeout=new DispatcherTimer{Interval=TimeSpan.FromSeconds(45)};bool timedOut=false;timeout.Tick+=delegate{timedOut=true;frame.Continue=false;};timeout.Start();
+            automatic.ContinueWith(delegate{Window.Dispatcher.BeginInvoke(new Action(delegate{frame.Continue=false;}));});Dispatcher.PushFrame(frame);timeout.Stop();
+            System.Threading.SynchronizationContext.SetSynchronizationContext(oldContext);if(timedOut)throw new Exception("Automatic setup validation timed out.");automatic.GetAwaiter().GetResult();
             var content=(FrameworkElement)wizard.Window.Content;content.Measure(new Size(960,700));content.Arrange(new Rect(0,0,960,700));
             for(int i=0;i<6;i++) {
                 wizard.RenderStep(i);content.UpdateLayout();var bitmap=new RenderTargetBitmap(960,700,96,96,PixelFormats.Pbgra32);bitmap.Render(content);
                 var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(directory,"wizard-"+i+".png")))encoder.Save(stream);
             }
+            wizard.RenderStep(2);var toolScroll=(System.Windows.Controls.ScrollViewer)wizard.Window.FindName("ToolScroll");toolScroll.ScrollToEnd();content.UpdateLayout();
+            var bottom=new RenderTargetBitmap(960,700,96,96,PixelFormats.Pbgra32);bottom.Render(content);var bottomEncoder=new PngBitmapEncoder();bottomEncoder.Frames.Add(BitmapFrame.Create(bottom));using(var stream=File.Create(Path.Combine(directory,"wizard-tools-bottom.png")))bottomEncoder.Save(stream);
             results.Add("PASS: all six wizard pages load and render without launching a conversion or schedule");
         }
     }

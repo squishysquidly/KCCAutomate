@@ -18,8 +18,11 @@ If the downloaded executable has a version in its name, rename it to
 Keep any companion files supplied with the build. Make sure KindleGen is
 available to this installation (normally supplied via Kindle Previewer).
 Run the executable with `--help` to confirm your installed version accepts
-the options above. The specified v12.1.1 installation was not available during
-script preparation, so compatibility and conversion still require a real test.
+the options above. Version 12.0.0 is the known working fallback reported for
+this workflow; the v12.1.1 c2e build reported a missing PySide6 module. The
+packaged Windows executable bundles Python, so a separate Python installation
+does not repair missing modules inside that bundle. Test representative books
+with any version before enabling automation.
 
 ## JPEG XL pages inside CBZs
 

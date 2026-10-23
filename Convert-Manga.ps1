@@ -8,7 +8,8 @@ param(
     [string]$StopFile,
     [string]$ReportPath,
     [string]$SelectionPath,
-    [switch]$CleanupOnly
+    [switch]$CleanupOnly,
+    [ValidateSet('Review','Replace','KeepBoth','Skip')][string]$ExistingOutputAction
 )
 
 # Windows PowerShell 5.1. Each top-level folder is one archival batch.
@@ -24,10 +25,13 @@ $arguments = @('--profile','KS','--format','MOBI','--manga-style',
 $inputExtensions = @('.cbz')
 $outputExtension = '.mobi'
 $overwriteConverted = $false
+$duplicateAction = 'Review'
 $convertJxl = $true
 $kindlegenExe = ''
+$sevenZipExe = ''
+$approvedKccVersion = ''
 if ($ConfigPath) {
-    $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+    $config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $incoming = $config.WatchFolder
     $output = $config.ConvertedFolder
     $archive = $config.ArchiveFolder
@@ -35,9 +39,14 @@ if ($ConfigPath) {
     $KccExe = $config.KccExe
     $DjxlExe = $config.DjxlExe
     $kindlegenExe = $config.KindlegenExe
+    $sevenZipExe = $config.SevenZipExe
+    $approvedKccVersion = [string]$config.ApprovedKccVersion
+    if ($approvedKccVersion -and $approvedKccVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid approved KCC version in settings. Save settings again in KCCAutomate.' }
     $QuietMinutes = [int]$config.QuietMinutes
     $inputExtensions = @($config.InputExtensions)
     $overwriteConverted = [bool]$config.OverwriteConverted
+    $duplicateAction = if ($config.DuplicateAction) { [string]$config.DuplicateAction } elseif ($overwriteConverted) { 'Replace' } else { 'Review' }
+    if ($duplicateAction -notin @('Review','Replace','KeepBoth','Skip')) { throw 'Choose a supported duplicate action.' }
     $convertJxl = [bool]$config.ConvertJxl
     if ($config.Profile -notmatch '^[A-Za-z0-9]+$') { throw 'Choose a valid device profile.' }
     if ($config.Format -notin @('MOBI','EPUB','CBZ','PDF')) { throw 'Unsupported output format.' }
@@ -75,7 +84,17 @@ for ($i = 0; $i -lt $paths.Count; $i++) {
 $incoming,$output,$archive,$work = $paths
 . (Join-Path $PSScriptRoot 'Workflow-Support.ps1')
 $selectedPaths = $null
-if ($SelectionPath) { $selectedPaths = Get-Content -LiteralPath $SelectionPath -Raw | ConvertFrom-Json }
+if ($SelectionPath) {
+    $selectedPaths = Get-Content -LiteralPath $SelectionPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if (-not $selectedPaths -or -not @($selectedPaths).Count) { throw 'The selection file is empty. No inputs were processed.' }
+    foreach ($selected in $selectedPaths) {
+        if ($selected -isnot [string] -or -not [IO.Path]::IsPathRooted($selected) -or -not ([IO.Path]::GetFullPath($selected)).StartsWith($incoming+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Selected input paths must be files inside the watch folder.' }
+    }
+}
+if ($ExistingOutputAction) {
+    if (-not $selectedPaths -or -not @($selectedPaths).Count) { throw 'A one-run duplicate action requires a nonempty selection file.' }
+    $duplicateAction = $ExistingOutputAction
+}
 
 function Fingerprint($File) {
     '{0}|{1}|{2}' -f $File.FullName, $File.Length, $File.LastWriteTimeUtc.Ticks
@@ -114,6 +133,10 @@ function Invoke-Converter([string]$Executable, [string[]]$Options, [string]$LogF
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
     $start.StandardErrorEncoding = [Text.Encoding]::UTF8
     $start.EnvironmentVariables['PYTHONIOENCODING'] = 'utf-8'
+    if ($sevenZipExe) {
+        if (-not (Test-Path -LiteralPath $sevenZipExe -PathType Leaf)) { throw 'The selected 7-Zip executable is missing. Re-run guided setup.' }
+        $start.EnvironmentVariables['PATH'] = (Split-Path $sevenZipExe -Parent) + ';' + $start.EnvironmentVariables['PATH']
+    }
     if ($kindlegenExe) {
         if (-not (Test-Path -LiteralPath $kindlegenExe -PathType Leaf)) { throw 'The selected KindleGen executable is missing.' }
         $start.EnvironmentVariables['PATH'] = (Split-Path $kindlegenExe -Parent) + ';' + $start.EnvironmentVariables['PATH']
@@ -234,6 +257,14 @@ function Archive-Batch($Batch, [string]$Destination, [string]$ExpectedSnapshot) 
     Remove-Item -LiteralPath $sourcePath -Recurse -Force
 }
 
+function Assert-ApprovedKcc($Check) {
+    if (-not $approvedKccVersion) { return }
+    $version = [regex]::Match($Check.Text, '(?im)^comic2ebook[^\r\n]*?v?(\d+\.\d+\.\d+)(?=\s|$)')
+    if ($Check.ExitCode -ne 0 -or -not $version.Success -or $version.Groups[1].Value -ne $approvedKccVersion) {
+        throw "This KCCAutomate release requires the approved KCC $approvedKccVersion c2e executable. Choose its Windows CLI download in guided setup. Newer KCC builds require maintainer testing and a KCCAutomate update. Originals were retained."
+    }
+}
+
 if ($CheckSetup) {
     foreach ($path in $paths) {
         if (Test-Path -LiteralPath $path -PathType Container) { Write-Output "OK folder: $path" }
@@ -242,6 +273,7 @@ if ($CheckSetup) {
     if (-not (Test-Path -LiteralPath $KccExe -PathType Leaf)) { throw "Select the KCC command-line converter: $KccExe" }
     $check = Invoke-Converter $KccExe @('--help') ''
     Write-Output $check.Text
+    Assert-ApprovedKcc $check
     if ($check.ExitCode -ne 0) { throw 'KCC could not start. Check its installation and dependencies above.' }
     if ($convertJxl) {
         if (-not (Test-Path -LiteralPath $DjxlExe -PathType Leaf)) { throw "Select djxl.exe to enable JPEG XL conversion: $DjxlExe" }
@@ -253,8 +285,8 @@ if ($CheckSetup) {
     return
 }
 if (-not (Test-Path -LiteralPath $incoming -PathType Container)) {
-    Write-Host '@@FOLDERS:Watch folder is unavailable. Check the network connection and account permissions.'
-    throw "Incoming share is unavailable: $incoming"
+    Write-Host '@@FOLDERS:Watch folder is unavailable. Check the drive, connection and account permissions.'
+    throw "Incoming folder is unavailable: $incoming"
 }
 Write-Host '@@FOLDERS:Watch folder is reachable. Output and archive folders are created on demand.'
 if ($Preview) {
@@ -263,6 +295,10 @@ if ($Preview) {
 }
 if (-not $CleanupOnly -and -not (Test-Path -LiteralPath $KccExe -PathType Leaf)) {
     throw "KCC CLI not found: $KccExe. Install the c2e command-line build, or supply -KccExe with its actual path."
+}
+if (-not $CleanupOnly -and $approvedKccVersion) {
+    $check = Invoke-Converter $KccExe @('--help') ''
+    Assert-ApprovedKcc $check
 }
 foreach ($dir in @($output,$archive,$work)) {
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -280,6 +316,7 @@ try {
         Where-Object { $_.Name -notlike 'KCC-*' -and ($_.PSIsContainer -or $_.Extension.ToLowerInvariant() -in $inputExtensions) })
     $plans = @()
     foreach ($batch in $batches) {
+        $files=@()
         try {
             $files = @(BatchFiles $batch)
             if (($batch.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
@@ -311,7 +348,27 @@ try {
                 $queueState[$file.FullName].Fingerprint=Fingerprint $file
             }
             $plans += [pscustomobject]@{ Batch=$batch; Files=$cbzs; Before=$before; ArchivePath=$archivePath; Failed=$false }
-        } catch { $failed = $true; Log "ERROR $($batch.Name): $_"; foreach ($file in @($files | Where-Object { $_.Extension.ToLowerInvariant() -in $inputExtensions })) { Set-QueueRecord $file.FullName 'Failed' ([string]$_) } }
+        } catch { $failed = $true; Log "ERROR $($batch.Name): $_"; foreach ($file in @($files | Where-Object { $_.Extension.ToLowerInvariant() -in $inputExtensions })) { $kind=Get-ConflictKind ([string]$_); Set-QueueRecord $file.FullName $(if($kind){'Conflict'}else{'Failed'}) ([string]$_) '' $kind } }
+    }
+    # Reserve all planned names, including loose files in separate batches.
+    $reservedOutputs=@{}
+    foreach ($plan in $plans) {
+        foreach ($file in $plan.Files) {
+            Select-Conversion $file
+            $relative=$file.FullName.Substring($incoming.Length).TrimStart('\')
+            $target=Join-Path (Join-Path $output (Split-Path $relative -Parent)) (Get-OutputName $file)
+            if (-not $reservedOutputs.ContainsKey($target)) { $reservedOutputs[$target]=@() }
+            $reservedOutputs[$target] += [pscustomobject]@{Plan=$plan;Source=$file.FullName}
+        }
+    }
+    foreach ($target in @($reservedOutputs.Keys)) {
+        if ($reservedOutputs[$target].Count -lt 2) { continue }
+        $failed=$true
+        foreach ($item in $reservedOutputs[$target]) {
+            $item.Plan.Failed=$true
+            Set-QueueRecord $item.Source 'Conflict' 'Multiple selected inputs would create the same output. Rename one or use separate folders.' $target 'MultipleInputs'
+        }
+        Log "ERROR Multiple inputs would create the same output: $target"
     }
     # Format phases guarantee PDFs start only after all eligible CBZs finish.
     foreach ($extension in @('.cbz','.pdf','.epub','.cbr','.cb7') | Where-Object { $_ -in $inputExtensions }) {
@@ -328,14 +385,19 @@ try {
                 $job = Get-JobFolder $cbz
                 $receiptPath = Join-Path $job 'receipt.json'
                 if (Test-Path -LiteralPath $receiptPath) {
-                    $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-                    foreach ($item in $receipt) {
-                        if (-not (Test-Path -LiteralPath $item.Path) -or (Get-FileHash -LiteralPath $item.Path -Algorithm SHA256).Hash -ne $item.Hash) {
-                            throw "Previously published output is missing or changed: $($item.Path)"
-                        }
+                    $validReceipt=$false
+                    try { $validReceipt=Test-Receipt $cbz } catch { $validReceipt=$false }
+                    if ($validReceipt) {
+                        Log "ALREADY CONVERTED: $relative"
+                        Set-QueueRecord $cbz.FullName 'Converted' 'Verified an existing completed conversion.'
+                        continue
                     }
-                    Log "ALREADY CONVERTED: $relative"
-                    Set-QueueRecord $cbz.FullName 'Converted' 'Verified an existing completed conversion.'
+                    if ($duplicateAction -eq 'Review') { throw 'Previously published output is missing or changed. Choose Replace or Keep both for this conflict, or restore the verified output.' }
+                }
+                $nominalTarget=Join-Path $dest (Get-OutputName $cbz)
+                if ($duplicateAction -eq 'Skip' -and (Test-Path -LiteralPath $nominalTarget -PathType Leaf)) {
+                    Set-QueueRecord $cbz.FullName 'Skipped existing output' 'Existing output kept. Incoming originals stay in place until a conversion is verified.' $nominalTarget
+                    Log "SKIPPED existing output; incoming retained: $relative"
                     continue
                 }
                 New-Item -ItemType Directory -Path $job -Force | Out-Null
@@ -358,27 +420,17 @@ try {
                 if (-not $books.Count -or @($books | Where-Object Length -EQ 0).Count) { throw "KCC produced no usable output: $relative. See $job\kcc.log and any kindlegen-log files in $attempt" }
                 if ((Fingerprint (Get-Item -LiteralPath $cbz.FullName)) -ne (Fingerprint $cbz)) { throw "Source changed during conversion: $relative" }
                 New-Item -ItemType Directory -Path $dest -Force | Out-Null
-                $receipt = @()
-                foreach ($book in $books) {
-                    if (-not $book.BaseName.StartsWith('book', [StringComparison]::OrdinalIgnoreCase)) {
-                        throw "Unexpected KCC output filename: $($book.Name)"
-                    }
-                    $publishedName = [IO.Path]::GetFileNameWithoutExtension((Get-OutputName $cbz)) + $book.BaseName.Substring(4) + $outputExtension
-                    $target = Join-Path $dest $publishedName
-                    $hash = (Get-FileHash -LiteralPath $book.FullName -Algorithm SHA256).Hash
-                    if (Test-Path -LiteralPath $target) {
-                        if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $hash) {
-                            if ($overwriteConverted) { Copy-Item -LiteralPath $book.FullName -Destination $target -Force }
-                            else { throw "Different output already exists: $target" }
-                        }
-                    } else { Copy-Item -LiteralPath $book.FullName -Destination $target }
-                    if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $hash) { throw "Output verification failed: $target" }
-                    $receipt += [pscustomobject]@{ Path=$target; Hash=$hash }
+                $publication=Publish-ConvertedBooks $cbz $books $dest $duplicateAction
+                if ($publication.Skipped) {
+                    Set-QueueRecord $cbz.FullName 'Skipped existing output' 'Existing split output kept. Incoming originals stay in place until a conversion is verified.' $publication.Target
+                    Log "SKIPPED existing output; incoming retained: $relative"
+                    continue
                 }
+                $receipt=@($publication.Receipt)
                 ConvertTo-Json -InputObject $receipt | Set-Content -LiteralPath $receiptPath -Encoding UTF8
                 [IO.File]::WriteAllText((Join-Path $attempt 'result.json'), '{"Succeeded":true}')
                 Set-QueueRecord $cbz.FullName 'Converted' 'Output verified; waiting for the rest of its batch.' $receipt[0].Path
-              } catch { $plan.Failed = $true; $failed = $true; Log "ERROR $($plan.Batch.Name): $_"; Set-QueueRecord $cbz.FullName 'Failed' ([string]$_); break }
+              } catch { $plan.Failed = $true; $failed = $true; Log "ERROR $($plan.Batch.Name): $_"; $kind=Get-ConflictKind ([string]$_); Set-QueueRecord $cbz.FullName $(if($kind){'Conflict'}else{'Failed'}) ([string]$_) (Join-Path $dest (Get-OutputName $cbz)) $kind; break }
             }
         }
     }

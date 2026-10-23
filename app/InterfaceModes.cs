@@ -73,9 +73,10 @@ namespace KCCAutomate {
             image.Add(Text("Gamma")=="0"?"automatic gamma":"gamma "+Text("Gamma"));
             Find<TextBlock>("SimpleImageSummary").Text=String.Join(" · ",image)+". These options also apply in Simple view.";
             string ruleText=rules.Count+" folder rule"+(rules.Count==1?"":"s")+" configured";
-            Find<TextBlock>("SimpleFileSummary").Text=(Checked("OverwriteConverted")?"Existing books: replace matching names.":"Existing books: stop on conflicting outputs.")+" Naming: "+Text("OutputNaming")+". "+ruleText+".";
+            Find<TextBlock>("DuplicateDescription").Text=DuplicateDescription();
+            Find<TextBlock>("SimpleFileSummary").Text="Naming: "+Text("OutputNaming")+". "+ruleText+".";
             Find<TextBlock>("SimpleSettingsSummary").Text=(Checked("AutoCleanup")?"Temporary cleanup: on (successful attempts "+Text("SuccessRetentionDays")+" days; failed attempts "+Text("FailureRetentionDays")+" days).":"Temporary cleanup: off.")+"\n"+ruleText+".\nNotification quiet hours: "+(Checked("QuietHoursEnabled")?Text("QuietHoursStart")+" to "+Text("QuietHoursEnd"):"off")+". These preferences keep applying in Simple view.";
-            Find<TextBlock>("SimpleUpdateSource").Text="App update source: "+(Text("UpdateRepository").Length>0?Text("UpdateRepository"):"not set")+". KCC and JXL tools use their official repositories.";
+            Find<TextBlock>("SimpleUpdateSource").Text="App update source: "+(Text("UpdateRepository").Length>0?Text("UpdateRepository"):"not set")+". KCC is pinned to approved CLI "+ReleaseClient.ApprovedKccVersion+"; JXL checks use its official releases.";
             Find<TextBlock>("SimpleScheduleSummary").Text="Wait after files change: "+Text("QuietMinutes")+" minutes. Move completed downloads into the incoming folder.";
         }
 
@@ -98,7 +99,7 @@ namespace KCCAutomate {
             if(LoadInterfaceMode(fixture)!="Simple"||File.ReadAllText(fixture)!="broken JSON")throw new Exception("Damaged view preference was not preserved.");
             File.WriteAllText(fixture,"{\"ViewMode\":\"Unknown\"}");if(LoadInterfaceMode(fixture)!="Simple")throw new Exception("Unknown view was accepted.");
 
-            var settings=new Settings{WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work",Gamma=1.2,Stretch=true,Autolevel=true,ForcePng=true,OverwriteConverted=true,OutputNaming="{name} - {profile}",AutoCleanup=true,QuietHoursEnabled=true,QuietMinutes=45,InputExtensions=new[]{".cbz",".pdf"}};
+            var settings=new Settings{KccExe=@"C:\tools\kcc-c2e.exe",DjxlExe=@"C:\tools\djxl.exe",WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work",Gamma=1.2,Stretch=true,Autolevel=true,ForcePng=true,OverwriteConverted=true,OutputNaming="{name} - {profile}",AutoCleanup=true,QuietHoursEnabled=true,QuietMinutes=45,InputExtensions=new[]{".cbz",".pdf"}};
             var preset=new Preset{Name="View preservation fixture",Options=Options(settings)};presets.Add(preset);
             settings.FolderRules.Add(new FolderRule{Pattern="Series\\*",PresetName=preset.Name});Fill(settings);Navigate(1);Find<ComboBox>("Presets").SelectedItem=preset;
             string draft=ComparableSettings(Read()),savedHash=ReleaseClient.Hash(configPath),presetsHash=ReleaseClient.Hash(presetPath),dirty=Find<TextBlock>("SavedState").Text;
@@ -112,7 +113,7 @@ namespace KCCAutomate {
             if(ReleaseClient.Hash(configPath)!=savedHash)throw new Exception("Switching views saved the conversion file.");
             if(ReleaseClient.Hash(presetPath)!=presetsHash)throw new Exception("Switching views changed the preset file.");
             if(Find<TextBlock>("SavedState").Text!=dirty)throw new Exception("Switching views changed the unsaved-edit indicator: "+dirty+" -> "+Find<TextBlock>("SavedState").Text);
-            if(!Find<TextBlock>("SimpleImageSummary").Text.Contains("Stretching enabled")||!Find<TextBlock>("SimpleImageSummary").Text.Contains("gamma 1.2")||!Find<TextBlock>("SimpleFileSummary").Text.Contains("replace matching")||!Find<TextBlock>("SimpleSettingsSummary").Text.Contains("1 folder rule"))throw new Exception("Simple view hid an active advanced setting without a summary.");
+            if(!Find<TextBlock>("SimpleImageSummary").Text.Contains("Stretching enabled")||!Find<TextBlock>("SimpleImageSummary").Text.Contains("gamma 1.2")||!Find<TextBlock>("DuplicateDescription").Text.Contains("replaced")||!Find<TextBlock>("SimpleSettingsSummary").Text.Contains("1 folder rule"))throw new Exception("Simple view hid an active advanced setting without a summary.");
             var stored=Save();
             if(ComparableSettings(stored)!=draft)throw new Exception("Saving in Simple view changed advanced settings.");
             Find<TextBox>("Gamma").Text="unfinished";SetViewMode("Advanced",true);SetViewMode("Simple",true);
@@ -134,7 +135,12 @@ namespace KCCAutomate {
                 for(int pageNumber=0;pageNumber<6;pageNumber++){Navigate(pageNumber);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-"+pageNumber+".png"),1180,850);}
                 ApplyTheme("Dark");Navigate(1);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-dark.png"),1180,850);ApplyTheme("Light");
                 Navigate(5);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-small.png"),1040,720);
+                Navigate(1);Window.UpdateLayout();Find<ComboBox>("DuplicateAction").BringIntoView();RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-duplicates.png"),1180,850);
             }
+            Find<FrameworkElement>("FolderErrorBanner").Visibility=Visibility.Visible;
+            Find<TextBlock>("FolderErrorText").Text="Some saved folders are unavailable:\nArchive: C:\\Comics\\Archive - Folder is missing, disconnected, or not accessible.\nWorking: \\\\server\\share\\manga_work - Folder is missing, disconnected, or not accessible.";
+            Navigate(0);RenderInterface(Path.Combine(directory,"screen-folder-error.png"),1040,720);
+            Find<FrameworkElement>("FolderErrorBanner").Visibility=Visibility.Collapsed;
             SetViewMode("Simple",false);Navigate(4);
             results.Add("PASS: all six pages rendered in both views, with dark-theme and minimum-window checks");
         }

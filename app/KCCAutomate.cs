@@ -47,8 +47,8 @@ namespace KCCAutomate {
             NewDefaults();
             Version = 1;
             WatchFolder = ConvertedFolder = ArchiveFolder = WorkFolder = "";
-            KccExe = @"C:\Program Files\KindleComicConverter\kcc-c2e.exe";
-            DjxlExe = @"C:\Program Files\KindleComicConverter\jxl\djxl.exe";
+            KccExe = "";
+            DjxlExe = "";
             Profile = "KS"; Format = "MOBI"; MangaStyle = Upscale = ConvertJxl = true;
             QuietMinutes = 30; InputExtensions = new[] { ".cbz" };
             ScheduleTimes = "08:00, 14:00, 20:00";
@@ -98,8 +98,8 @@ namespace KCCAutomate {
         Settings saved;
         bool closing;
         bool constructing = true;
-        static readonly string[] BooleanFields = { "MangaStyle", "Upscale", "Stretch", "Autolevel", "NoAutocontrast", "ForceColor", "ForcePng", "Webtoon", "ConvertJxl", "OverwriteConverted", "WakeComputer" };
-        static readonly string[] PathFields = { "WatchFolder", "ConvertedFolder", "ArchiveFolder", "WorkFolder", "KccExe", "DjxlExe", "KindlegenExe" };
+        static readonly string[] BooleanFields = { "MangaStyle", "Upscale", "Stretch", "Autolevel", "NoAutocontrast", "ForceColor", "ForcePng", "Webtoon", "ConvertJxl", "WakeComputer" };
+        static readonly string[] PathFields = { "WatchFolder", "ConvertedFolder", "ArchiveFolder", "WorkFolder", "KccExe", "DjxlExe", "KindlegenExe", "SevenZipExe" };
         public Desktop(bool testing = false, string testDirectory = null) {
             userDir = testing ? (testDirectory ?? Path.Combine(baseDir,"test-settings")) : GetSettingsDirectory(baseDir);
             configPath = Path.Combine(userDir, "settings.json");
@@ -127,13 +127,14 @@ namespace KCCAutomate {
             Wire();
             InitializeEnhancements(testing);
             InitializeInterfaceModes();
+            InitializeFolderAvailability();
             Navigate(viewMode=="Simple"&&!String.IsNullOrWhiteSpace(saved.WatchFolder)?4:0);
             constructing = false;
             if (!String.IsNullOrWhiteSpace(saved.WatchFolder)) Status("Your settings are ready. Preview the queue or run a conversion.");
             if (!testing) {
                 timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
                 timer.Tick += Tick; timer.Start();
-                Window.ContentRendered+=delegate {if(!saved.SetupCompleted)ShowGuidedSetup();};
+                Window.ContentRendered+=async delegate {if(!saved.SetupCompleted)ShowGuidedSetup();await CheckSavedFolders();};
             }
         }
         T Find<T>(string name) where T : class {
@@ -160,7 +161,8 @@ namespace KCCAutomate {
             On("ArchiveBrowse", delegate { Folder("ArchiveFolder"); }); On("WorkBrowse", delegate { Folder("WorkFolder"); });
             On("KccBrowse", delegate { Executable("KccExe"); }); On("DjxlBrowse", delegate { Executable("DjxlExe"); });
             On("KindlegenBrowse",delegate {Executable("KindlegenExe");});
-            On("KccLink", delegate { Open("https://github.com/ciromattia/kcc/releases"); });
+            On("SevenZipBrowse",delegate {Executable("SevenZipExe");});
+            On("KccLink", delegate { Open(ReleaseClient.ApprovedKccDownload); });
             On("JxlLink", delegate { Open("https://github.com/libjxl/libjxl/releases"); });
             On("SaveSettings", delegate { Save(); Status("Conversion settings saved. To change scheduled times, use Save & enable schedule."); });
             On("RunNow", delegate {
@@ -187,7 +189,7 @@ namespace KCCAutomate {
             foreach (var name in BooleanFields.Concat(new[] {"InputCbz","InputPdf","InputEpub","InputCbr","InputCb7"})) {
                 Find<CheckBox>(name).Checked += delegate { Dirty(); }; Find<CheckBox>(name).Unchecked += delegate { Dirty(); };
             }
-            foreach (var name in new[] {"Profile","OutputFormat","Splitter","Cropping"}) Find<ComboBox>(name).SelectionChanged += delegate { Dirty(); };
+            foreach (var name in new[] {"Profile","OutputFormat","Splitter","Cropping","DuplicateAction"}) Find<ComboBox>(name).SelectionChanged += delegate { Dirty(); };
             Window.Closing += delegate(object sender, System.ComponentModel.CancelEventArgs e) {
                 if (!closing && (running != null || asyncBusy)) { e.Cancel = true; MessageBox.Show(Window,"An operation is still running. Let it finish before closing. For conversions, use Stop after this file.","KCCAutomate"); }
             };
@@ -276,6 +278,7 @@ namespace KCCAutomate {
             ValidateFolders(s);
             if (String.IsNullOrEmpty(s.KccExe) || !Path.IsPathRooted(s.KccExe) || !s.KccExe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase)) throw new Exception("Choose the KCC command-line .exe in Folders & tools.");
             if (s.ConvertJxl && (String.IsNullOrEmpty(s.DjxlExe) || !Path.IsPathRooted(s.DjxlExe) || !s.DjxlExe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase))) throw new Exception("Choose djxl.exe, or turn off JPEG XL preprocessing.");
+            if (!String.IsNullOrWhiteSpace(s.SevenZipExe) && (!Path.IsPathRooted(s.SevenZipExe) || !Path.GetFileName(s.SevenZipExe).Equals("7z.exe",StringComparison.OrdinalIgnoreCase))) throw new Exception("Choose 7z.exe using its full path, or clear the optional 7-Zip path.");
             ValidateConversion(s);
         }
         public static void ValidateFolders(Settings s) {
@@ -359,7 +362,7 @@ namespace KCCAutomate {
         public static void SelfTest(string report) {
             var results = new List<string>();
             var desktop = new Desktop(true,Path.Combine(Path.GetDirectoryName(report),"desktop-settings"));
-            var s = new Settings { WatchFolder = @"C:\test\in", ConvertedFolder = @"C:\test\out", ArchiveFolder = @"C:\test\archive", WorkFolder = @"C:\test\work" };
+            var s = new Settings { WatchFolder = @"C:\test\in", ConvertedFolder = @"C:\test\out", ArchiveFolder = @"C:\test\archive", WorkFolder = @"C:\test\work", KccExe=@"C:\tools\kcc-c2e.exe",DjxlExe=@"C:\tools\djxl.exe" };
             Validate(s); results.Add("PASS: separate folders accepted");
             s.ArchiveFolder = @"C:\test\in\archive";
             try { Validate(s); throw new Exception("Nested path accepted"); } catch (Exception ex) { if (!ex.Message.Contains("four folders")) throw; }

@@ -1,7 +1,20 @@
-param([string]$ConfigPath)
+param([string]$ConfigPath,[switch]$AvailabilityOnly)
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
-$settings=Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+$settings=Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($AvailabilityOnly) {
+    $errors=@()
+    foreach ($pair in @(@('Incoming','WatchFolder'),@('Converted','ConvertedFolder'),@('Archive','ArchiveFolder'),@('Working','WorkFolder'))) {
+        $path=[string]$settings.($pair[1])
+        try {
+            if (-not $path -or -not [IO.Path]::IsPathRooted($path) -or -not [IO.Directory]::Exists($path)) { throw 'Folder is missing, disconnected, or not accessible.' }
+            $iterator=[IO.Directory]::EnumerateFileSystemEntries($path).GetEnumerator()
+            try { [void]$iterator.MoveNext() } finally { $iterator.Dispose() }
+        } catch { $errors += $pair[0]+': '+$path+' - '+$_.Exception.Message }
+    }
+    [pscustomobject]@{Ready=($errors.Count -eq 0);Message=($errors -join "`n")}|ConvertTo-Json -Compress
+    return
+}
 $work=$settings.WorkFolder
 if (-not (Test-Path -LiteralPath $work -PathType Container)) { throw 'Working folder is unavailable or has not been created yet.' }
 $files=@(Get-ChildItem -LiteralPath $work -File -Recurse -Force | Where-Object { -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) })

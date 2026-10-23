@@ -21,6 +21,9 @@ jobs:
           ./Test-Workflow.ps1
           ./Test-JxlPreprocessing.ps1
           ./Test-Upgrades.ps1
+          ./Test-Duplicates.ps1
+          ./Test-ToolSetup.ps1
+          ./Test-KccCompatibility.ps1
       - name: Test desktop and update validation without opening a window
         shell: powershell
         run: |

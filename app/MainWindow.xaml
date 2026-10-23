@@ -48,9 +48,10 @@
         <DockPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center"><TextBlock Text="View" VerticalAlignment="Center" Margin="0,0,10,0"/><Button x:Name="SimpleView" Content="Simple" Padding="13,8" AutomationProperties.Name="Switch to Simple view"/><Button x:Name="AdvancedView" Content="Advanced" Padding="13,8" Margin="0" AutomationProperties.Name="Switch to Advanced view"/></StackPanel><TextBlock Text="A quieter way to convert." FontSize="27" FontWeight="SemiBold" TextWrapping="Wrap"/></DockPanel>
         <TextBlock x:Name="ViewDescription" Text="Everyday controls. Your saved advanced settings still apply." Style="{StaticResource Hint}" Margin="0,8,0,16"/>
       </StackPanel>
-      <Border Grid.Row="1" Background="{DynamicResource SoftBrush}" CornerRadius="7" Padding="13,10" Margin="0,0,0,18">
+      <StackPanel Grid.Row="1"><Border x:Name="FolderErrorBanner" Visibility="Collapsed" Background="#FAE8E7" CornerRadius="7" Padding="13,10" Margin="0,0,0,12"><StackPanel><ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="FolderErrorText" Foreground="#792A25" TextWrapping="Wrap"/></ScrollViewer><WrapPanel Margin="0,10,0,0"><Button x:Name="OpenFoldersFromError" Content="Open folders"/><Button x:Name="RecheckFolders" Content="Check saved folders again"/></WrapPanel></StackPanel></Border>
+      <Border Background="{DynamicResource SoftBrush}" CornerRadius="7" Padding="13,10" Margin="0,0,0,18">
         <TextBlock x:Name="Status" Text="Start by choosing your folders and converter." TextWrapping="Wrap"/>
-      </Border>
+      </Border></StackPanel>
       <TabControl x:Name="Pages" Grid.Row="2" BorderThickness="0" Background="Transparent" Padding="0">
         <TabItem Header="Folders">
           <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
@@ -59,16 +60,16 @@
                 <TextBlock Text="A home for every stage" FontSize="20" FontWeight="SemiBold"/>
                 <Button x:Name="GuidedSetup" Content="Guided setup" HorizontalAlignment="Left" Margin="0,12,0,0"/>
                 <TextBlock Text="Local folders and network shares are welcome. Keep these locations separate." Style="{StaticResource Hint}"/>
-                <TextBlock Text="Watch folder" Style="{StaticResource Label}"/>
+                <TextBlock Text="Incoming/Watch Folder (The folder you place the original comics/manga you're trying to convert)" TextWrapping="Wrap" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="WatchBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="WatchFolder" AutomationProperties.Name="Watch folder"/></DockPanel>
                 <TextBlock Text="Drop completed downloads here. Subfolders retain their structure." Style="{StaticResource Hint}"/>
-                <TextBlock Text="Converted books" Style="{StaticResource Label}"/>
+                <TextBlock Text="Converted (Folder where converted books will be placed)" TextWrapping="Wrap" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="ConvertedBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="ConvertedFolder" AutomationProperties.Name="Converted books folder"/></DockPanel>
-                <TextBlock Text="Archive of originals" Style="{StaticResource Label}"/>
+                <TextBlock Text="Originals (Folder where original comics/manga will be moved to after conversion)" TextWrapping="Wrap" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="ArchiveBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="ArchiveFolder" AutomationProperties.Name="Archive folder"/></DockPanel>
                 <TextBlock Text="Matching archived files are replaced. Other archived files are kept." Style="{StaticResource Hint}"/>
                 <TextBlock x:Name="SimpleWorkSummary" Style="{StaticResource Hint}"/>
-                <Expander x:Name="AdvancedWork" Header="Working folder" Margin="0,8,0,0"><StackPanel><TextBlock Text="Temporary books, receipts and logs. Use a separate folder on the same network share to keep processing there." Style="{StaticResource Hint}"/><DockPanel><Button x:Name="WorkBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="WorkFolder" AutomationProperties.Name="Working folder"/></DockPanel></StackPanel></Expander>
+                <Expander x:Name="AdvancedWork" Header="Working folder" Margin="0,8,0,0"><StackPanel><TextBlock Text="Temporary books, receipts and logs. Choose a separate local or network folder; use the same share as your books to keep processing there." Style="{StaticResource Hint}"/><DockPanel><Button x:Name="WorkBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="WorkFolder" AutomationProperties.Name="Working folder"/></DockPanel></StackPanel></Expander>
               </StackPanel></Border>
               <Border x:Name="SimpleToolsCard" Style="{StaticResource Card}"><StackPanel><TextBlock Text="Your conversion tools" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="SimpleToolsSummary" Style="{StaticResource Hint}"/><TextBlock Text="Use guided setup to find and check your tools, or open Advanced view to edit their paths." Style="{StaticResource Hint}"/><Button x:Name="ShowAdvancedTools" Content="Show tool settings" HorizontalAlignment="Left"/></StackPanel></Border>
               <Border x:Name="AdvancedToolsCard" Style="{StaticResource Card}"><StackPanel>
@@ -76,13 +77,16 @@
                 <TextBlock Text="Select existing tools once. KCCAutomate remembers them; nothing is downloaded automatically." Style="{StaticResource Hint}"/>
                 <TextBlock Text="KCC command-line converter (c2e)" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="KccBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="KccExe" AutomationProperties.Name="KCC executable"/></DockPanel>
-                <TextBlock Text="For MOBI, place KindleGen beside KCC or install Kindle Previewer. The graphical KCC executable is not the c2e converter." Style="{StaticResource Hint}"/>
+                <TextBlock Text="Use the approved tool_cli_c2e_12.0.0_AMD64.exe or kcc-c2e.exe. It bundles Python and its Python libraries; the KCC GUI and separate Python installation are unnecessary. Use guided setup to check its version and copy tools." Style="{StaticResource Hint}"/>
                 <TextBlock Text="KindleGen executable (optional if KCC already finds it)" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="KindlegenBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="KindlegenExe" AutomationProperties.Name="KindleGen executable"/></DockPanel>
                 <CheckBox x:Name="ConvertJxl" Content="Automatically convert JPEG XL pages to PNG"/>
                 <DockPanel><Button x:Name="DjxlBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="DjxlExe" AutomationProperties.Name="JPEG XL decoder executable"/></DockPanel>
                 <TextBlock Text="Choose libjxl's djxl.exe. Originals stay unchanged. JXL books are stopped if this is disabled." Style="{StaticResource Hint}"/>
-                <StackPanel Orientation="Horizontal"><Button x:Name="CheckTools" Content="Check setup"/><Button x:Name="KccLink" Content="Get KCC"/><Button x:Name="JxlLink" Content="Get JXL tools"/></StackPanel>
+                <TextBlock Text="7-Zip executable (optional archive support)" Style="{StaticResource Label}"/>
+                <DockPanel><Button x:Name="SevenZipBrowse" DockPanel.Dock="Right" Content="Choose 7z.exe" Margin="10,0,0,0"/><TextBox x:Name="SevenZipExe" AutomationProperties.Name="7-Zip executable"/></DockPanel>
+                <TextBlock Text="Guided setup can import .zip/.7z JXL packages and copy tools into KCCAutomate's tools folder. Direct edits here use the selected locations." Style="{StaticResource Hint}"/>
+                <StackPanel Orientation="Horizontal"><Button x:Name="CheckTools" Content="Check setup"/><Button x:Name="KccLink" Content="Get approved KCC CLI"/><Button x:Name="JxlLink" Content="Get JXL tools"/></StackPanel>
               </StackPanel></Border>
             </StackPanel>
           </ScrollViewer>
@@ -125,8 +129,10 @@
               <WrapPanel Margin="0,12,0,0"><CheckBox x:Name="InputCbz" Content="CBZ"/><CheckBox x:Name="InputPdf" Content="PDF"/><CheckBox x:Name="InputEpub" Content="EPUB"/><CheckBox x:Name="InputCbr" Content="CBR"/><CheckBox x:Name="InputCb7" Content="CB7"/></WrapPanel>
               <TextBlock Text="CBZs run first, then PDFs, EPUBs, CBRs and CB7s. These settings are for image-based comics and manga. A folder moves only when all selected inputs succeed; unselected files move along with it." Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleFileSummary" Style="{StaticResource Hint}"/>
-              <StackPanel x:Name="AdvancedFileControls"><CheckBox x:Name="OverwriteConverted" Content="Replace existing converted books with matching names"/>
-              <TextBlock Text="Leave off to stop on conflicting outputs. Two inputs with the same output name in one folder are always flagged for review." Style="{StaticResource Hint}"/>
+              <TextBlock Text="When converted output already exists" Style="{StaticResource Label}"/>
+              <ComboBox x:Name="DuplicateAction" AutomationProperties.Name="Default action for existing converted output"><ComboBoxItem Content="Review conflicts and keep incoming" IsSelected="True"/><ComboBoxItem Content="Replace existing converted books"/><ComboBoxItem Content="Keep both with numbered filenames"/><ComboBoxItem Content="Skip existing output and keep incoming"/></ComboBox>
+              <TextBlock x:Name="DuplicateDescription" Style="{StaticResource Hint}"/>
+              <StackPanel x:Name="AdvancedFileControls">
               <TextBlock Text="Output naming" Style="{StaticResource Label}"/><TextBox x:Name="OutputNaming" Text="{}{name}"/>
               <TextBlock Text="Use {name}, {profile} and {format}. Example: {name} - {profile}. The file extension is added automatically." Style="{StaticResource Hint}"/>
               </StackPanel>
@@ -139,7 +145,7 @@
               <TextBlock x:Name="QueueSummary" Text="Refresh to inspect incoming books and recent results." Style="{StaticResource Hint}"/>
               <TextBlock x:Name="QueueNetwork" Text="Folder availability has not been checked yet." Style="{StaticResource Hint}" Margin="0,0,0,8"/>
               <TextBlock x:Name="QueueSchedule" Text="Check schedule to see the next automatic run." Style="{StaticResource Hint}"/>
-              <WrapPanel Margin="0,0,0,12"><Button x:Name="RefreshQueue" Content="Refresh queue"/><Button x:Name="RetrySelected" Content="Retry selected failures"/><ComboBox x:Name="QueueFilter" Width="170"><ComboBoxItem Content="All books" IsSelected="True"/><ComboBoxItem Content="Needs attention"/><ComboBoxItem Content="Waiting"/><ComboBoxItem Content="Completed"/></ComboBox></WrapPanel>
+              <WrapPanel Margin="0,0,0,12"><Button x:Name="RefreshQueue" Content="Refresh queue"/><Button x:Name="RetrySelected" Content="Retry selected"/><ComboBox x:Name="QueueFilter" Width="160"><ComboBoxItem Content="All books" IsSelected="True"/><ComboBoxItem Content="Needs attention"/><ComboBoxItem Content="Waiting"/><ComboBoxItem Content="Completed"/></ComboBox><StackPanel Orientation="Horizontal" Margin="12,0,0,0"><TextBlock Text="On retry" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="RetryAction" Width="190" ToolTip="One-run choice for selected output conflicts. Your saved default is unchanged." AutomationProperties.Name="One-run action for selected output conflicts"><ComboBoxItem Content="Saved default" IsSelected="True"/><ComboBoxItem Content="Replace existing"/><ComboBoxItem Content="Keep both"/><ComboBoxItem Content="Skip; keep incoming"/></ComboBox></StackPanel></WrapPanel>
             </StackPanel>
             <DataGrid x:Name="QueueGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" RowHeight="36" HeadersVisibility="Column" BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource SurfaceBrush}" HorizontalScrollBarVisibility="Auto">
               <DataGrid.Columns><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="145"/><DataGridTextColumn Header="Book" Binding="{Binding Name}" Width="*" MinWidth="180"/><DataGridTextColumn Header="JXL pages" Binding="{Binding JxlPages}" Width="75"/><DataGridTextColumn Header="Folder" Binding="{Binding Batch}" Width="140"/></DataGrid.Columns>
@@ -178,13 +184,13 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.4.0" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.6.1" Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleUpdateSource" Style="{StaticResource Hint}"/>
               <StackPanel x:Name="AdvancedRepository"><TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
-              <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. Stable releases only. KCC and libjxl are checked separately against their official repositories." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. App and JXL checks use stable releases; KCC checks use the version manually approved for this KCCAutomate release." Style="{StaticResource Hint}"/>
               </StackPanel>
               <Button x:Name="CheckUpdates" Content="Check GitHub for updates" HorizontalAlignment="Left"/>
-              <DataGrid x:Name="UpdatesGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Height="150" Margin="0,14,0,10" HeadersVisibility="Column"><DataGrid.Columns><DataGridTextColumn Header="Component" Binding="{Binding Component}" Width="*"/><DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="100"/><DataGridTextColumn Header="Latest" Binding="{Binding Latest}" Width="100"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/></DataGrid.Columns></DataGrid>
+              <DataGrid x:Name="UpdatesGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Height="150" Margin="0,14,0,10" HeadersVisibility="Column"><DataGrid.Columns><DataGridTextColumn Header="Component" Binding="{Binding Component}" Width="*"/><DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="100"/><DataGridTextColumn Header="Offered" Binding="{Binding Latest}" Width="100"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/></DataGrid.Columns></DataGrid>
               <TextBox x:Name="ReleaseNotes" IsReadOnly="True" Height="110" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
               <WrapPanel Margin="0,12,0,0"><Button x:Name="DownloadUpdate" Content="Download &amp; verify selected"/><Button x:Name="InstallUpdate" Content="Install / use verified version"/><Button x:Name="RollbackUpdate" Content="Restore previous version"/></WrapPanel>
               <TextBlock Text="Downloads are checked against GitHub's SHA-256 digest. Tools are smoke-tested before switching. App installation waits for conversion to be idle, preserves settings and backs up the current app. Changing repositories changes whom you trust." Style="{StaticResource Hint}"/>
