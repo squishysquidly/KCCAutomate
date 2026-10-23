@@ -1,7 +1,7 @@
 $ErrorActionPreference='Stop'
 $root=Join-Path $PSScriptRoot ('test-results\i-'+[guid]::NewGuid().ToString('N').Substring(0,12))
 New-Item -ItemType Directory -Path $root -Force|Out-Null
-$setup=Join-Path $PSScriptRoot 'dist\MangaFlow-Setup.exe'
+$setup=Join-Path $PSScriptRoot 'dist\KCCAutomate-Setup.exe'
 $target=Join-Path $root 'installed'
 function Run-Installer($Program,$Mode,$Folder){
  $process=Start-Process -FilePath $Program -ArgumentList @($Mode,('"'+$Folder+'"')) -WindowStyle Hidden -Wait -PassThru
@@ -9,12 +9,12 @@ function Run-Installer($Program,$Mode,$Folder){
 }
 Run-Installer $setup '--test-install' $target
 if($installerCode -ne 0){throw (Get-Content -LiteralPath ($target+'.setup-error.txt') -Raw)}
-$manifest=Join-Path $target '.mangaflow-install.json'
+$manifest=Join-Path $target '.kccautomate-install.json'
 if(-not(Test-Path -LiteralPath $manifest)-or(Test-Path -LiteralPath (Join-Path $target 'portable.flag'))){throw 'Installed-mode payload/record incorrect'}
 $record=Get-Content -LiteralPath $manifest -Raw|ConvertFrom-Json
 foreach($name in $record.Files){if(-not(Test-Path -LiteralPath (Join-Path $target $name))){throw "Installed file missing: $name"}}
-$source=Join-Path $PSScriptRoot 'dist\MangaFlow\MangaFlow.exe'
-if((Get-FileHash -LiteralPath $source).Hash -ne (Get-FileHash -LiteralPath (Join-Path $target 'MangaFlow.exe')).Hash){throw 'Installed executable differs'}
+$source=Join-Path $PSScriptRoot 'dist\KCCAutomate\KCCAutomate.exe'
+if((Get-FileHash -LiteralPath $source).Hash -ne (Get-FileHash -LiteralPath (Join-Path $target 'KCCAutomate.exe')).Hash){throw 'Installed executable differs'}
 'PASS: embedded installer payload, checksums, complete installed file set and installed-mode settings separation.'
 New-Item -ItemType Directory -Path (Join-Path $target 'data'),(Join-Path $target 'Books')|Out-Null
 [IO.File]::WriteAllText((Join-Path $target 'data\settings.json'),'keep settings')
@@ -26,11 +26,11 @@ $before=Get-Content -LiteralPath $manifest -Raw
 $record.Files+= '..\outside.txt'
 $record|ConvertTo-Json|Set-Content -LiteralPath $manifest
 [IO.File]::WriteAllText((Join-Path $root 'outside.txt'),'keep outside')
-Run-Installer (Join-Path $PSScriptRoot 'dist\Uninstall-MangaFlow.exe') '--test-remove' $target
-if($installerCode -eq 0-or-not(Test-Path -LiteralPath (Join-Path $target 'MangaFlow.exe'))-or[IO.File]::ReadAllText((Join-Path $root 'outside.txt'))-ne'keep outside'){throw 'Uninstaller accepted an unsafe record'}
+Run-Installer (Join-Path $PSScriptRoot 'dist\Uninstall-KCCAutomate.exe') '--test-remove' $target
+if($installerCode -eq 0-or-not(Test-Path -LiteralPath (Join-Path $target 'KCCAutomate.exe'))-or[IO.File]::ReadAllText((Join-Path $root 'outside.txt'))-ne'keep outside'){throw 'Uninstaller accepted an unsafe record'}
 [IO.File]::WriteAllText($manifest,$before)
-Run-Installer (Join-Path $PSScriptRoot 'dist\Uninstall-MangaFlow.exe') '--test-remove' $target
-if($installerCode -ne 0-or(Test-Path -LiteralPath (Join-Path $target 'MangaFlow.exe'))-or[IO.File]::ReadAllText((Join-Path $target 'data\settings.json'))-ne'keep settings'-or[IO.File]::ReadAllText((Join-Path $target 'Books\original.cbz'))-ne'keep book'){throw 'Safe removal failed'}
+Run-Installer (Join-Path $PSScriptRoot 'dist\Uninstall-KCCAutomate.exe') '--test-remove' $target
+if($installerCode -ne 0-or(Test-Path -LiteralPath (Join-Path $target 'KCCAutomate.exe'))-or[IO.File]::ReadAllText((Join-Path $target 'data\settings.json'))-ne'keep settings'-or[IO.File]::ReadAllText((Join-Path $target 'Books\original.cbz'))-ne'keep book'){throw 'Safe removal failed'}
 'PASS: uninstaller rejects traversal and removes only owned application files, retaining books and settings.'
 $unrelated=Join-Path $root 'unrelated';New-Item -ItemType Directory -Path $unrelated|Out-Null;[IO.File]::WriteAllText((Join-Path $unrelated 'book.cbz'),'do not replace')
 Run-Installer $setup '--test-install' $unrelated

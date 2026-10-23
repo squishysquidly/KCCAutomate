@@ -9,7 +9,7 @@ param(
     [switch]$NoRelaunch
 )
 $ErrorActionPreference='Stop'
-$files=@('MangaFlow.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
+$files=@('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
 $target=[IO.Path]::GetFullPath($TargetDirectory).TrimEnd('\')
 $backup=[IO.Path]::GetFullPath($BackupDirectory).TrimEnd('\')
 if ($target -eq [IO.Path]::GetPathRoot($target).TrimEnd('\') -or $target -eq $backup) { throw 'Invalid update or backup location.' }
@@ -20,7 +20,7 @@ $originals=@()
 $created=@()
 try {
     if ($WaitProcessId -gt 0) { Wait-Process -Id $WaitProcessId -Timeout 60 -ErrorAction SilentlyContinue }
-    if ($WaitProcessId -gt 0 -and (Get-Process -Id $WaitProcessId -ErrorAction SilentlyContinue)) { throw 'MangaFlow did not close; update canceled.' }
+    if ($WaitProcessId -gt 0 -and (Get-Process -Id $WaitProcessId -ErrorAction SilentlyContinue)) { throw 'KCCAutomate did not close; update canceled.' }
     $settings=Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
     $work=[IO.Path]::GetFullPath($settings.WorkFolder)
     New-Item -ItemType Directory -Path $work -Force | Out-Null
@@ -39,7 +39,7 @@ try {
             if (-not $path.StartsWith($target+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid rollback path.' }
             if (Test-Path -LiteralPath $path -PathType Leaf) { Remove-Item -LiteralPath $path -Force }
         }
-        [IO.File]::WriteAllText($resultPath,'The previous MangaFlow version was restored. Your settings and schedule were retained.')
+        [IO.File]::WriteAllText($resultPath,'The previous KCCAutomate version was restored. Your settings and schedule were retained.')
     } else {
         $manifestPath=Join-Path $StageDirectory 'verified-files.json'
         if ((Get-FileHash -LiteralPath $manifestPath).Hash -ne $ManifestHash) { throw 'The staged update manifest changed.' }
@@ -68,7 +68,7 @@ try {
             }
             throw
         }
-        [IO.File]::WriteAllText($resultPath,'MangaFlow was updated. Your settings, tool versions and schedule were retained. A rollback copy is available.')
+        [IO.File]::WriteAllText($resultPath,'KCCAutomate was updated. Your settings, tool versions and schedule were retained. A rollback copy is available.')
     }
 } catch {
     [IO.File]::WriteAllText($resultPath,"Update was not completed: $_. Check folder permissions and ensure no scheduled conversion is running.")
@@ -76,6 +76,6 @@ try {
     $global:LASTEXITCODE=1
 } finally {
     if ($lock) { $lock.Dispose() }
-    if (-not $NoRelaunch) { Start-Process -FilePath (Join-Path $target 'MangaFlow.exe') -WorkingDirectory $target }
+    if (-not $NoRelaunch) { Start-Process -FilePath (Join-Path $target 'KCCAutomate.exe') -WorkingDirectory $target }
 }
 if ($global:LASTEXITCODE -eq 1) { exit 1 }

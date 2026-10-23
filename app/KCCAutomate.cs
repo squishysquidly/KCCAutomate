@@ -15,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 
-namespace MangaFlow {
+namespace KCCAutomate {
     public partial class Settings {
         public int Version { get; set; }
         public string WatchFolder { get; set; }
@@ -74,13 +74,13 @@ namespace MangaFlow {
                     return;
                 }
                 bool created;
-                using (var mutex = new Mutex(true, @"Local\MangaFlow-Desktop", out created)) {
-                    if (!created) { MessageBox.Show("MangaFlow is already open.", "MangaFlow"); return; }
+                using (var mutex = new Mutex(true, @"Local\KCCAutomate-Desktop", out created)) {
+                    if (!created) { MessageBox.Show("KCCAutomate is already open.", "KCCAutomate"); return; }
                     var app = new Application();
                     var desktop = new Desktop();
                     app.Run(desktop.Window);
                 }
-            } catch (Exception ex) { MessageBox.Show(ex.Message, "MangaFlow couldn't start", MessageBoxButton.OK, MessageBoxImage.Error); }
+            } catch (Exception ex) { MessageBox.Show(ex.Message, "KCCAutomate couldn't start", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
     }
     public partial class Desktop {
@@ -103,6 +103,7 @@ namespace MangaFlow {
         public Desktop(bool testing = false, string testDirectory = null) {
             userDir = testing ? (testDirectory ?? Path.Combine(baseDir,"test-settings")) : GetSettingsDirectory(baseDir);
             configPath = Path.Combine(userDir, "settings.json");
+            if(!testing&&!File.Exists(Path.Combine(baseDir,"portable.flag")))ImportLegacySettings(userDir,Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MangaFlow"));
             using (var reader = new StreamReader(Path.Combine(baseDir, "MainWindow.xaml"))) Window = (Window)XamlReader.Load(reader.BaseStream);
             var devices = new[] {
                 new Device("KS","Kindle Scribe 2022 / 2024"), new Device("KS3","Kindle Scribe 2025"),
@@ -148,7 +149,7 @@ namespace MangaFlow {
             box.AppendText(line + Environment.NewLine); box.ScrollToEnd();
         }
         void On(string name, Action action) {
-            Find<Button>(name).Click += delegate { try { action(); } catch (Exception ex) { Status(ex.Message); MessageBox.Show(Window, ex.Message, "MangaFlow", MessageBoxButton.OK, MessageBoxImage.Information); } };
+            Find<Button>(name).Click += delegate { try { action(); } catch (Exception ex) { Status(ex.Message); MessageBox.Show(Window, ex.Message, "KCCAutomate", MessageBoxButton.OK, MessageBoxImage.Information); } };
         }
         void Wire() {
             On("GuidedSetup",ShowGuidedSetup);
@@ -187,7 +188,7 @@ namespace MangaFlow {
             }
             foreach (var name in new[] {"Profile","OutputFormat","Splitter","Cropping"}) Find<ComboBox>(name).SelectionChanged += delegate { Dirty(); };
             Window.Closing += delegate(object sender, System.ComponentModel.CancelEventArgs e) {
-                if (!closing && (running != null || asyncBusy)) { e.Cancel = true; MessageBox.Show(Window,"An operation is still running. Let it finish before closing. For conversions, use Stop after this file.","MangaFlow"); }
+                if (!closing && (running != null || asyncBusy)) { e.Cancel = true; MessageBox.Show(Window,"An operation is still running. Let it finish before closing. For conversions, use Stop after this file.","KCCAutomate"); }
             };
         }
         void Dirty() { if (!constructing) Find<TextBlock>("SavedState").Text = "Unsaved changes"; }

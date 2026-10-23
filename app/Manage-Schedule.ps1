@@ -4,7 +4,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
-$taskName = 'MangaFlow-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$taskName = 'KCCAutomate-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 if ($Action -eq 'Disable') {
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($existing) { Disable-ScheduledTask -TaskName $taskName | Out-Null }
@@ -13,7 +13,7 @@ if ($Action -eq 'Disable') {
 }
 if ($Action -eq 'Status') {
     $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-    if (-not $task) { Write-Output 'No MangaFlow schedule is installed for this Windows account.'; return }
+    if (-not $task) { Write-Output 'No KCCAutomate schedule is installed for this Windows account.'; return }
     $info = Get-ScheduledTaskInfo -TaskName $taskName
     Write-Output "Schedule: $($task.State). Next check: $($info.NextRunTime). Last result: $($info.LastTaskResult)."
     return
@@ -36,5 +36,5 @@ $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIden
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Days 2) `
     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun:([bool]$config.WakeComputer)
 Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $triggers -Principal $principal -Settings $settings `
-    -Description 'MangaFlow: convert selected comic formats, verify outputs, then archive originals.' -Force | Out-Null
-Write-Output "Automatic checks enabled at $($config.ScheduleTimes), while your Windows account is signed in. You may close MangaFlow."
+    -Description 'KCCAutomate: convert selected comic formats, verify outputs, then archive originals.' -Force | Out-Null
+Write-Output "Automatic checks enabled at $($config.ScheduleTimes), while your Windows account is signed in. You may close KCCAutomate."

@@ -1,4 +1,4 @@
-# Publishing a MangaFlow release
+# Publishing a KCCAutomate release
 
 The default updater repository is `squishysquidly/KCCAutomate`. The updater
 reads public stable GitHub Releases, not the repository's current source files.
@@ -15,11 +15,11 @@ The current app version is **0.3.0**.
    Installed apps entry, setup completion, and uninstall. Automated fixture tests
    deliberately skip those Windows integration changes. Test at least one real
    conversion on your own installation too.
-3. Optionally run the **Build and package MangaFlow** workflow manually to check
+3. Optionally run the **Build and package KCCAutomate** workflow manually to check
    the hosted Windows build. A manual run does not publish a release.
 4. Create and publish a GitHub release with tag **v0.3.0** on the commit containing
    these sources. The workflow checks that the tag matches the compiled version,
-   runs the tests and attaches `MangaFlow-Setup.exe`, `MangaFlow-Windows.zip` and
+   runs the tests and attaches `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and
    `SHA256SUMS`.
 5. Wait for the workflow to finish and confirm all three assets appear on the release.
    Then test **Check GitHub for updates** from an older local app version, or
@@ -27,7 +27,7 @@ The current app version is **0.3.0**.
    Keep the previous version and settings backup until you verify conversion.
 
 If using manual uploads, run `Build-Installer.ps1` and attach the three files from
-`dist/` to a GitHub release. The ZIP must keep the `MangaFlow/` top-level folder.
+`dist/` to a GitHub release. The ZIP must keep the `KCCAutomate/` top-level folder.
 GitHub must expose the asset's SHA-256 digest; the updater blocks assets without
 one. SHA-256 protects download integrity. Signing the executable/package with a
 publisher certificate is a separate future step.

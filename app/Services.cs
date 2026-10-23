@@ -12,8 +12,8 @@ using System.Web.Script.Serialization;
 
 [assembly: AssemblyVersion("0.3.0.0")]
 [assembly: AssemblyFileVersion("0.3.0.0")]
-[assembly: AssemblyProduct("MangaFlow")]
-namespace MangaFlow {
+[assembly: AssemblyProduct("KCCAutomate")]
+namespace KCCAutomate {
     public partial class Settings {
         public string OutputNaming { get; set; }
         public bool AutoCleanup { get; set; }
@@ -85,7 +85,7 @@ namespace MangaFlow {
         static HttpWebRequest Request(string url) {
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
             var request=(HttpWebRequest)WebRequest.Create(url);
-            request.UserAgent="MangaFlow/"+AppVersion; request.Timeout=20000; request.ReadWriteTimeout=20000;
+            request.UserAgent="KCCAutomate/"+AppVersion; request.Timeout=20000; request.ReadWriteTimeout=20000;
             request.Accept="application/vnd.github+json"; return request;
         }
         public static UpdateRow Check(string component,string repo,string installed) {
@@ -107,7 +107,7 @@ namespace MangaFlow {
             var assets=json.ConvertToType<List<Dictionary<string,object>>>(data["assets"]);
             foreach(var asset in assets) {
                 var name=Convert.ToString(asset["name"]);
-                bool match=component=="MangaFlow" ? name.Equals("MangaFlow-Windows.zip",StringComparison.OrdinalIgnoreCase) :
+                bool match=component=="KCCAutomate" ? name.Equals("KCCAutomate-Windows.zip",StringComparison.OrdinalIgnoreCase) :
                     component=="KCC" ? Regex.IsMatch(name,@"^tool_cli_c2e_.*_AMD64\.exe$",RegexOptions.IgnoreCase) :
                     name.Equals("jxl-x64-windows-static.zip",StringComparison.OrdinalIgnoreCase);
                 if (match) { row.Asset=new ReleaseAsset {Name=name,Url=Convert.ToString(asset["browser_download_url"]),Digest=asset.ContainsKey("digest") ? Convert.ToString(asset["digest"]) : "",Size=Convert.ToInt64(asset["size"])}; break; }
@@ -134,8 +134,8 @@ namespace MangaFlow {
             Verify(path,row.Asset.Digest);
             if (path.EndsWith(".zip",StringComparison.OrdinalIgnoreCase)) {
                 var extract=Path.Combine(directory,"payload"); SafeExtract(path,extract);
-                if(row.Component=="MangaFlow") {
-                    var folder=Path.Combine(extract,"MangaFlow");
+                if(row.Component=="KCCAutomate") {
+                    var folder=Path.Combine(extract,"KCCAutomate");
                     foreach(var required in RequiredFiles) if(!File.Exists(Path.Combine(folder,required))) throw new Exception("The app release is incomplete: "+required);
                     return folder;
                 }
@@ -145,7 +145,7 @@ namespace MangaFlow {
             }
             return path;
         }
-        public static readonly string[] RequiredFiles={"MangaFlow.exe","MainWindow.xaml","Convert-Manga.ps1","Workflow-Support.ps1","Manage-Schedule.ps1","Read-Log.ps1","Notify-Result.ps1","Apply-Update.ps1","Workspace-Info.ps1","README.md"};
+        public static readonly string[] RequiredFiles={"KCCAutomate.exe","MainWindow.xaml","Convert-Manga.ps1","Workflow-Support.ps1","Manage-Schedule.ps1","Read-Log.ps1","Notify-Result.ps1","Apply-Update.ps1","Workspace-Info.ps1","README.md"};
         public static void SafeExtract(string zipPath,string destination) {
             string prefix=Path.GetFullPath(destination).TrimEnd('\\')+"\\";
             Directory.CreateDirectory(destination);

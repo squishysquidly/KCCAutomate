@@ -11,8 +11,8 @@ try {
     $icon=New-Object Windows.Forms.NotifyIcon
     try {
         $icon.Icon=[Drawing.SystemIcons]::Information; $icon.Visible=$true
-        $message=if ($Failed) { 'Some books need attention. Open MangaFlow and refresh the queue for details.' } else { 'The conversion check finished. Open MangaFlow to see the results.' }
-        $icon.ShowBalloonTip(4000,'MangaFlow',$message,[Windows.Forms.ToolTipIcon]::Info)
+        $message=if ($Failed) { 'Some books need attention. Open KCCAutomate and refresh the queue for details.' } else { 'The conversion check finished. Open KCCAutomate to see the results.' }
+        $icon.ShowBalloonTip(4000,'KCCAutomate',$message,[Windows.Forms.ToolTipIcon]::Info)
         Start-Sleep -Seconds 4
     } finally { $icon.Dispose() }
 } catch { Write-Host "Desktop notification unavailable: $_" }

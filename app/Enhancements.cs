@@ -13,7 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace MangaFlow {
+namespace KCCAutomate {
     public partial class Desktop {
         public static void MigrateUpdateSource(Settings settings) {
             // Only migrate the former built-in source; preserve custom sources.
@@ -59,11 +59,11 @@ namespace MangaFlow {
             On("SavePreset",SaveCurrentPreset); On("ApplyPreset",delegate {var p=Find<ComboBox>("Presets").SelectedItem as Preset; if(p==null) throw new Exception("Select a preset first."); ApplyOptions(p.Options); Dirty();});
             On("DeletePreset",delegate {var p=Find<ComboBox>("Presets").SelectedItem as Preset; if(p==null) return; if(rules.Any(r=>r.PresetName==p.Name)) throw new Exception("Remove rules referring to this preset first."); presets.Remove(p); SavePresets();});
             On("ExportPresets",delegate {
-                var dialog=new Microsoft.Win32.SaveFileDialog {Filter="MangaFlow presets (*.json)|*.json",FileName="MangaFlow-presets.json"};
+                var dialog=new Microsoft.Win32.SaveFileDialog {Filter="KCCAutomate presets (*.json)|*.json",FileName="KCCAutomate-presets.json"};
                 if(dialog.ShowDialog(Window)==true) File.WriteAllText(dialog.FileName,json.Serialize(presets));
             });
             On("ImportPresets",delegate {
-                var dialog=new Microsoft.Win32.OpenFileDialog {Filter="MangaFlow presets (*.json)|*.json"};
+                var dialog=new Microsoft.Win32.OpenFileDialog {Filter="KCCAutomate presets (*.json)|*.json"};
                 if(dialog.ShowDialog(Window)!=true) return;
                 if(new FileInfo(dialog.FileName).Length>1000000) throw new Exception("Preset file is too large.");
                 var imported=json.Deserialize<List<Preset>>(File.ReadAllText(dialog.FileName));
@@ -166,7 +166,7 @@ namespace MangaFlow {
             }
             if(line.StartsWith("@@SPACE:")) {Find<TextBlock>("SpaceUsage").Text=line.Substring(8);return true;}
             if(line.StartsWith("@@FOLDERS:")) {Find<TextBlock>("QueueNetwork").Text=line.Substring(10);return true;}
-            if(line.StartsWith("Schedule:") || line.StartsWith("No MangaFlow schedule") || line.StartsWith("Automatic checks")) Find<TextBlock>("QueueSchedule").Text=line;
+            if(line.StartsWith("Schedule:") || line.StartsWith("No KCCAutomate schedule") || line.StartsWith("Automatic checks")) Find<TextBlock>("QueueSchedule").Text=line;
             return false;
         }
         void UpdateQueueView() {
@@ -211,10 +211,10 @@ namespace MangaFlow {
         async Task CheckUpdatesAsync() {
             string repo=Text("UpdateRepository").Length==0?"":ReleaseClient.Repository(Text("UpdateRepository"));
             string kcc=Text("KccExe"),jxl=Text("DjxlExe");updates.Clear();Find<TextBlock>("UpdateStatus").Text="Checking published stable releases...";
-            foreach(var component in new[]{"MangaFlow","KCC","JPEG XL"}) {
-                if(component=="MangaFlow" && repo.Length==0) {updates.Add(new UpdateRow{Component=component,Installed=ReleaseClient.AppVersion,Latest="—",Status="Set repository first"});continue;}
-                string owner=component=="MangaFlow"?repo:component=="KCC"?"ciromattia/kcc":"libjxl/libjxl";
-                try {var row=await Task.Run(delegate {return ReleaseClient.Check(component,owner,component=="MangaFlow"?ReleaseClient.AppVersion:ReleaseClient.InstalledVersion(component=="KCC"?kcc:jxl));});updates.Add(row);}
+            foreach(var component in new[]{"KCCAutomate","KCC","JPEG XL"}) {
+                if(component=="KCCAutomate" && repo.Length==0) {updates.Add(new UpdateRow{Component=component,Installed=ReleaseClient.AppVersion,Latest="—",Status="Set repository first"});continue;}
+                string owner=component=="KCCAutomate"?repo:component=="KCC"?"ciromattia/kcc":"libjxl/libjxl";
+                try {var row=await Task.Run(delegate {return ReleaseClient.Check(component,owner,component=="KCCAutomate"?ReleaseClient.AppVersion:ReleaseClient.InstalledVersion(component=="KCC"?kcc:jxl));});updates.Add(row);}
                 catch(Exception ex) {updates.Add(new UpdateRow{Component=component,Installed="Unknown",Latest="—",Status="Check failed",Notes=ex.Message});}
             }
             Find<TextBlock>("UpdateStatus").Text="Checks finished. Select a component to read its release notes. Updates are never applied automatically.";
@@ -224,7 +224,7 @@ namespace MangaFlow {
             Find<TextBlock>("UpdateStatus").Text="Downloading and checking SHA-256...";
             string directory=Path.Combine(userDir,"Updates",Guid.NewGuid().ToString("N"));
             string path=await Task.Run(delegate {return ReleaseClient.Download(row,directory);});
-            if(row.Component!="MangaFlow") {
+            if(row.Component!="KCCAutomate") {
                 await Task.Run(delegate {ReleaseClient.ToolHelp(path);});
                 var files=row.Component=="KCC"?new[]{path}:Directory.GetFiles(Path.GetDirectoryName(path),"*",SearchOption.AllDirectories);
                 row.VerifiedToolFiles=files.ToDictionary(file=>file,file=>ReleaseClient.Hash(file));
@@ -234,14 +234,14 @@ namespace MangaFlow {
                 File.WriteAllText(Path.Combine(path,"verified-files.json"),json.Serialize(manifest));
                 row.VerifiedManifestHash=ReleaseClient.Hash(Path.Combine(path,"verified-files.json"));
             }
-            row.VerifiedPath=path;row.Status=row.Component=="MangaFlow"?"Verified; ready to install":"Verified; tool check passed";
+            row.VerifiedPath=path;row.Status=row.Component=="KCCAutomate"?"Verified; ready to install":"Verified; tool check passed";
             Find<DataGrid>("UpdatesGrid").Items.Refresh();Find<TextBlock>("UpdateStatus").Text=row.Status+". Existing installed versions have not changed.";
         }
         void InstallSelected() {
             var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row==null || String.IsNullOrEmpty(row.VerifiedPath)) throw new Exception("Download and verify a release first.");
             if(running!=null || asyncBusy) throw new Exception("Wait until the current operation finishes.");
-            if(row.Component=="MangaFlow") {
-                Save();if(MessageBox.Show(Window,"Close MangaFlow, back up this installation and apply the verified update? Settings and scheduled paths will be retained.","Install update",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;
+            if(row.Component=="KCCAutomate") {
+                Save();if(MessageBox.Show(Window,"Close KCCAutomate, back up this installation and apply the verified update? Settings and scheduled paths will be retained.","Install update",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;
                 LaunchInstaller(row.VerifiedPath,null,row.VerifiedManifestHash);return;
             }
             if(row.VerifiedToolFiles==null || row.VerifiedToolFiles.Any(file=>!File.Exists(file.Key) || !String.Equals(ReleaseClient.Hash(file.Key),file.Value,StringComparison.OrdinalIgnoreCase))) throw new Exception("The staged tool files changed after verification. Download them again.");
@@ -250,11 +250,11 @@ namespace MangaFlow {
         }
         void RollbackSelected() {
             var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row==null) throw new Exception("Select the component to restore first.");
-            if(row.Component=="MangaFlow") {
+            if(row.Component=="KCCAutomate") {
                 string backups=Path.Combine(userDir,"Backups");
                 var previous=Directory.Exists(backups)?Directory.GetDirectories(backups).OrderByDescending(p=>p).FirstOrDefault(p=>File.Exists(Path.Combine(p,"backup-info.json"))):null;
                 if(previous==null) throw new Exception("There is no previous app installation to restore.");
-                Save();if(MessageBox.Show(Window,"Close MangaFlow and restore the previous app installation? Settings stay unchanged.","Restore app",MessageBoxButton.OKCancel)==MessageBoxResult.OK)LaunchInstaller(null,previous,null);
+                Save();if(MessageBox.Show(Window,"Close KCCAutomate and restore the previous app installation? Settings stay unchanged.","Restore app",MessageBoxButton.OKCancel)==MessageBoxResult.OK)LaunchInstaller(null,previous,null);
                 return;
             }
             bool kcc=row.Component=="KCC";string previousTool=kcc?saved.PreviousKccExe:saved.PreviousDjxlExe;
@@ -287,8 +287,8 @@ namespace MangaFlow {
             var unsafePreset=new Preset{Name="Unsafe",Options=new Dictionary<string,object>{{"KccExe","bad.exe"}}};
             try {ValidatePreset(unsafePreset);throw new Exception("Unsafe preset accepted");}catch(Exception ex){if(!ex.Message.Contains("Invalid preset"))throw;}
             results.Add("PASS: preset isolation, persistence, unsafe import rejection and enhanced settings");
-            var release="{\"tag_name\":\"v0.4.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"MangaFlow-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.4.0/MangaFlow-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
-            var row=ReleaseClient.Parse("MangaFlow","squishysquidly/KCCAutomate","0.3.0",release);
+            var release="{\"tag_name\":\"v0.4.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"KCCAutomate-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.4.0/KCCAutomate-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
+            var row=ReleaseClient.Parse("KCCAutomate","squishysquidly/KCCAutomate","0.3.0",release);
             if(row.Status!="Update available" || row.Asset==null)throw new Exception("Release parsing failed.");
             if(ReleaseClient.Repository("https://github.com/squishysquidly/KCCAutomate")!="squishysquidly/KCCAutomate")throw new Exception("Repository normalization failed.");
             try{ReleaseClient.Repository("https://evil.example/repo");throw new Exception("Invalid repository accepted");}catch(Exception ex){if(!ex.Message.Contains("owner/repository"))throw;}

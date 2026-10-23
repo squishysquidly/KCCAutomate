@@ -12,7 +12,7 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using Forms=System.Windows.Forms;
 
-namespace MangaFlow {
+namespace KCCAutomate {
     public class SetupWizard {
         public Window Window {get;private set;}
         public Settings Result {get;private set;}
@@ -25,7 +25,7 @@ namespace MangaFlow {
         public SetupWizard(Window owner,Settings settings,IEnumerable<Device> devices,string storage) {
             draft=new JavaScriptSerializer().Deserialize<Settings>(new JavaScriptSerializer().Serialize(settings));
             appDirectory=AppDomain.CurrentDomain.BaseDirectory;
-            using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("MangaFlow.SetupWizard.xaml"))Window=(Window)XamlReader.Load(stream);
+            using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("KCCAutomate.SetupWizard.xaml"))Window=(Window)XamlReader.Load(stream);
             if(owner.IsVisible)Window.Owner=owner;Window.Resources.MergedDictionaries.Add(owner.Resources);
             Get<ComboBox>("Device").ItemsSource=devices;Get<ComboBox>("Device").SelectedValue=draft.Profile;
             Select("Format",draft.Format);Get<CheckBox>("Manga").IsChecked=draft.MangaStyle;
@@ -87,7 +87,7 @@ namespace MangaFlow {
         async Task Discover(){
             Capture();Feedback("Looking in common app locations. Nothing will be downloaded or installed...");
             string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var roots=new[]{(String.IsNullOrWhiteSpace(draft.KccExe)?null:Path.GetDirectoryName(draft.KccExe)),appDirectory,@"C:\kindletomanga",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"KindleComicConverter"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"Amazon"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),"Amazon"),Path.Combine(local,"Amazon"),Path.Combine(local,"Programs","Kindle Previewer 3"),Path.Combine(local,"Programs","Kindle Previewer 4"),Path.Combine(local,"MangaFlow","Updates")};
+            var roots=new[]{(String.IsNullOrWhiteSpace(draft.KccExe)?null:Path.GetDirectoryName(draft.KccExe)),appDirectory,@"C:\kindletomanga",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"KindleComicConverter"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"Amazon"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),"Amazon"),Path.Combine(local,"Amazon"),Path.Combine(local,"Programs","Kindle Previewer 3"),Path.Combine(local,"Programs","Kindle Previewer 4"),Path.Combine(local,"KCCAutomate","Updates")};
             var found=await Task.Run(delegate{return SetupChecks.Discover(roots);});
             if(!File.Exists(Text("Kcc"))&&found.Kcc!=null)Set("Kcc",found.Kcc);if(!File.Exists(Text("Jxl"))&&found.Jxl!=null)Set("Jxl",found.Jxl);if(!File.Exists(Text("Kindle"))&&found.Kindlegen!=null)Set("Kindle",found.Kindlegen);
             Feedback("Search finished. Review the paths, then Check tools. If a tool was not found, select it manually or use its download link.");

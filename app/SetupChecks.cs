@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
 
-namespace MangaFlow {
+namespace KCCAutomate {
     public partial class Settings {
         public string KindlegenExe { get; set; }
         public bool SetupCompleted { get; set; }
@@ -54,7 +54,7 @@ namespace MangaFlow {
             foreach(var item in new[]{Tuple.Create("Incoming",settings.WatchFolder),Tuple.Create("Converted",settings.ConvertedFolder),Tuple.Create("Archive",settings.ArchiveFolder),Tuple.Create("Working",settings.WorkFolder)}) {
                 Directory.CreateDirectory(item.Item2);
                 string token=Guid.NewGuid().ToString("N");
-                string path=Path.Combine(item.Item2,".mangaflow-check-"+token+".tmp"),moved=path+".moved";
+                string path=Path.Combine(item.Item2,".kccautomate-check-"+token+".tmp"),moved=path+".moved";
                 try {
                     File.WriteAllText(path,token);
                     if(File.ReadAllText(path)!=token)throw new IOException("Folder read-back check failed.");

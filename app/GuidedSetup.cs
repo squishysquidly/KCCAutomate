@@ -6,10 +6,19 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace MangaFlow {
+namespace KCCAutomate {
     public partial class Desktop {
         public static string GetSettingsDirectory(string appDirectory) {
-            return File.Exists(Path.Combine(appDirectory,"portable.flag"))?Path.Combine(appDirectory,"data"):Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MangaFlow");
+            return File.Exists(Path.Combine(appDirectory,"portable.flag"))?Path.Combine(appDirectory,"data"):Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"KCCAutomate");
+        }
+        public static void ImportLegacySettings(string destination,string legacy) {
+            if(File.Exists(Path.Combine(destination,"settings.json"))||!File.Exists(Path.Combine(legacy,"settings.json")))return;
+            Directory.CreateDirectory(destination);
+            // Copy the settings last so an interrupted import can be retried.
+            foreach(var name in new[]{"presets.json","presets.json.bak","settings.json.bak","settings.json"}) {
+                string source=Path.Combine(legacy,name),target=Path.Combine(destination,name);
+                if(File.Exists(source)&&!File.Exists(target))File.Copy(source,target);
+            }
         }
         void ShowGuidedSetup() {
             if(running!=null||asyncBusy)throw new Exception("Finish the current operation before changing setup.");
@@ -36,6 +45,13 @@ namespace MangaFlow {
             var found=SetupChecks.Discover(new[]{tools});if(found.Kcc==null||found.Jxl==null||found.Kindlegen==null)throw new Exception("Tool discovery failed.");
             File.WriteAllText(Path.Combine(root,"portable.flag"),"portable");if(GetSettingsDirectory(root)!=Path.Combine(root,"data"))throw new Exception("Portable settings isolation failed.");
             results.Add("PASS: setup access probes, overlap and long-path protection, tool discovery and portable settings isolation");
+            string legacy=Path.Combine(root,"legacy"),current=Path.Combine(root,"current");Directory.CreateDirectory(legacy);
+            File.WriteAllText(Path.Combine(legacy,"settings.json"),"old settings");File.WriteAllText(Path.Combine(legacy,"presets.json"),"old presets");
+            ImportLegacySettings(current,legacy);
+            if(File.ReadAllText(Path.Combine(current,"settings.json"))!="old settings"||File.ReadAllText(Path.Combine(current,"presets.json"))!="old presets"||File.ReadAllText(Path.Combine(legacy,"settings.json"))!="old settings")throw new Exception("Legacy settings import lost data.");
+            File.WriteAllText(Path.Combine(current,"settings.json"),"new settings");ImportLegacySettings(current,legacy);
+            if(File.ReadAllText(Path.Combine(current,"settings.json"))!="new settings")throw new Exception("Legacy import replaced current settings.");
+            results.Add("PASS: earlier working-name settings import preserves originals and never replaces current settings");
             var wizard=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir);
             var content=(FrameworkElement)wizard.Window.Content;content.Measure(new Size(960,700));content.Arrange(new Rect(0,0,960,700));
             for(int i=0;i<6;i++) {

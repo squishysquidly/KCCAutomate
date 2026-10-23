@@ -1,4 +1,4 @@
-# MangaFlow priorities
+# KCCAutomate priorities
 
 One improvement per build, so each can be reviewed before the next release.
 Installer and portable packaging accompany the first improvement.

@@ -63,10 +63,10 @@ if($workerCode -ne 0 -or (Test-Path -LiteralPath $success) -or (Test-Path -Liter
 'PASS: separate success/failure retention; receipts and originals preserved.'
 $target=Join-Path $fixture 'installed';$stage=Join-Path $fixture 'stage';$backup=Join-Path $fixture 'backup'
 New-Item -ItemType Directory -Path $target,$stage|Out-Null
-$required=@('MangaFlow.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
+$required=@('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
 $manifest=@()
 foreach($name in $required){[IO.File]::WriteAllText((Join-Path $stage $name),"new $name");$manifest+=@{Name=$name;Hash=(Get-FileHash -LiteralPath (Join-Path $stage $name)).Hash}}
-foreach($name in @('MangaFlow.exe','MainWindow.xaml','Convert-Manga.ps1')){[IO.File]::WriteAllText((Join-Path $target $name),"old $name")}
+foreach($name in @('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1')){[IO.File]::WriteAllText((Join-Path $target $name),"old $name")}
 $manifestPath=Join-Path $stage 'verified-files.json';ConvertTo-Json -InputObject $manifest|Set-Content -LiteralPath $manifestPath
 $manifestHash=(Get-FileHash -LiteralPath $manifestPath).Hash
 function Invoke-Installer([string[]]$Options){
@@ -75,14 +75,14 @@ function Invoke-Installer([string[]]$Options){
 }
 $handle=[IO.File]::Open((Join-Path $work 'running.lock'),'OpenOrCreate','ReadWrite','None')
 try{Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)}finally{$handle.Dispose()}
-if($installCode -eq 0 -or [IO.File]::ReadAllText((Join-Path $target 'MangaFlow.exe')) -ne 'old MangaFlow.exe'){throw 'Updater ignored conversion lock'}
+if($installCode -eq 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'old KCCAutomate.exe'){throw 'Updater ignored conversion lock'}
 'PASS: app update is blocked while conversion lock is held.'
 Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)
-if($installCode -ne 0 -or [IO.File]::ReadAllText((Join-Path $target 'MangaFlow.exe')) -ne 'new MangaFlow.exe' -or -not(Test-Path -LiteralPath (Join-Path $backup 'backup-info.json'))){throw "Update installation failed: $installLog"}
+if($installCode -ne 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'new KCCAutomate.exe' -or -not(Test-Path -LiteralPath (Join-Path $backup 'backup-info.json'))){throw "Update installation failed: $installLog"}
 Invoke-Installer @('-Rollback')
-if($installCode -ne 0 -or [IO.File]::ReadAllText((Join-Path $target 'MangaFlow.exe')) -ne 'old MangaFlow.exe' -or (Test-Path -LiteralPath (Join-Path $target 'Notify-Result.ps1'))){throw "Rollback failed: $installLog"}
+if($installCode -ne 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'old KCCAutomate.exe' -or (Test-Path -LiteralPath (Join-Path $target 'Notify-Result.ps1'))){throw "Rollback failed: $installLog"}
 'PASS: verified update, backup creation and restoration of the old file set.'
-[IO.File]::WriteAllText((Join-Path $stage 'MangaFlow.exe'),'tampered')
+[IO.File]::WriteAllText((Join-Path $stage 'KCCAutomate.exe'),'tampered')
 Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)
-if($installCode -eq 0 -or [IO.File]::ReadAllText((Join-Path $target 'MangaFlow.exe')) -ne 'old MangaFlow.exe'){throw 'Tampered update accepted'}
+if($installCode -eq 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'old KCCAutomate.exe'){throw 'Tampered update accepted'}
 'PASS: tampered staged update rejected without changing installed files.'

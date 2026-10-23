@@ -1,4 +1,4 @@
-# MangaFlow for Windows
+# KCCAutomate for Windows
 
 Convert downloaded comics with your existing KCC tools, preserve folder
 structure, and archive originals after verified conversion. Local and UNC
@@ -9,11 +9,11 @@ network folders are supported, including processing on a network share.
 This build delivers the installer, portable package, and the first priority:
 guided first-run setup. Further interface improvements are separate builds.
 
-- **Windows installer:** `MangaFlow-Setup.exe` installs for your account without
+- **Windows installer:** `KCCAutomate-Setup.exe` installs for your account without
   elevation, creates a Start menu shortcut, optionally creates a desktop shortcut,
   and adds an uninstall entry in Windows Settings. KCC, KindleGen and djxl are
   selected separately; they are not bundled.
-- **Portable ZIP:** extract `MangaFlow-Windows.zip` and open `MangaFlow.exe`.
+- **Portable ZIP:** extract `KCCAutomate-Windows.zip` and open `KCCAutomate.exe`.
   Keep `portable.flag` and the companion files in place. Settings, presets,
   downloaded tools and update backups live in the app's `data` subfolder.
 - **Guided setup:** six steps cover the reader, folders, installed tools, an
@@ -76,7 +76,7 @@ whose published software you trust.
 1. Click **Check GitHub for updates** and select a component to read its release
    notes. Installed tool versions are detected from help/version information;
    unavailable or unrecognized versions are shown explicitly.
-2. **Download & verify selected** stages the asset under your local MangaFlow
+2. **Download & verify selected** stages the asset under your local KCCAutomate
    settings folder. The size and SHA-256 digest supplied by GitHub must match.
    Assets without a digest are blocked. This verifies download integrity, not a
    publisher code signature; the current app build is unsigned.
@@ -84,12 +84,12 @@ whose published software you trust.
    version** can select them. This catches startup/dependency errors but does
    not prove full book conversion compatibility. Old paths remain available
    through **Restore previous version**. Original tool installations are untouched.
-4. App installation closes and relaunches MangaFlow, checks staged file hashes,
+4. App installation closes and relaunches KCCAutomate, checks staged file hashes,
    obtains the conversion lock, backs up installed files and applies the update
    at the same path. Settings, presets, external tools and scheduled-task paths
    stay in place. If a conversion is active, installation is canceled; retry
    later. A failed installation attempts to restore the original files.
-5. To roll back the app, select MangaFlow after checking releases and click
+5. To roll back the app, select KCCAutomate after checking releases and click
    **Restore previous version**. The latest backup is verified before restoration.
    Installation needs write access to the portable app folder. No automatic
    administrator elevation is attempted.
@@ -97,7 +97,7 @@ whose published software you trust.
 Updates require published release assets; merely pushing source changes does
 not make an app update available. This project includes
 `.github/workflows/release.yml`, which builds and tests on Windows and attaches
-`MangaFlow-Setup.exe`, `MangaFlow-Windows.zip` and `SHA256SUMS` when a release is
+`KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and `SHA256SUMS` when a release is
 published. The release tag must match the compiled version, currently `v0.3.0`. A manual workflow run
 builds/tests/packages without publishing. No GitHub release has been published
 by the local build scripts.
@@ -111,10 +111,10 @@ test fixtures and settings. The updater checks this package layout before use.
 
 Choose one distribution:
 
-- **Installed:** run `MangaFlow-Setup.exe`, then open MangaFlow from Start.
-  The default location is `%LOCALAPPDATA%\Programs\MangaFlow`.
+- **Installed:** run `KCCAutomate-Setup.exe`, then open KCCAutomate from Start.
+  The default location is `%LOCALAPPDATA%\Programs\KCCAutomate`.
 - **Portable:** extract the entire ZIP to a permanent, writable local folder,
-  then double-click **MangaFlow.exe**. Keep the accompanying files beside it.
+  then double-click **KCCAutomate.exe**. Keep the accompanying files beside it.
   Do not run directly inside the ZIP or use a protected Program Files folder.
 
 Windows 11 includes
@@ -143,23 +143,29 @@ The first launch opens guided setup. You can also configure everything manually:
    registers a Windows task for your account. Disable any older conversion task
    first. There is no task installed until you click this button.
 
-Installed-mode settings are stored in `%LOCALAPPDATA%\MangaFlow\settings.json`;
+Installed-mode settings are stored in `%LOCALAPPDATA%\KCCAutomate\settings.json`;
 portable-mode settings are in `<app folder>\data\settings.json`. Each retains a
 backup from the previous save. Keep the portable folder together when moving it.
 Paths to books and external tools remain absolute; moving the app does not move
 those folders or make those paths portable across PCs.
 
-Version 0.2 used AppData even for ZIP copies. To reuse those settings with a
-fresh 0.3 portable ZIP, close MangaFlow and copy `settings.json` and `presets.json`
-from `%LOCALAPPDATA%\MangaFlow` into its `data` subfolder before opening it.
-Installing 0.3 reuses AppData automatically. An in-app update preserves the
-existing storage mode; it does not add or remove `portable.flag`.
+Earlier test builds used the working name MangaFlow. Installed KCCAutomate
+imports `settings.json`, `presets.json` and their save backups from
+`%LOCALAPPDATA%\MangaFlow` when no KCCAutomate settings exist. The old files are
+kept, and existing KCCAutomate settings are never replaced.
+
+To reuse an earlier ZIP copy's configuration, close the app and copy those two
+JSON files from its `data` folder (or `%LOCALAPPDATA%\MangaFlow` for version 0.2)
+into the new portable copy's `data` subfolder before opening it. Disable any
+schedule created under the earlier name before enabling the KCCAutomate schedule.
+Use the new installer or portable ZIP for this naming correction; the earlier
+working-name updater expects the old package filename.
 
 Updating conversion settings affects future scheduled checks; changing the check
 times or wake option requires clicking **Save & enable schedule** again.
 
-To remove an installed copy, close MangaFlow and use **Settings > Apps > Installed
-apps > MangaFlow > Uninstall**. It removes its application files, owned shortcuts
+To remove an installed copy, close KCCAutomate and use **Settings > Apps > Installed
+apps > KCCAutomate > Uninstall**. It removes its application files, owned shortcuts
 and the schedule pointing to that installation. Books, settings, external tools
 and unknown files are retained. Reconnect the working share before uninstalling
 so the conversion lock can be checked. For a portable copy, disable its schedule
@@ -170,7 +176,7 @@ before removing its folder; preserve `data` if you want to keep the configuratio
 - Scheduled checks work with the app closed while your Windows account remains
   signed in, including with the screen locked. The machine must be powered on
   and the share reachable. Wake is subject to Windows hardware/power settings.
-- The task name starts with `MangaFlow-`, followed by your account SID. There is
+- The task name starts with `KCCAutomate-`, followed by your account SID. There is
   one schedule per account. The app includes enable, disable and status controls.
 - The default schedule is 08:00, 14:00 and 20:00, in the PC's local time.
 - To run while signed out, open Windows Task Scheduler, find this task, select
@@ -249,11 +255,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Installer.ps1 -SkipP
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Test-Installation.ps1
 ```
 
-Distributable files are `dist\MangaFlow-Windows.zip`, `dist\MangaFlow-Setup.exe`
+Distributable files are `dist\KCCAutomate-Windows.zip`, `dist\KCCAutomate-Setup.exe`
 and `dist\SHA256SUMS`. `Build-Installer.ps1` alone builds and packages both.
-The extracted portable build is `dist\MangaFlow\MangaFlow.exe`. It uses Windows' .NET
+The extracted portable build is `dist\KCCAutomate\KCCAutomate.exe`. It uses Windows' .NET
 Framework C# compiler and WPF, without fetching build packages. An offscreen
-desktop check can be run with `MangaFlow.exe --self-test <absolute-report-path>`;
+desktop check can be run with `KCCAutomate.exe --self-test <absolute-report-path>`;
 the report's parent folder must exist. It validates settings and renders screens.
 
 Tests cover settings validation, rendering, ordered format phases, previews,

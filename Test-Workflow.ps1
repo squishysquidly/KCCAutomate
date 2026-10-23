@@ -104,6 +104,6 @@ function New-ScheduledTaskPrincipal { param($UserId,$LogonType,$RunLevel) [pscus
 function New-ScheduledTaskSettingsSet { param([switch]$StartWhenAvailable,$MultipleInstances,$ExecutionTimeLimit,[switch]$AllowStartIfOnBatteries,[switch]$DontStopIfGoingOnBatteries,[switch]$WakeToRun) [pscustomobject]@{ MultipleInstances=$MultipleInstances } }
 function Register-ScheduledTask { param($TaskName,$Action,$Trigger,$Principal,$Settings,$Description,[switch]$Force) $registered['Action']=$Action; $registered['Trigger']=$Trigger; $registered['Principal']=$Principal; $registered['Settings']=$Settings }
 # Test against packaged scripts, which have the conversion script beside them.
-& (Join-Path $PSScriptRoot 'dist\MangaFlow\Manage-Schedule.ps1') -ConfigPath $configPath -Action Enable | Out-Null
+& (Join-Path $PSScriptRoot 'dist\KCCAutomate\Manage-Schedule.ps1') -ConfigPath $configPath -Action Enable | Out-Null
 if ($registered.Trigger.Count -ne 3 -or $registered.Principal.LogonType -ne 'Interactive' -or $registered.Settings.MultipleInstances -ne 'IgnoreNew' -or $registered.Action.Argument -notmatch 'ExecutionPolicy Bypass') { throw ('Scheduler registration arguments failed: ' + ($registered | ConvertTo-Json -Depth 5)) }
 'PASS: three scheduled triggers, least-privileged signed-in account, overlap prevention and per-process script policy.'

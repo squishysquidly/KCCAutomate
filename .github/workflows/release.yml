@@ -1,4 +1,4 @@
-name: Build and package MangaFlow
+name: Build and package KCCAutomate
 on:
   workflow_dispatch:
   release:
@@ -26,7 +26,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path test-results -Force | Out-Null
           $report = Join-Path $pwd 'test-results\desktop.txt'
-          $p = Start-Process -FilePath .\dist\MangaFlow\MangaFlow.exe -ArgumentList @('--self-test', ('"' + $report + '"')) -WindowStyle Hidden -Wait -PassThru
+          $p = Start-Process -FilePath .\dist\KCCAutomate\KCCAutomate.exe -ArgumentList @('--self-test', ('"' + $report + '"')) -WindowStyle Hidden -Wait -PassThru
           Get-Content -LiteralPath $report
           if ($p.ExitCode) { throw 'Desktop tests failed.' }
       - name: Package app
@@ -41,11 +41,11 @@ jobs:
       - name: Save build downloads
         uses: actions/upload-artifact@v7
         with:
-          name: MangaFlow-Windows
+          name: KCCAutomate-Windows
           if-no-files-found: error
           path: |
-            dist/MangaFlow-Setup.exe
-            dist/MangaFlow-Windows.zip
+            dist/KCCAutomate-Setup.exe
+            dist/KCCAutomate-Windows.zip
             dist/SHA256SUMS
       - name: Verify release version and upload assets
         if: github.event_name == 'release'
@@ -54,8 +54,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'dist\MangaFlow\MangaFlow.exe')).Version
+          $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'dist\KCCAutomate\KCCAutomate.exe')).Version
           $expected = '{0}.{1}.{2}' -f $version.Major, $version.Minor, $version.Build
           if ($env:RELEASE_TAG.TrimStart('v') -ne $expected) { throw 'Release tag must match the app version.' }
-          gh release upload $env:RELEASE_TAG dist/MangaFlow-Setup.exe dist/MangaFlow-Windows.zip dist/SHA256SUMS --clobber
+          gh release upload $env:RELEASE_TAG dist/KCCAutomate-Setup.exe dist/KCCAutomate-Windows.zip dist/SHA256SUMS --clobber
           if ($LASTEXITCODE) { throw 'Release upload failed.' }
