@@ -287,8 +287,8 @@ namespace KCCAutomate {
             var unsafePreset=new Preset{Name="Unsafe",Options=new Dictionary<string,object>{{"KccExe","bad.exe"}}};
             try {ValidatePreset(unsafePreset);throw new Exception("Unsafe preset accepted");}catch(Exception ex){if(!ex.Message.Contains("Invalid preset"))throw;}
             results.Add("PASS: preset isolation, persistence, unsafe import rejection and enhanced settings");
-            var release="{\"tag_name\":\"v0.4.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"KCCAutomate-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.4.0/KCCAutomate-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
-            var row=ReleaseClient.Parse("KCCAutomate","squishysquidly/KCCAutomate","0.3.0",release);
+            var release="{\"tag_name\":\"v0.5.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"KCCAutomate-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.5.0/KCCAutomate-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
+            var row=ReleaseClient.Parse("KCCAutomate","squishysquidly/KCCAutomate","0.4.0",release);
             if(row.Status!="Update available" || row.Asset==null)throw new Exception("Release parsing failed.");
             if(ReleaseClient.Repository("https://github.com/squishysquidly/KCCAutomate")!="squishysquidly/KCCAutomate")throw new Exception("Repository normalization failed.");
             try{ReleaseClient.Repository("https://evil.example/repo");throw new Exception("Invalid repository accepted");}catch(Exception ex){if(!ex.Message.Contains("owner/repository"))throw;}

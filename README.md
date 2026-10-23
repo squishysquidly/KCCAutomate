@@ -4,6 +4,34 @@ Convert downloaded comics with your existing KCC tools, preserve folder
 structure, and archive originals after verified conversion. Local and UNC
 network folders are supported, including processing on a network share.
 
+## What's new in 0.4.0
+
+This build adds **Simple and Advanced views**, the second priority. It includes
+both the Windows installer and portable ZIP.
+
+- **Simple** is the default. It keeps reader selection, reading direction,
+  spread handling, cropping, enlargement, input formats, presets, queue,
+  schedule, notifications, appearance and updates available.
+- **Advanced** shows the full tool paths, working-folder editor, image
+  adjustments and stretching, filename and replacement controls, preset
+  import/export, folder rules, retention, quiet hours, update-source editor and
+  app rollback.
+- Switch at the top of any page. Your current page, unfinished edits, preset
+  choices and conversion settings remain intact. Switching does not save a
+  draft, change a schedule or start a conversion.
+- Hidden options keep applying. Simple view summarizes image processing, file
+  replacement, naming, rules, working location and background preferences.
+  **Show image and file settings**, **Show tool settings** and **Show all
+  preferences** open the appropriate Advanced section.
+- The view choice is remembered separately in `interface.json` beside your
+  settings, even before setup is complete. It is not included in exported
+  conversion presets. Missing or unreadable view preferences fall back to Simple.
+- With configured folders, Simple view opens on the queue dashboard. Guided
+  setup remains available from Folders & tools.
+
+The conversion engine and your existing conversion options are unchanged by
+this release. Sample-page preview is the next priority, in a later build.
+
 ## What's new in 0.3.0
 
 This build delivers the installer, portable package, and the first priority:
@@ -98,7 +126,7 @@ Updates require published release assets; merely pushing source changes does
 not make an app update available. This project includes
 `.github/workflows/release.yml`, which builds and tests on Windows and attaches
 `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and `SHA256SUMS` when a release is
-published. The release tag must match the compiled version, currently `v0.3.0`. A manual workflow run
+published. The release tag must match the compiled version, currently `v0.4.0`. A manual workflow run
 builds/tests/packages without publishing. No GitHub release has been published
 by the local build scripts.
 
@@ -278,7 +306,7 @@ The original standalone `Convert-Manga.ps1` remains usable with its old defaults
 or accepts `-ConfigPath` for the app's saved settings.
 
 The source repository's `ROADMAP.md` tracks the one-improvement-per-build
-priority list. Simple and Advanced views are next; they are not in this build.
+priority list. Sample-page preview is next; it is not in this build.
 
 ## Repository license notice
 

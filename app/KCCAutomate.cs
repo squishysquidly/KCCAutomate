@@ -126,7 +126,8 @@ namespace KCCAutomate {
             Fill(saved);
             Wire();
             InitializeEnhancements(testing);
-            Navigate(0);
+            InitializeInterfaceModes();
+            Navigate(viewMode=="Simple"&&!String.IsNullOrWhiteSpace(saved.WatchFolder)?4:0);
             constructing = false;
             if (!String.IsNullOrWhiteSpace(saved.WatchFolder)) Status("Your settings are ready. Preview the queue or run a conversion.");
             if (!testing) {
@@ -191,7 +192,7 @@ namespace KCCAutomate {
                 if (!closing && (running != null || asyncBusy)) { e.Cancel = true; MessageBox.Show(Window,"An operation is still running. Let it finish before closing. For conversions, use Stop after this file.","KCCAutomate"); }
             };
         }
-        void Dirty() { if (!constructing) Find<TextBlock>("SavedState").Text = "Unsaved changes"; }
+        void Dirty() { if (!constructing) Find<TextBlock>("SavedState").Text = "Unsaved changes"; RefreshSimpleSummaries(); }
         void Navigate(int page) {
             string[] headers={"Folders","Conversion","Schedule","Activity","Queue","Preferences"};
             var pages=Find<TabControl>("Pages");
@@ -229,6 +230,7 @@ namespace KCCAutomate {
             string[] extensions = {".cbz",".pdf",".epub",".cbr",".cb7"};
             for (int i = 0; i < controls.Length; i++) Find<CheckBox>(controls[i]).IsChecked = (s.InputExtensions ?? new string[0]).Contains(extensions[i]);
             FillExtras(s);
+            RefreshSimpleSummaries();
         }
         Settings Read(bool validateFolders = true) {
             var s = new Settings();
@@ -373,26 +375,8 @@ namespace KCCAutomate {
             results.Add("PASS: settings round trip and user defaults");
             desktop.TestEnhancements(results,Path.GetDirectoryName(report));
             desktop.TestGuidedSetup(results,Path.GetDirectoryName(report));
+            desktop.TestInterfaceModes(results,Path.GetDirectoryName(report));
             results.Add("PASS: XAML loaded and named controls wired");
-            var root = (FrameworkElement)desktop.Window.Content;
-            root.Measure(new Size(1180,850)); root.Arrange(new Rect(0,0,1180,850)); root.UpdateLayout();
-            for (int i = 0; i < 6; i++) {
-                desktop.Navigate(i); root.UpdateLayout();
-                var bitmap = new RenderTargetBitmap(1180,850,96,96,PixelFormats.Pbgra32);
-                bitmap.Render(root);
-                var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using (var stream = File.Create(Path.Combine(Path.GetDirectoryName(report), "screen-" + i + ".png"))) encoder.Save(stream);
-            }
-            desktop.ApplyTheme("Dark");desktop.Navigate(1);root.UpdateLayout();
-            var dark=new RenderTargetBitmap(1180,850,96,96,PixelFormats.Pbgra32);dark.Render(root);
-            var darkEncoder=new PngBitmapEncoder();darkEncoder.Frames.Add(BitmapFrame.Create(dark));
-            using(var stream=File.Create(Path.Combine(Path.GetDirectoryName(report),"screen-dark.png")))darkEncoder.Save(stream);
-            desktop.ApplyTheme("Light");
-            root.Measure(new Size(1040,680)); root.Arrange(new Rect(0,0,1040,680));
-            desktop.Navigate(2); root.UpdateLayout();
-            var small = new RenderTargetBitmap(1040,680,96,96,PixelFormats.Pbgra32); small.Render(root);
-            var smallEncoder = new PngBitmapEncoder(); smallEncoder.Frames.Add(BitmapFrame.Create(small));
-            using (var stream = File.Create(Path.Combine(Path.GetDirectoryName(report),"screen-small.png"))) smallEncoder.Save(stream);
             desktop.closing = true; desktop.Window.Close();
             File.WriteAllLines(report, results);
         }

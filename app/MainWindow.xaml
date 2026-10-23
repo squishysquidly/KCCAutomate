@@ -36,7 +36,7 @@
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
           <Border Background="#284B3B" CornerRadius="8" Padding="14">
-            <StackPanel><TextBlock Text="Your originals, preserved." Foreground="#DDEACD" FontWeight="SemiBold"/><TextBlock Text="Files move to the archive only after successful conversion and verification." Foreground="#B6CBB8" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0"/></StackPanel>
+            <StackPanel><TextBlock Text="Your originals, preserved." Foreground="#DDEACD" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Files move to the archive only after successful conversion and verification." Foreground="#B6CBB8" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0"/></StackPanel>
           </Border>
           <TextBlock Text="Powered by your KCC installation" Foreground="#9FB9A7" FontSize="11" Margin="0,18,0,0" TextWrapping="Wrap"/>
         </StackPanel>
@@ -44,9 +44,10 @@
     </Border>
     <Grid Grid.Column="1" Margin="32,27,32,22">
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-      <Grid>
-        <StackPanel><TextBlock Text="A quieter way to convert." FontSize="27" FontWeight="SemiBold"/><TextBlock Text="Choose your folders. Set your reader. Let the queue take care of itself." Style="{StaticResource Hint}"/></StackPanel>
-      </Grid>
+      <StackPanel>
+        <DockPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center"><TextBlock Text="View" VerticalAlignment="Center" Margin="0,0,10,0"/><Button x:Name="SimpleView" Content="Simple" Padding="13,8" AutomationProperties.Name="Switch to Simple view"/><Button x:Name="AdvancedView" Content="Advanced" Padding="13,8" Margin="0" AutomationProperties.Name="Switch to Advanced view"/></StackPanel><TextBlock Text="A quieter way to convert." FontSize="27" FontWeight="SemiBold" TextWrapping="Wrap"/></DockPanel>
+        <TextBlock x:Name="ViewDescription" Text="Everyday controls. Your saved advanced settings still apply." Style="{StaticResource Hint}" Margin="0,8,0,16"/>
+      </StackPanel>
       <Border Grid.Row="1" Background="{DynamicResource SoftBrush}" CornerRadius="7" Padding="13,10" Margin="0,0,0,18">
         <TextBlock x:Name="Status" Text="Start by choosing your folders and converter." TextWrapping="Wrap"/>
       </Border>
@@ -66,9 +67,11 @@
                 <TextBlock Text="Archive of originals" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="ArchiveBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="ArchiveFolder" AutomationProperties.Name="Archive folder"/></DockPanel>
                 <TextBlock Text="Matching archived files are replaced. Other archived files are kept." Style="{StaticResource Hint}"/>
-                <Expander Header="Working folder" Margin="0,8,0,0"><StackPanel><TextBlock Text="Temporary books, receipts and logs. Use a separate folder on the same network share to keep processing there." Style="{StaticResource Hint}"/><DockPanel><Button x:Name="WorkBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="WorkFolder" AutomationProperties.Name="Working folder"/></DockPanel></StackPanel></Expander>
+                <TextBlock x:Name="SimpleWorkSummary" Style="{StaticResource Hint}"/>
+                <Expander x:Name="AdvancedWork" Header="Working folder" Margin="0,8,0,0"><StackPanel><TextBlock Text="Temporary books, receipts and logs. Use a separate folder on the same network share to keep processing there." Style="{StaticResource Hint}"/><DockPanel><Button x:Name="WorkBrowse" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="WorkFolder" AutomationProperties.Name="Working folder"/></DockPanel></StackPanel></Expander>
               </StackPanel></Border>
-              <Border Style="{StaticResource Card}"><StackPanel>
+              <Border x:Name="SimpleToolsCard" Style="{StaticResource Card}"><StackPanel><TextBlock Text="Your conversion tools" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="SimpleToolsSummary" Style="{StaticResource Hint}"/><TextBlock Text="Use guided setup to find and check your tools, or open Advanced view to edit their paths." Style="{StaticResource Hint}"/><Button x:Name="ShowAdvancedTools" Content="Show tool settings" HorizontalAlignment="Left"/></StackPanel></Border>
+              <Border x:Name="AdvancedToolsCard" Style="{StaticResource Card}"><StackPanel>
                 <TextBlock Text="Connect your tools" FontSize="20" FontWeight="SemiBold"/>
                 <TextBlock Text="Select existing tools once. KCCAutomate remembers them; nothing is downloaded automatically." Style="{StaticResource Hint}"/>
                 <TextBlock Text="KCC command-line converter (c2e)" Style="{StaticResource Label}"/>
@@ -91,7 +94,7 @@
               <TextBlock Text="Presets store conversion options only; folders, tools and schedules stay on this PC." Style="{StaticResource Hint}"/>
               <DockPanel Margin="0,0,0,12"><Button x:Name="ApplyPreset" Content="Apply preset" DockPanel.Dock="Right" Margin="10,0,0,0"/><ComboBox x:Name="Presets" DisplayMemberPath="Name"/></DockPanel>
               <DockPanel Margin="0,0,0,12"><Button x:Name="SavePreset" Content="Save current options" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="PresetName" ToolTip="Preset name" Text="My Scribe manga"/></DockPanel>
-              <WrapPanel><Button x:Name="DeletePreset" Content="Delete selected"/><Button x:Name="ImportPresets" Content="Import presets"/><Button x:Name="ExportPresets" Content="Export presets"/></WrapPanel>
+              <WrapPanel x:Name="AdvancedPresetManagement"><Button x:Name="DeletePreset" Content="Delete selected"/><Button x:Name="ImportPresets" Content="Import presets"/><Button x:Name="ExportPresets" Content="Export presets"/></WrapPanel>
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Made for your reader" FontSize="20" FontWeight="SemiBold"/>
@@ -106,6 +109,8 @@
                 <StackPanel Grid.Column="2"><TextBlock Text="Cropping" Style="{StaticResource Label}"/><ComboBox x:Name="Cropping"><ComboBoxItem Content="Preserve the entire page"/><ComboBoxItem Content="Remove margins"/><ComboBoxItem Content="Remove margins and page numbers"/></ComboBox></StackPanel>
               </Grid>
               <CheckBox x:Name="Upscale" Content="Enlarge smaller pages to fit the reader"/>
+              <StackPanel x:Name="SimpleImageNote"><TextBlock x:Name="SimpleImageSummary" Style="{StaticResource Hint}"/><Button x:Name="ShowAdvancedConversion" Content="Show image and file settings" HorizontalAlignment="Left"/></StackPanel>
+              <StackPanel x:Name="AdvancedImageControls">
               <CheckBox x:Name="Stretch" Content="Stretch pages to fill the screen (changes proportions)"/>
               <TextBlock Text="With stretching off, pages keep their proportions. Borders can remain. KCC may trim a small edge when page and screen proportions almost match." Style="{StaticResource Hint}"/>
               <Expander Header="Image adjustments" Margin="0,8,0,0"><StackPanel>
@@ -113,15 +118,18 @@
                 <WrapPanel><CheckBox x:Name="ForceColor" Content="Keep color pages in color"/><CheckBox x:Name="ForcePng" Content="Use PNG for black-and-white pages"/><CheckBox x:Name="Webtoon" Content="Webtoon mode"/></WrapPanel>
                 <TextBlock Text="Gamma (0 = KCC automatic)" Style="{StaticResource Label}"/><TextBox x:Name="Gamma" Width="110" HorizontalAlignment="Left"/>
               </StackPanel></Expander>
+              </StackPanel>
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="What should enter the queue?" FontSize="20" FontWeight="SemiBold"/>
               <WrapPanel Margin="0,12,0,0"><CheckBox x:Name="InputCbz" Content="CBZ"/><CheckBox x:Name="InputPdf" Content="PDF"/><CheckBox x:Name="InputEpub" Content="EPUB"/><CheckBox x:Name="InputCbr" Content="CBR"/><CheckBox x:Name="InputCb7" Content="CB7"/></WrapPanel>
               <TextBlock Text="CBZs run first, then PDFs, EPUBs, CBRs and CB7s. These settings are for image-based comics and manga. A folder moves only when all selected inputs succeed; unselected files move along with it." Style="{StaticResource Hint}"/>
-              <CheckBox x:Name="OverwriteConverted" Content="Replace existing converted books with matching names"/>
+              <TextBlock x:Name="SimpleFileSummary" Style="{StaticResource Hint}"/>
+              <StackPanel x:Name="AdvancedFileControls"><CheckBox x:Name="OverwriteConverted" Content="Replace existing converted books with matching names"/>
               <TextBlock Text="Leave off to stop on conflicting outputs. Two inputs with the same output name in one folder are always flagged for review." Style="{StaticResource Hint}"/>
               <TextBlock Text="Output naming" Style="{StaticResource Label}"/><TextBox x:Name="OutputNaming" Text="{}{name}"/>
               <TextBlock Text="Use {name}, {profile} and {format}. Example: {name} - {profile}. The file extension is added automatically." Style="{StaticResource Hint}"/>
+              </StackPanel>
             </StackPanel></Border>
           </StackPanel></ScrollViewer>
         </TabItem>
@@ -141,7 +149,8 @@
         </TabItem>
         <TabItem Header="Preferences">
           <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0"><StackPanel>
-            <Border Style="{StaticResource Card}"><StackPanel>
+            <Border x:Name="SimpleSettingsCard" Style="{StaticResource Card}"><StackPanel><TextBlock Text="Your saved preferences" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="SimpleSettingsSummary" Style="{StaticResource Hint}"/><Button x:Name="ShowAdvancedSettings" Content="Show all preferences" HorizontalAlignment="Left"/></StackPanel></Border>
+            <Border x:Name="AdvancedCleanupCard" Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Keep things tidy" FontSize="20" FontWeight="SemiBold"/>
               <CheckBox x:Name="AutoCleanup" Content="Clean old temporary attempts after conversion checks"/>
               <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -156,11 +165,12 @@
               <TextBlock Text="Make it yours" FontSize="20" FontWeight="SemiBold"/>
               <TextBlock Text="Appearance" Style="{StaticResource Label}"/><ComboBox x:Name="Theme"><ComboBoxItem Content="Light" IsSelected="True"/><ComboBoxItem Content="Dark"/></ComboBox>
               <TextBlock Text="Desktop notifications" Style="{StaticResource Label}"/><ComboBox x:Name="NotificationMode"><ComboBoxItem Content="Off" IsSelected="True"/><ComboBoxItem Content="Errors only"/><ComboBoxItem Content="Every check"/></ComboBox>
-              <CheckBox x:Name="QuietHoursEnabled" Content="Silence notifications during these hours"/>
+              <StackPanel x:Name="AdvancedQuietHours"><CheckBox x:Name="QuietHoursEnabled" Content="Silence notifications during these hours"/>
               <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox x:Name="QuietHoursStart" Text="22:00"/><TextBox x:Name="QuietHoursEnd" Grid.Column="2" Text="08:00"/></Grid>
               <TextBlock Text="Use 24-hour times. Notifications follow Windows notification preferences and appear while you are signed in." Style="{StaticResource Hint}"/>
+              </StackPanel>
             </StackPanel></Border>
-            <Border Style="{StaticResource Card}"><StackPanel>
+            <Border x:Name="AdvancedRulesCard" Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="A different setup for a favorite series" FontSize="20" FontWeight="SemiBold"/>
               <TextBlock Text="Rules match paths relative to the watch folder, for example Series A\*. The first matching rule uses its named preset. Save settings after editing." Style="{StaticResource Hint}"/>
               <DataGrid x:Name="RulesGrid" AutoGenerateColumns="False" CanUserAddRows="False" Height="150" HeadersVisibility="Column"><DataGrid.Columns><DataGridTextColumn Header="Folder pattern" Binding="{Binding Pattern}" Width="*"/><DataGridTextColumn Header="Preset name" Binding="{Binding PresetName}" Width="*"/></DataGrid.Columns></DataGrid>
@@ -168,9 +178,11 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.3.0" Style="{StaticResource Hint}"/>
-              <TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
+              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.4.0" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="SimpleUpdateSource" Style="{StaticResource Hint}"/>
+              <StackPanel x:Name="AdvancedRepository"><TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
               <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. Stable releases only. KCC and libjxl are checked separately against their official repositories." Style="{StaticResource Hint}"/>
+              </StackPanel>
               <Button x:Name="CheckUpdates" Content="Check GitHub for updates" HorizontalAlignment="Left"/>
               <DataGrid x:Name="UpdatesGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Height="150" Margin="0,14,0,10" HeadersVisibility="Column"><DataGrid.Columns><DataGridTextColumn Header="Component" Binding="{Binding Component}" Width="*"/><DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="100"/><DataGridTextColumn Header="Latest" Binding="{Binding Latest}" Width="100"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/></DataGrid.Columns></DataGrid>
               <TextBox x:Name="ReleaseNotes" IsReadOnly="True" Height="110" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
@@ -188,13 +200,15 @@
               <TextBlock Text="Daily check times · 24-hour clock" Style="{StaticResource Label}"/>
               <TextBox x:Name="ScheduleTimes" Text="08:00, 14:00, 20:00"/>
               <TextBlock Text="Separate times with commas. For example: 08:00, 14:00, 20:00." Style="{StaticResource Hint}"/>
-              <TextBlock Text="Wait after a file was last modified (minutes)" Style="{StaticResource Label}"/>
+              <TextBlock x:Name="SimpleScheduleSummary" Style="{StaticResource Hint}"/>
+              <StackPanel x:Name="AdvancedScheduleControls"><TextBlock Text="Wait after a file was last modified (minutes)" Style="{StaticResource Label}"/>
               <TextBox x:Name="QuietMinutes" Width="110" HorizontalAlignment="Left"/>
               <TextBlock Text="Default: 30 minutes. Download elsewhere, then move completed downloads into the watch folder for the most reliable results." Style="{StaticResource Hint}"/>
+              </StackPanel>
               <CheckBox x:Name="WakeComputer" Content="Ask Windows to wake the computer for scheduled checks"/>
               <Border Background="{DynamicResource SoftBrush}" Padding="16" CornerRadius="8" Margin="0,14,0,20"><TextBlock Text="Checks run while your Windows account is signed in, including when the screen is locked. The PC must be on and able to reach your folders. No administrator password is stored. To run while signed out, change the task's account settings in Windows Task Scheduler." TextWrapping="Wrap"/></Border>
               <WrapPanel><Button x:Name="EnableSchedule" Content="Save &amp; enable schedule" Style="{StaticResource Primary}"/><Button x:Name="DisableSchedule" Content="Disable schedule"/><Button x:Name="ScheduleStatus" Content="Check schedule"/></WrapPanel>
-              <TextBlock Text="Task name starts with KCCAutomate (one per Windows account). Disable any older manga conversion task before enabling this one. Keep this app folder in its current location after scheduling." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Disable any older manga conversion task before enabling this one. Keep this app folder in its current location after scheduling." Style="{StaticResource Hint}"/>
             </StackPanel></Border>
           </StackPanel></ScrollViewer>
         </TabItem>

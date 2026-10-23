@@ -2,7 +2,7 @@
 
 The default updater repository is `squishysquidly/KCCAutomate`. The updater
 reads public stable GitHub Releases, not the repository's current source files.
-The current app version is **0.3.0**.
+The current app version is **0.4.0**.
 
 1. Put the project sources into the repository, including `app/`, the root
    PowerShell scripts, `installer/`, `README.md` and `.github/workflows/release.yml`.
@@ -13,11 +13,15 @@ The current app version is **0.3.0**.
    README. Run `Build-Installer.ps1` and `Test-Installation.ps1`. On a test account,
    check a normal install, Start menu shortcut, optional desktop shortcut,
    Installed apps entry, setup completion, and uninstall. Automated fixture tests
-   deliberately skip those Windows integration changes. Test at least one real
-   conversion on your own installation too.
+   deliberately skip those Windows integration changes. Switch views with a
+   saved preset and an unsaved edit, reopen the app to check the view preference,
+   and confirm hidden options survive a save in Simple view. The desktop
+   self-test covers these behaviors and renders both views at normal/minimum
+   window sizes and in dark mode. Test at least one real conversion on your
+   own installation too.
 3. Optionally run the **Build and package KCCAutomate** workflow manually to check
    the hosted Windows build. A manual run does not publish a release.
-4. Create and publish a GitHub release with tag **v0.3.0** on the commit containing
+4. Create and publish a GitHub release with tag **v0.4.0** on the commit containing
    these sources. The workflow checks that the tag matches the compiled version,
    runs the tests and attaches `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and
    `SHA256SUMS`.
@@ -45,6 +49,8 @@ install this release using the existing ten runtime files. `portable.flag` is
 included in fresh ZIP distributions only. The installer excludes it; in-app
 updates preserve the target's storage mode. Neither distribution includes
 personal settings, manga, converter executables, test fixtures or build sources.
+The view implementation is also compiled into the executable. No additional
+runtime files are needed; `interface.json` is created only as a user preference.
 
 Nothing in the local build or package scripts pushes source, creates tags or
 publishes a release. The included GitHub workflow performs uploads only after
