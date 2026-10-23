@@ -1,0 +1,46 @@
+name: Build and package MangaFlow
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build portable app
+        shell: powershell
+        run: ./Build-App.ps1
+      - name: Test conversion workflow and JPEG XL preparation
+        shell: powershell
+        run: |
+          ./Test-Workflow.ps1
+          ./Test-JxlPreprocessing.ps1
+          ./Test-Upgrades.ps1
+      - name: Test desktop and update validation without opening a window
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path test-results -Force | Out-Null
+          $report = Join-Path $pwd 'test-results\desktop.txt'
+          $p = Start-Process -FilePath .\dist\MangaFlow\MangaFlow.exe -ArgumentList @('--self-test', ('"' + $report + '"')) -WindowStyle Hidden -Wait -PassThru
+          Get-Content -LiteralPath $report
+          if ($p.ExitCode) { throw 'Desktop tests failed.' }
+      - name: Package app
+        shell: powershell
+        run: ./Package-App.ps1 -SkipBuild
+      - name: Verify release version and upload assets
+        if: github.event_name == 'release'
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'dist\MangaFlow\MangaFlow.exe')).Version
+          $expected = '{0}.{1}.{2}' -f $version.Major, $version.Minor, $version.Build
+          if ($env:RELEASE_TAG.TrimStart('v') -ne $expected) { throw 'Release tag must match the app version.' }
+          gh release upload $env:RELEASE_TAG dist/MangaFlow-Windows.zip dist/SHA256SUMS --clobber
+          if ($LASTEXITCODE) { throw 'Release upload failed.' }

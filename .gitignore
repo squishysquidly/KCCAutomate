@@ -1,0 +1,5 @@
+dist/
+test-results/
+archive-test-*/
+jxl-test-*/
+*.user
