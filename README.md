@@ -1,6 +1,6 @@
 # KCCAutomate
 
-Automatically turn downloaded comics and manga into books for your e-reader,
+Automatically turn any comics or manga placed in the a watch folder into books for your e-reader,
 then keep the original files in a separate folder.
 
 **[Download the latest published version from Releases](https://github.com/squishysquidly/KCCAutomate/releases)**
@@ -16,17 +16,14 @@ for conversion; you obtain KCC and any required tools separately during setup.
 
 ## Why use it?
 
-KCCAutomate was created for a simple routine: download manga, convert it with
-the same reader settings each time, and keep an original-format library
-alongside the Kindle-friendly version.
+KCCAutomate was created for my ease of use, but figured others would like it too. 
+I have a kindle, which means no .cbz for me. KCC allows for conversion, but it's a very manual process.
+I also have an RSS feed, among other methods, and download manga automatically.
+So, now I have a incoming/watch folder the RSS feed places the manga, and now 
+an app which automatically runs and converts into whatever format I need. So now, I have
+kindle friendly manga I can delete when done but still have the original files stored.
 
-For example, an RSS-capable downloader can save completed comics into your
-Incoming/Watch folder. KCCAutomate checks that folder at your chosen times,
-converts the books, and moves successfully processed originals into Originals.
-Your downloader handles the RSS feed; the shared folder connects the two apps.
-Configure incomplete downloads to finish elsewhere before moving them into
-Incoming, and let the quiet period provide an extra check that files have
-stopped changing.
+It's the workflow which works for me, so hopefully it'll be helpful to someone else as well.
 
 ```text
 RSS/downloader or manually added books
@@ -115,7 +112,14 @@ Keep an independent backup if you need previous versions of those files.
 
 ## Everyday use
 
-1. Add completed books to Incoming, manually or through your downloader.
+Automatic Workflow:
+1. Point your downloader to save completed books only to your Incoming/Watch folder.
+2. Let the scheduler you setup run at it's scheduled time, or open the app and select **Run now**
+4. Find reader-ready files in Converted and copy them to your e-reader.
+5. Review the queue's attention items and **Activity** if anything fails.
+   
+Manual Workflow:
+1. Add completed books to your Incoming/Watch folder manually.
 2. Use **Preview queue** to inspect what will happen without converting or moving books.
 3. Choose **Run now**, or let your enabled schedule run the scan.
 4. Find reader-ready files in Converted and copy them to your e-reader.
