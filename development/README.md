@@ -104,7 +104,10 @@ copied into an installed-mode app by an update.
 
 ## Maintainer notes
 
-- [Publishing a release](RELEASING.md)
+- [Preparing and publishing a release](RELEASING.md): run **Prepare KCCAutomate
+  release** in GitHub Actions with a new version matching the app. It builds,
+  tests and attaches downloads to a draft; you review and publish it yourself.
+  Existing release downloads and tags are retained.
 - [Roadmap](ROADMAP.md)
 
 ## Copyright and attribution

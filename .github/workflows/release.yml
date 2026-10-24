@@ -1,8 +1,14 @@
-name: Build and package KCCAutomate
+name: Prepare KCCAutomate release
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+    inputs:
+      version:
+        description: 'New release version matching the app, for example 0.1.19'
+        required: true
+        type: string
+concurrency:
+  group: kccautomate-release
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -12,6 +18,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+      - name: Check release preparation safeguards
+        shell: powershell
+        run: ./development/Test-ReleasePreparation.ps1
       - name: Build portable app
         shell: powershell
         run: ./development/Build-App.ps1
@@ -50,15 +59,10 @@ jobs:
             development/dist/KCCAutomate-Setup.exe
             development/dist/KCCAutomate-Windows.zip
             development/dist/SHA256SUMS
-      - name: Verify release version and upload assets
-        if: github.event_name == 'release'
+      - name: Prepare draft release with downloads
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'development\dist\KCCAutomate\KCCAutomate.exe')).Version
-          $expected = '{0}.{1}.{2}' -f $version.Major, $version.Minor, $version.Build
-          if ($env:RELEASE_TAG.TrimStart('v') -ne $expected) { throw 'Release tag must match the app version.' }
-          gh release upload $env:RELEASE_TAG development/dist/KCCAutomate-Setup.exe development/dist/KCCAutomate-Windows.zip development/dist/SHA256SUMS --clobber
-          if ($LASTEXITCODE) { throw 'Release upload failed.' }
+          ./development/Prepare-Release.ps1 -Version $env:RELEASE_VERSION -Repository $env:GITHUB_REPOSITORY -Commit $env:GITHUB_SHA
