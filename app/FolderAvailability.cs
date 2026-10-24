@@ -13,8 +13,15 @@ namespace KCCAutomate {
     public partial class Desktop {
         bool checkingFolders;
         void InitializeFolderAvailability() {
+            OnAsync("PrepareBookFolders",PrepareBookFoldersAsync);
+            actionButtons.Add(Find<Button>("PrepareBookFolders"));
             Find<Button>("RecheckFolders").Click+=async delegate{await CheckSavedFolders();};
             On("OpenFoldersFromError",delegate{Navigate(0);});
+        }
+        async Task PrepareBookFoldersAsync(){
+            var settings=Save();Status("Preparing and checking your chosen folders...");
+            string report=await Task.Run(delegate{return SetupChecks.ProbeFolders(settings);});Append(report);await CheckSavedFolders();
+            Status("Folders saved and ready. Missing folders were created; your books were kept in place.");
         }
         async Task CheckSavedFolders() {
             if(checkingFolders||!File.Exists(configPath))return;

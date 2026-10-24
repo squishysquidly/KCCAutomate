@@ -1,82 +1,95 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Set up KCCAutomate" Width="1010" Height="760" MinWidth="900" MinHeight="650" WindowStartupLocation="CenterOwner" Background="{DynamicResource CanvasBrush}" FontFamily="Segoe UI" FontSize="14">
-  <Grid Background="{DynamicResource CanvasBrush}" Margin="28"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Set up KCCAutomate" Width="1010" Height="760" MinWidth="900" MinHeight="650" WindowStartupLocation="CenterOwner" Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource TextBrush}" FontFamily="Segoe UI" FontSize="14">
+  <Window.Resources><Style TargetType="Expander"><Setter Property="Foreground" Value="{DynamicResource TextBrush}"/></Style></Window.Resources>
+  <Grid Margin="28" Background="{DynamicResource CanvasBrush}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel><TextBlock Text="Let's get your first book ready." FontSize="26" FontWeight="SemiBold"/><TextBlock x:Name="StepTitle" Margin="0,9,0,20"/></StackPanel>
     <TabControl x:Name="Steps" Grid.Row="1" BorderThickness="0" Background="Transparent">
-      <TabItem Header="Welcome"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-        <TextBlock Text="One setup. A smoother reading routine." FontSize="21" Margin="0,10,0,14"/>
-        <TextBlock Text="We will choose your folders, connect your conversion tools, and optionally test a book. No downloads are installed and no schedule is enabled until you ask." TextWrapping="Wrap" Margin="0,0,0,24"/>
+      <TabItem Header="Reader"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+        <TextBlock Text="Start with your reader" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock Text="We will set up one tool at a time: 7-Zip, KCC, KindleGen and JPEG XL support. Each page explains its job and checks your selection automatically." TextWrapping="Wrap"/>
+        <TextBlock Text="Folders are prepared for you. The last page shows where to add your books and where the results go. Change those locations later in the app's Folders &amp; tools settings." Style="{DynamicResource Hint}"/>
         <TextBlock Text="Your reader" Style="{DynamicResource Label}"/><ComboBox x:Name="Device" DisplayMemberPath="Label" SelectedValuePath="Code"/>
         <TextBlock Text="Book format" Style="{DynamicResource Label}"/><ComboBox x:Name="Format"><ComboBoxItem Content="MOBI (AZW3/kindle compatible)" Tag="MOBI"/><ComboBoxItem Content="EPUB"/><ComboBoxItem Content="CBZ"/><ComboBoxItem Content="PDF"/></ComboBox>
         <CheckBox x:Name="Manga" Content="Read manga from right to left" Margin="0,18,0,8"/>
-        <TextBlock Text="Your other conversion settings stay as they are. You can review them in Conversion after setup." Style="{DynamicResource Hint}"/>
-        <TextBlock x:Name="StorageInfo" TextWrapping="Wrap" Style="{DynamicResource Hint}"/>
+        <TextBlock Text="No books are converted during setup. A sample conversion uses a copy. Automatic checks are enabled only if you choose them." Style="{DynamicResource Hint}"/>
+        <Expander Header="Where are my settings kept?" Margin="0,16,0,0"><TextBlock x:Name="StorageInfo" Style="{DynamicResource Hint}"/></Expander>
       </StackPanel></ScrollViewer></TabItem>
-      <TabItem Header="Folders"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-        <TextBlock Text="Your folders are ready to use" FontSize="21" Margin="0,10,0,10"/>
-        <TextBlock Text="Default folders are created automatically. Keep them or choose others here; you can change them later in Folders &amp; tools. Local and network paths such as \\server\share\manga are supported. Use separate folders; none can be inside another." Style="{DynamicResource Hint}"/>
-        <TextBlock Text="Incoming/Watch Folder (The folder you place the original comics/manga you're trying to convert)" TextWrapping="Wrap" Style="{DynamicResource Label}"/><DockPanel><Button x:Name="WatchBrowse" Content="Browse" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Watch"/></DockPanel>
-        <TextBlock Text="Converted (Folder where converted books will be placed)" TextWrapping="Wrap" Style="{DynamicResource Label}"/><DockPanel><Button x:Name="OutputBrowse" Content="Browse" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Output"/></DockPanel>
-        <TextBlock Text="Originals (Folder where original comics/manga will be moved to after conversion)" TextWrapping="Wrap" Style="{DynamicResource Label}"/><DockPanel><Button x:Name="ArchiveBrowse" Content="Browse" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Archive"/></DockPanel>
-        <TextBlock Text="Temporary processing and logs" Style="{DynamicResource Label}"/><DockPanel><Button x:Name="WorkBrowse" Content="Browse" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Work"/></DockPanel>
-        <TextBlock Text="Setup creates any missing incoming, converted, originals and working folders, checks access with tiny temporary probe files, then removes the probes. Your books are untouched." Style="{DynamicResource Hint}"/>
-        <Button x:Name="CheckFolders" Content="Check folder access" HorizontalAlignment="Left"/>
+      <TabItem Header="7-Zip"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+        <TextBlock Text="First, check archive support" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock Text="7-Zip opens compressed downloads. It unpacks .7z JXL tool packages and helps KCC read some comic archives, including CBR and CB7." TextWrapping="Wrap"/>
+        <Border Background="{DynamicResource SoftBrush}" Padding="18" CornerRadius="6" Margin="0,22,0,10"><StackPanel><TextBlock x:Name="SevenZipStatus" TextWrapping="Wrap" FontSize="17" FontWeight="SemiBold"/><TextBlock x:Name="SevenZipLocation" Style="{DynamicResource Hint}" Text="We check Program Files and PATH, then test creating and extracting an archive."/></StackPanel></Border>
+        <TextBlock Text="A green check means this step is complete. Continue to KCC." Style="{DynamicResource Hint}"/>
+        <TextBlock Text="If 7-Zip is missing:" Style="{DynamicResource Label}"/>
+        <TextBlock Text="1. Open the official download page and install the Windows version for your PC.&#10;2. Return here and click Check again.&#10;3. Wait for the green check before continuing." TextWrapping="Wrap" Margin="0,6,0,16"/>
+        <Button x:Name="GetSevenZip" Content="Open official 7-Zip downloads" Style="{DynamicResource Primary}" HorizontalAlignment="Left"/>
+        <Expander x:Name="SevenZipDetails" Header="Choose an existing 7-Zip location" Margin="0,18,0,0"><StackPanel><TextBlock Text="Choose 7z.exe, usually in C:\Program Files\7-Zip, or paste its folder. The complete installation includes 7z.dll." Style="{DynamicResource Hint}"/><DockPanel><Button x:Name="SevenZipBrowse" Content="Choose 7z.exe" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="SevenZip"/></DockPanel></StackPanel></Expander>
+        <Expander Header="Can I continue without 7-Zip?" Margin="0,14,0,0"><TextBlock Text="Yes, for ordinary CBZ books and a .zip JXL download. A .7z JXL package needs working 7-Zip. The JXL page can take you back here if needed." Style="{DynamicResource Hint}"/></Expander>
       </StackPanel></ScrollViewer></TabItem>
-      <TabItem Header="Tools"><DockPanel>
-        <StackPanel DockPanel.Dock="Top"><TextBlock Text="Your conversion tools checklist" FontSize="21" Margin="0,10,0,12"/>
-          <WrapPanel><Button x:Name="FindTools" Content="Find installed tools"/><Button x:Name="CheckTools" Content="Check tools" Style="{DynamicResource Primary}"/></WrapPanel>
-        </StackPanel>
-        <ScrollViewer x:Name="ToolScroll" VerticalScrollBarVisibility="Auto"><StackPanel>
-        <TextBlock Text="Choose a tool's folder or executable. Each entry checks itself automatically and turns green when validated. A test book on the next page checks conversion. Check tools is available to recheck everything." Style="{DynamicResource Hint}"/>
-        <TextBlock x:Name="KccStatus" TextWrapping="Wrap" Style="{DynamicResource Label}"/>
-        <TextBlock Text="Download tool_cli_c2e_12.0.0_AMD64.exe using the button below. Select that file, or rename it to kcc-c2e.exe. This is the approved command-line build for this release. The KCC_12.0.0.exe download is the GUI; kcc.exe and kcc-c2c.exe are also different tools. You do not need to install the GUI." Style="{DynamicResource Hint}"/>
-        <DockPanel><Button x:Name="KccBrowse" Content="Choose kcc-c2e.exe" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Kcc"/></DockPanel>
-        <TextBlock Text="This Windows CLI .exe includes Python, Pillow, psutil, python-slugify and its other Python libraries. Separate Python and PATH setup applies to running KCC's .py source or a Python-installed CLI. You do not need it for the approved .exe. The Debian apt-get instructions describe that other setup." Style="{DynamicResource Hint}"/>
-        <TextBlock Text="KCC stays on 12.0.0 until a newer version has been manually tested and approved in a KCCAutomate update. A missing module error in another bundled .exe is a package problem; installing Python separately will not repair it." Style="{DynamicResource Hint}"/>
-        <WrapPanel><Button x:Name="GetKcc" Content="Download approved KCC CLI 12.0.0 (Windows x64)"/><Button x:Name="GetKccFallback" Content="View approved release"/><Button x:Name="GetDependencies" Content="KCC dependency guide"/></WrapPanel>
-        <CheckBox x:Name="JxlEnabled" Content="Prepare JPEG XL pages automatically (recommended)" Margin="0,15,0,8"/>
-        <TextBlock x:Name="JxlStatus" TextWrapping="Wrap"/>
-        <TextBlock Text="JPEG XL (JXL) is a growing image format. Your .cbz may contain JPEG XL pages even though the book ends in .cbz. The djxl tool converts these pages to PNG so they can be processed for Kindles and other e-readers. Your original comic stays unchanged." Style="{DynamicResource Hint}"/>
-        <DockPanel><Button x:Name="JxlBrowse" Content="Choose .exe / .zip / .7z" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Jxl"/></DockPanel>
-        <Button x:Name="GetJxl" Content="Get Windows JXL tools" HorizontalAlignment="Left"/>
-        <TextBlock Text="KindleGen (needed for MOBI)" Style="{DynamicResource Label}"/><DockPanel><Button x:Name="KindleBrowse" Content="Choose .exe" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Kindle"/></DockPanel>
-        <TextBlock x:Name="KindleStatus" TextWrapping="Wrap"/>
-        <TextBlock Text="Use Find installed tools to look in Kindle Previewer's lib\fc\bin folder, or follow KCC's guide to locate kindlegen.exe." Style="{DynamicResource Hint}"/>
-        <Button x:Name="GetKindle" Content="KindleGen instructions (KCC guide)" HorizontalAlignment="Left"/>
-        <TextBlock Text="7-Zip archive support" Style="{DynamicResource Label}"/>
-        <TextBlock x:Name="SevenZipStatus" TextWrapping="Wrap"/>
-        <TextBlock x:Name="SevenZipLocation" Text="KCCAutomate checks Program Files and PATH automatically, including real CLI archive creation and extraction." Style="{DynamicResource Hint}"/>
-        <Expander x:Name="SevenZipDetails" Header="Choose another 7-Zip location"><DockPanel><Button x:Name="SevenZipBrowse" Content="Choose 7z.exe" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="SevenZip"/></DockPanel></Expander>
-        <TextBlock Text="Needed to import a .7z JXL download and recommended for KCC archive support, including CBR/CB7 and metadata. If a working installation is detected, you are already done. Otherwise install 7-Zip from its official site or choose 7z.exe. A .zip JXL package can be imported without 7-Zip." Style="{DynamicResource Hint}"/>
-        <Button x:Name="GetSevenZip" Content="Get 7-Zip (official site)" HorizontalAlignment="Left"/>
-        <TextBlock x:Name="ManagedToolsInfo" TextWrapping="Wrap" Style="{DynamicResource Hint}"/>
-        <TextBlock Text="Continue copies the chosen tools, runtime folders, DLLs and license files into that folder, verifies the copies and checks them again. Original downloads stay in place. Tools are supplied by their authors and are not included in KCCAutomate's download." Style="{DynamicResource Hint}"/>
-      </StackPanel></ScrollViewer></DockPanel></TabItem>
+      <TabItem Header="KCC"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+        <TextBlock Text="Add the comic converter" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock Text="KCC turns comics into books sized for your reader. KCCAutomate uses its approved command-line converter: version 12.0.0." TextWrapping="Wrap"/>
+        <TextBlock Text="1. Download the approved Windows CLI below.&#10;2. Choose the downloaded file, or paste its containing folder.&#10;3. Wait for the green check, then continue." TextWrapping="Wrap" Margin="0,20,0,16"/>
+        <Button x:Name="GetKcc" Content="Download approved KCC CLI 12.0.0 (Windows x64)" Style="{DynamicResource Primary}" HorizontalAlignment="Left"/>
+        <TextBlock Text="Expected file: tool_cli_c2e_12.0.0_AMD64.exe (you may rename it to kcc-c2e.exe)." Style="{DynamicResource Hint}"/>
+        <DockPanel Margin="0,14,0,0"><Button x:Name="KccBrowse" Content="Choose downloaded file" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Kcc"/></DockPanel>
+        <Border Background="{DynamicResource SoftBrush}" Padding="18" CornerRadius="6" Margin="0,18,0,12"><TextBlock x:Name="KccStatus" TextWrapping="Wrap" FontSize="17" FontWeight="SemiBold"/></Border>
+        <Expander Header="Which download should I choose?" Margin="0,10,0,0"><StackPanel><TextBlock Text="Use the exact CLI file above. KCC_12.0.0.exe is the graphical app. kcc.exe, kcc-c2c.exe and the c2p tool are different programs. The download button chooses the approved CLI for Windows x64." Style="{DynamicResource Hint}"/><Button x:Name="GetKccFallback" Content="View approved release details" HorizontalAlignment="Left"/></StackPanel></Expander>
+        <Expander Header="Do I need to install KCC or Python?" Margin="0,14,0,0"><StackPanel><TextBlock Text="The approved Windows CLI .exe is ready to run. It includes Python, Pillow, psutil, python-slugify and its other Python libraries. The KCC GUI and separate Python installation are unnecessary. Python/PATH instructions apply to KCC's source or a Python-installed CLI." Style="{DynamicResource Hint}"/><Button x:Name="GetDependencies" Content="KCC dependency guide" HorizontalAlignment="Left"/></StackPanel></Expander>
+        <TextBlock Text="KCC stays on the version approved for this KCCAutomate release. A newer KCC build must be tested and approved in a KCCAutomate update first." Style="{DynamicResource Hint}"/>
+      </StackPanel></ScrollViewer></TabItem>
+      <TabItem Header="KindleGen"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+        <TextBlock Text="Add KindleGen for MOBI books" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock x:Name="KindleNeed" Text="KindleGen is Amazon's compiler. KCC uses it to build the final MOBI file for your Kindle." TextWrapping="Wrap"/>
+        <TextBlock Text="1. Click Find installed copy if you already have Kindle Previewer or KindleGen.&#10;2. If it is not found, follow KCC's guide below to locate kindlegen.exe.&#10;3. Choose the file or paste its folder, then wait for the green check." TextWrapping="Wrap" Margin="0,20,0,16"/>
+        <Button x:Name="GetKindle" Content="Open KindleGen instructions (KCC guide)" Style="{DynamicResource Primary}" HorizontalAlignment="Left"/>
+        <TextBlock Text="In Kindle Previewer, look under lib\fc\bin\kindlegen.exe. Your existing working kindlegen.exe can also be selected." Style="{DynamicResource Hint}"/>
+        <DockPanel Margin="0,14,0,0"><Button x:Name="KindleBrowse" Content="Choose kindlegen.exe" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Kindle"/></DockPanel>
+        <Border Background="{DynamicResource SoftBrush}" Padding="18" CornerRadius="6" Margin="0,18,0,12"><TextBlock x:Name="KindleStatus" TextWrapping="Wrap" FontSize="17" FontWeight="SemiBold"/></Border>
+        <Expander Header="What does this check verify?" Margin="0,10,0,0"><TextBlock Text="We start KindleGen without a book and recognize its Amazon compiler banner. Some working builds spell it kindlgen and report an unsupported -help argument; that expected response is accepted. A sample conversion later checks the complete MOBI workflow." Style="{DynamicResource Hint}"/></Expander>
+      </StackPanel></ScrollViewer></TabItem>
+      <TabItem Header="JPEG XL"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+        <TextBlock Text="Support JPEG XL comic pages" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock Text="Some .cbz books contain JPEG XL (JXL) images. The djxl decoder turns those pages into PNG so KCC can prepare them for your reader. Your original comic stays unchanged." TextWrapping="Wrap"/>
+        <CheckBox x:Name="JxlEnabled" Content="Prepare JPEG XL pages automatically (recommended)" Margin="0,22,0,10"/>
+        <TextBlock Text="1. Open the Windows JXL tools release page.&#10;2. Choose a Windows package and select its .zip or .7z download below. You can also choose an extracted djxl.exe.&#10;3. We unpack and check the decoder automatically." TextWrapping="Wrap" Margin="0,10,0,16"/>
+        <Button x:Name="GetJxl" Content="Open Windows JXL tools downloads" Style="{DynamicResource Primary}" HorizontalAlignment="Left"/>
+        <DockPanel Margin="0,18,0,0"><Button x:Name="JxlBrowse" Content="Choose .exe / .zip / .7z" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Jxl"/></DockPanel>
+        <Border Background="{DynamicResource SoftBrush}" Padding="18" CornerRadius="6" Margin="0,18,0,12"><TextBlock x:Name="JxlStatus" TextWrapping="Wrap" FontSize="17" FontWeight="SemiBold"/></Border>
+        <Button x:Name="BackToSevenZip" Content="Return to 7-Zip setup" HorizontalAlignment="Left"/>
+        <Expander Header="Can I skip JPEG XL support?" Margin="0,14,0,0"><TextBlock Text="Yes. Turn off the option above and continue. Books with JXL images stay in Incoming until support is enabled; ordinary CBZ books can still convert." Style="{DynamicResource Hint}"/></Expander>
+        <Expander Header="Where will these tools be kept?" Margin="0,14,0,0"><StackPanel><TextBlock Text="When you continue, selected tools and required companion files are copied into KCCAutomate's storage and checked again. You can then remove the original downloads. This step does not convert your books." Style="{DynamicResource Hint}"/><TextBlock x:Name="ManagedToolsInfo" Style="{DynamicResource Hint}"/></StackPanel></Expander>
+      </StackPanel></ScrollViewer></TabItem>
       <TabItem Header="Test"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-        <TextBlock Text="Try one book before automating" FontSize="21" Margin="0,10,0,14"/>
-        <TextBlock Text="Choose a small completed comic. We copy it into an isolated test area in your working folder, convert that copy, and keep the result there. The selected original and your normal incoming/archive folders are not changed." TextWrapping="Wrap" Margin="0,0,0,24"/>
+        <TextBlock Text="Try one book (optional)" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock Text="Your tools are ready. Choose a small completed comic to test the whole conversion. We convert a verified copy in an isolated test area; the selected original and normal queue are untouched." TextWrapping="Wrap" Margin="0,0,0,24"/>
         <DockPanel><Button x:Name="TestBrowse" Content="Choose a book" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="TestBook"/></DockPanel>
         <WrapPanel Margin="0,18,0,14"><Button x:Name="RunTest" Content="Run test conversion" Style="{DynamicResource Primary}"/><Button x:Name="OpenTest" Content="Open test results" IsEnabled="False"/></WrapPanel>
-        <TextBlock Text="You can skip this step and test later. A tool startup check alone does not verify a complete Kindle conversion." Style="{DynamicResource Hint}"/>
-        <TextBox x:Name="TestLog" Height="230" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock Text="You can continue and test later. Before relying on automatic conversion, inspect a converted book on your reader." Style="{DynamicResource Hint}"/>
+        <Expander Header="Conversion details"><TextBox x:Name="TestLog" Height="220" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/></Expander>
       </StackPanel></ScrollViewer></TabItem>
       <TabItem Header="Schedule"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-        <TextBlock Text="Choose when to check for books" FontSize="21" Margin="0,10,0,16"/>
+        <TextBlock Text="Choose when to check for books (optional)" FontSize="23" Margin="0,10,0,16"/>
         <CheckBox x:Name="EnableSchedule" Content="Enable automatic checks when I finish setup"/>
         <TextBlock Text="Daily times (24-hour clock)" Style="{DynamicResource Label}"/><TextBox x:Name="Times"/>
         <TextBlock Text="Separate times with commas, such as 08:00, 14:00, 20:00." Style="{DynamicResource Hint}"/>
         <TextBlock Text="Wait after downloads were last modified (minutes)" Style="{DynamicResource Label}"/><TextBox x:Name="QuietMinutes"/>
         <CheckBox x:Name="Wake" Content="Ask Windows to wake the computer for checks" Margin="0,18,0,10"/>
         <TextBlock x:Name="ScheduleInfo" TextWrapping="Wrap"/>
-        <TextBlock Text="Turning on this option creates or replaces KCCAutomate's task for your Windows account and points it at this copy of the app. Other manually created conversion tasks are not changed." Style="{DynamicResource Hint}"/>
+        <TextBlock Text="Leave automatic checks off to run conversions yourself. You can change these times later in Schedule." Style="{DynamicResource Hint}"/>
       </StackPanel></ScrollViewer></TabItem>
-      <TabItem Header="Review"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-        <TextBlock Text="Ready when you are" FontSize="21" Margin="0,10,0,20"/>
-        <TextBlock x:Name="Summary" TextWrapping="Wrap"/>
-        <TextBlock Text="Finish saves this setup. No conversion of your normal queue is started. You can run Preview queue first and change any setting later." Style="{DynamicResource Hint}" Margin="0,24,0,0"/>
+      <TabItem Header="Folders"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+        <TextBlock Text="Here is where your books go" FontSize="23" Margin="0,10,0,14"/>
+        <TextBlock Text="We create these folders for you. Existing saved locations, including network folders, are kept. Change any location later in the app's Folders &amp; tools settings." TextWrapping="Wrap"/>
+        <TextBlock Text="Incoming/Watch Folder" Style="{DynamicResource Label}"/><TextBlock Text="Place completed original comics and manga here. Subfolders keep their structure." Style="{DynamicResource Hint}"/><TextBox x:Name="Watch" IsReadOnly="True"/>
+        <TextBlock Text="Converted" Style="{DynamicResource Label}"/><TextBlock Text="Converted books are placed here, ready to copy to your reader." Style="{DynamicResource Hint}"/><TextBox x:Name="Output" IsReadOnly="True"/>
+        <TextBlock Text="Originals" Style="{DynamicResource Label}"/><TextBlock Text="After conversion and verification, successful batches of originals move here. Failed or incomplete batches stay in Incoming." Style="{DynamicResource Hint}"/><TextBox x:Name="Archive" IsReadOnly="True"/>
+        <Expander Header="Temporary processing and logs" Margin="0,14,0,0"><StackPanel><TextBlock Text="Working files and logs are kept here. This location can also be changed in Folders &amp; tools." Style="{DynamicResource Hint}"/><TextBox x:Name="Work" IsReadOnly="True"/></StackPanel></Expander>
+        <TextBlock x:Name="Summary" Style="{DynamicResource Hint}"/>
+        <CheckBox x:Name="OpenFolderSettings" Content="Open Folders &amp; tools after I finish" Margin="0,14,0,6"/>
+        <TextBlock Text="If a folder is unavailable, select this option to finish and choose accessible locations in the app. Folder access must be verified before setup can enable automatic checks." Style="{DynamicResource Hint}"/>
+        <Button x:Name="CheckFolders" Content="Check folder access again" HorizontalAlignment="Left"/>
       </StackPanel></ScrollViewer></TabItem>
     </TabControl>
-    <Border Grid.Row="2" Background="{DynamicResource SoftBrush}" Padding="12" CornerRadius="6" Margin="0,16,0,16"><TextBlock x:Name="Feedback" Text="Welcome. Your current settings are prefilled if available." TextWrapping="Wrap"/></Border>
-    <DockPanel Grid.Row="3"><Button x:Name="CancelSetup" Content="Set up later" DockPanel.Dock="Left"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="Back" Content="Back"/><Button x:Name="Next" Content="Continue" Style="{DynamicResource Primary}"/></StackPanel></DockPanel>
+    <Border Grid.Row="2" Background="{DynamicResource SoftBrush}" Padding="12" CornerRadius="6" Margin="0,16,0,16"><TextBlock x:Name="Feedback" TextWrapping="Wrap"/></Border>
+    <DockPanel Grid.Row="3"><Button x:Name="CancelSetup" Content="Set up later" DockPanel.Dock="Left"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="FindTools" Content="Find installed copy"/><Button x:Name="CheckTools" Content="Check again"/><Button x:Name="Back" Content="Back"/><Button x:Name="Next" Content="Continue" Style="{DynamicResource Primary}"/></StackPanel></DockPanel>
   </Grid>
 </Window>

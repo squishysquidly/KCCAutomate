@@ -10,8 +10,8 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
-[assembly: AssemblyVersion("0.6.1.0")]
-[assembly: AssemblyFileVersion("0.6.1.0")]
+[assembly: AssemblyVersion("0.7.0.0")]
+[assembly: AssemblyFileVersion("0.7.0.0")]
 [assembly: AssemblyProduct("KCCAutomate")]
 namespace KCCAutomate {
     public partial class Settings {
@@ -74,7 +74,7 @@ namespace KCCAutomate {
         public Dictionary<string,string> VerifiedToolFiles { get; set; }
     }
     public static class ReleaseClient {
-        public const string AppVersion="0.6.1";
+        public const string AppVersion="0.7.0";
         // Change this policy only after the maintainer tests a full conversion with the new CLI.
         public const string ApprovedKccVersion="12.0.0";
         public const string ApprovedKccAsset="tool_cli_c2e_12.0.0_AMD64.exe";

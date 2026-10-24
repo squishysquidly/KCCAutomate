@@ -17,7 +17,10 @@ numbers are noted where helpful; the current order is below.
    guidance, pinned KCC updates and version checks for scheduled conversions.
    Automatic default-folder creation, live tool checks, tested 7-Zip detection
    and KindleGen V2.0 banner/help compatibility are included in that refinement.
-5. **Next — Tray controls (original priority 7).** Quick access to progress,
+5. **0.7.0 — Separate tool setup pages: implemented by request.** Dependency-first
+   pages, focused automatic checks and clearer instructions; final folder
+   explanation with an app-settings shortcut and Create & check folders action.
+6. **Next — Tray controls (original priority 7).** Quick access to progress,
    stop-after-file and opening the app. Deliver as its own build.
 
 After duplicate handling and tray controls, reassess potential improvements

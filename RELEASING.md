@@ -2,7 +2,15 @@
 
 The default updater repository is `squishysquidly/KCCAutomate`. The updater
 reads public stable GitHub Releases, not the repository's current source files.
-The current app version is **0.6.1**.
+The current app version is **0.7.0**.
+
+This release separates the four tools into individual pages, checks only the
+active tool and required archive support, imports tools before the optional
+sample test, and ends with the folder explanation. The desktop self-test walks
+the dependency order, checks required-page gating and stale-result handling,
+tests failed final folder preparation without schedule registration, and renders
+all eight pages plus the four tool pages in dark mode at minimum size. Review
+the app's Create & check folders action using disposable local/UNC paths too.
 
 KCC support is pinned to **12.0.0**. The updater uses that release's tag and
 exact Windows x64 CLI filename and SHA-256, not KCC's newest release.
@@ -54,7 +62,7 @@ unsafe archive rejection and conversion after source downloads are unavailable.
    conflict retry, and an unavailable local or remote folder at startup.
 3. Optionally run the **Build and package KCCAutomate** workflow manually to check
    the hosted Windows build. A manual run does not publish a release.
-4. Create and publish a GitHub release with tag **v0.6.1** on the commit containing
+4. Create and publish a GitHub release with tag **v0.7.0** on the commit containing
    these sources. The workflow checks that the tag matches the compiled version,
    runs the tests and attaches `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and
    `SHA256SUMS`.

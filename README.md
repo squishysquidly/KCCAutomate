@@ -4,13 +4,50 @@ Convert downloaded comics with your existing KCC tools, preserve folder
 structure, and archive originals after verified conversion. Local and UNC
 network folders are supported, including processing on a network share.
 
+## What's new in 0.7.0
+
+Guided setup now presents **one tool per page**, in dependency order:
+
+1. Choose your reader, format and reading direction.
+2. Detect and test **7-Zip** archive support.
+3. Select the approved **KCC 12.0.0 CLI**.
+4. Locate **KindleGen** for MOBI output.
+5. Add **JPEG XL/djxl** support, or turn it off for now.
+6. Optionally test a copied book.
+7. Optionally choose scheduled check times.
+8. See the automatically prepared **Incoming, Converted and Originals** folders.
+
+Each tool page explains its purpose, the expected file, how to get it, and how
+to complete the step. Automatic checks focus on the active page and its required
+archive helper. **Find installed copy** and **Check again** apply to the current
+tool. Completed pages keep their results; a missing required tool blocks only
+its own page. Extra explanations are in expandable questions. Existing checks
+for working KindleGen builds, archive imports and approved KCC versions remain.
+Selected tools are copied and rechecked after the last tool page, before the
+optional sample conversion.
+
+The final page explains where completed source books belong, where converted
+books go, and how verified originals move. Folder paths are shown for reference;
+choose **Open Folders & tools after I finish** to customize them in the app.
+Default installed book folders are under **Documents\KCCAutomate**; portable
+defaults are under **data\Books**. Existing local and network selections remain.
+If final folder preparation fails, setup offers to open the folder settings and
+does not enable a new schedule. Existing files are never replaced by folder
+creation. In the app, **Create & check folders** saves chosen paths, creates
+missing folders and verifies read/write/rename/delete access without converting
+books. Startup availability checks remain read-only.
+
+Both installer and portable packages are provided. Setup progress is still
+saved when you finish; resuming an unfinished wizard is a possible later
+improvement. Tray controls remain a separate future build.
+
 ## What's new in 0.6.1
 
 New setups supply and create Incoming, Converted, Originals and Working folders
 automatically on reaching the Folders page. Installed defaults are in
 **Documents\KCCAutomate**; portable defaults are in **data\Books**. Existing
 saved paths, including network locations, are preserved. You can change any
-folder during setup or later in Folders & tools. Missing incoming folders can
+folder in Folders & tools. Missing incoming folders can
 now be created during setup as well as the other three folders.
 
 Each tool entry checks automatically after you choose or paste an executable
@@ -283,7 +320,7 @@ Updates require published release assets; merely pushing source changes does
 not make an app update available. This project includes
 `.github/workflows/release.yml`, which builds and tests on Windows and attaches
 `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and `SHA256SUMS` when a release is
-published. The release tag must match the compiled version, currently `v0.6.1`. A manual workflow run
+published. The release tag must match the compiled version, currently `v0.7.0`. A manual workflow run
 builds/tests/packages without publishing. No GitHub release has been published
 by the local build scripts.
 
