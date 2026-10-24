@@ -17,6 +17,9 @@ namespace KCCAutomate {
         public bool Optional {get;set;}
     }
     public static class ToolValidation {
+        public static bool RequiresKindlegen(Settings settings) {
+            return settings.Format=="MOBI"||(settings.FolderRules!=null&&settings.FolderRules.Any(r=>r!=null&&r.Options!=null&&r.Options.ContainsKey("Format")&&Convert.ToString(r.Options["Format"])=="MOBI"));
+        }
         public static bool IsC2E(string path) {
             string name=Path.GetFileName(path??"");
             return name.Equals("kcc-c2e.exe",StringComparison.OrdinalIgnoreCase) ||
@@ -40,7 +43,7 @@ namespace KCCAutomate {
                 if(result.Item1!=0 || !(result.Item2.IndexOf("JPEG XL",StringComparison.OrdinalIgnoreCase)>=0 || result.Item2.IndexOf("djxl",StringComparison.OrdinalIgnoreCase)>=0))throw new Exception("The JPEG XL decoder could not identify itself.\n"+Limit(result.Item2));
                 return "JPEG XL decoder validated";
             });
-            if(key=="Kindle")return CheckOne("Kindle",settings.KindlegenExe,settings.Format=="MOBI",delegate(string path){
+            if(key=="Kindle")return !RequiresKindlegen(settings)?new ToolCheck{Key="Kindle",Optional=true,Message="KindleGen is not needed for "+settings.Format}:CheckOne("Kindle",settings.KindlegenExe,true,delegate(string path){
                 if(!Path.GetFileName(path).Equals("kindlegen.exe",StringComparison.OrdinalIgnoreCase))throw new Exception("Choose kindlegen.exe from Kindle Previewer (see KCC guide).");
                 // No input starts the program and prints its banner without compiling a book.
                 // Some Amazon builds spell the banner "kindlgen" and reject -help with E30010.
@@ -133,7 +136,8 @@ namespace KCCAutomate {
             return Path.Combine(target,Path.GetFileName(executable));
         }
         static Dictionary<string,string> Selections(Settings settings) {
-            return new Dictionary<string,string>{{"Kcc",settings.KccExe??""},{"Jxl",settings.DjxlExe??""},{"Kindle",settings.KindlegenExe??""},{"SevenZip",settings.SevenZipExe??""}};
+            // Inactive selections are retained in settings but are not part of this bundle.
+            return new Dictionary<string,string>{{"Kcc",settings.KccExe??""},{"Jxl",settings.ConvertJxl?settings.DjxlExe??"":""},{"Kindle",ToolValidation.RequiresKindlegen(settings)?settings.KindlegenExe??"":""},{"SevenZip",settings.SevenZipExe??""}};
         }
         static bool Reusable(Settings settings,string root) {
             if(String.IsNullOrWhiteSpace(settings.KccExe)||!Under(settings.KccExe,root))return false;
@@ -153,11 +157,11 @@ namespace KCCAutomate {
             var result=Json.Deserialize<Settings>(Json.Serialize(original));
             try {
                 result.KccExe=CopyTool(original.KccExe,Path.Combine(area,"kcc"),root);
-                result.DjxlExe=!original.ConvertJxl||String.IsNullOrWhiteSpace(original.DjxlExe)?"":CopyTool(original.DjxlExe,Path.Combine(area,"jxl"),root);
-                result.KindlegenExe=String.IsNullOrWhiteSpace(original.KindlegenExe)?"":CopyTool(original.KindlegenExe,Path.Combine(area,"kindlegen"),root);
+                result.DjxlExe=!original.ConvertJxl?original.DjxlExe:CopyTool(original.DjxlExe,Path.Combine(area,"jxl"),root);
+                result.KindlegenExe=!ToolValidation.RequiresKindlegen(original)?original.KindlegenExe:CopyTool(original.KindlegenExe,Path.Combine(area,"kindlegen"),root);
                 result.SevenZipExe=String.IsNullOrWhiteSpace(original.SevenZipExe)?"":CopyTool(original.SevenZipExe,Path.Combine(area,"7zip"),root);
                 // KCC versions which check beside their executable can also locate KindleGen.
-                if(!String.IsNullOrWhiteSpace(result.KindlegenExe)) {
+                if(ToolValidation.RequiresKindlegen(original)&&!String.IsNullOrWhiteSpace(result.KindlegenExe)) {
                     string beside=Path.Combine(Path.GetDirectoryName(result.KccExe),"kindlegen.exe");
                     if(!File.Exists(beside))CopyVerified(result.KindlegenExe,beside);
                 }
@@ -185,6 +189,14 @@ namespace KCCAutomate {
             return candidates[0];
         }
         public static string SafePath(string root,string name) {return SafePath(root,name,false);}
+        static HashSet<string> JxlMembers(IEnumerable<string> names) {
+            var files=names.Where(n=>!n.EndsWith("/")&&!n.EndsWith("\\")).ToArray();
+            var decoders=files.Where(n=>Path.GetFileName(n.Replace('/','\\')).Equals("djxl.exe",StringComparison.OrdinalIgnoreCase)).ToArray();
+            if(decoders.Length!=1)throw new Exception("The package must contain one Windows djxl.exe. Choose the Windows package for your PC, or extract it yourself and select djxl.exe with its companion files.");
+            // Keep runtime libraries/configuration and licence material in their original layout.
+            // Encoders, benchmarks, samples and other unrelated utilities are not imported.
+            return new HashSet<string>(files.Where(n=>n==decoders[0]||Companion(n.Replace('/','\\'))||new[]{".json",".ini",".cfg",".icc",".icm"}.Contains(Path.GetExtension(n),StringComparer.OrdinalIgnoreCase)||n.Replace('/','\\').Split('\\').Any(p=>p.Equals("licenses",StringComparison.OrdinalIgnoreCase)||p.Equals("license",StringComparison.OrdinalIgnoreCase))),StringComparer.OrdinalIgnoreCase);
+        }
         static string SafePath(string root,string name,bool internalMetadata) {
             name=name.Replace('/','\\').TrimEnd('\\');
             string[] parts=name.Split('\\');
@@ -195,7 +207,8 @@ namespace KCCAutomate {
             using(var zip=ZipFile.OpenRead(archive)){
                 var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);long bytes=0;
                 foreach(var entry in zip.Entries){string path=SafePath(root,entry.FullName);if(!seen.Add(path)||zip.Entries.Count>MaxFiles||(bytes+=entry.Length)>MaxBytes||((entry.ExternalAttributes>>16)&0xf000)==0xa000||(entry.ExternalAttributes&0x400)!=0)throw new Exception("Unsafe, linked, duplicate or oversized tool archive entry: "+entry.FullName);}
-                foreach(var entry in zip.Entries){string path=SafePath(root,entry.FullName);if(entry.FullName.EndsWith("/")||entry.FullName.EndsWith("\\")){Directory.CreateDirectory(path);continue;}Directory.CreateDirectory(Path.GetDirectoryName(path));entry.ExtractToFile(path,false);}
+                var selected=JxlMembers(zip.Entries.Select(e=>e.FullName));
+                foreach(var entry in zip.Entries){if(!selected.Contains(entry.FullName))continue;string path=SafePath(root,entry.FullName);Directory.CreateDirectory(Path.GetDirectoryName(path));entry.ExtractToFile(path,false);}
             }
         }
         static void ExtractSevenZip(string archive,string program,string root) {
@@ -213,11 +226,12 @@ namespace KCCAutomate {
                 string path=SafePath(root,item["Path"]),attributes=item.ContainsKey("Attributes")?item["Attributes"]:"";long size;
                 if(!seen.Add(path)||item.Keys.Any(k=>k.IndexOf("Link",StringComparison.OrdinalIgnoreCase)>=0)||attributes.IndexOf("Reparse",StringComparison.OrdinalIgnoreCase)>=0||attributes.Contains("l")||!item.ContainsKey("Size")||!Int64.TryParse(item["Size"],out size)||size<0||(bytes+=size)>MaxBytes)throw new Exception("Unsafe, linked, duplicate or oversized 7-Zip package entry: "+item["Path"]);
             }
+            var selected=JxlMembers(records.Where(i=>!(i.ContainsKey("Folder")?i["Folder"]=="+":i.ContainsKey("Attributes")&&i["Attributes"].StartsWith("D",StringComparison.Ordinal))).Select(i=>i["Path"]));
             // Stream each named member into our own validated file path. 7-Zip never chooses
             // a filesystem destination, so traversal, links and wildcard extraction cannot write outside root.
             foreach(var item in records) {
                 string path=SafePath(root,item["Path"]);bool directory=item.ContainsKey("Folder")?item["Folder"]=="+":item.ContainsKey("Attributes")&&item["Attributes"].StartsWith("D",StringComparison.Ordinal);
-                if(directory){Directory.CreateDirectory(path);continue;}
+                if(directory||!selected.Contains(item["Path"]))continue;
                 Directory.CreateDirectory(Path.GetDirectoryName(path));long expected=Int64.Parse(item["Size"]);
                 var info=new ProcessStartInfo(program,"x -so -y -bd -spd -pKCCAutomate-no-password -- "+Desktop.Quote(archive)+" "+Desktop.Quote(item["Path"])){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};
                 using(var process=Process.Start(info))using(var output=File.Create(path)) {

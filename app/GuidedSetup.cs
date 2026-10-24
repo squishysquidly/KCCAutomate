@@ -55,7 +55,7 @@ namespace KCCAutomate {
             File.WriteAllText(Path.Combine(current,"settings.json"),"new settings");ImportLegacySettings(current,legacy);
             if(File.ReadAllText(Path.Combine(current,"settings.json"))!="new settings")throw new Exception("Legacy import replaced current settings.");
             results.Add("PASS: earlier working-name settings import preserves originals and never replaces current settings");
-            var wizard=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir,Path.Combine(root,"default-books"));
+            var wizard=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir,Path.Combine(root,"default-books"),new string[0]);
             wizard.TestToolControls(results);
             string fixtureSource=Path.Combine(root,"ToolFixtures.cs");
             File.WriteAllText(fixtureSource,@"using System;using System.IO;using System.Threading;class Fixture{static int Main(){string name=Path.GetFileName(Environment.GetCommandLineArgs()[0]);if(name==""kindlegen.exe""){Console.WriteLine(""Amazon kindlgen(Windows) V2.0 build 0000-kdevld\nA command line e-book compiler"");return 1;}if(name==""djxl.exe""){Console.WriteLine(""JPEG XL decoder djxl"");return 0;}Thread.Sleep(350);Console.WriteLine(""comic2ebook v12.0.0 --profile --format"");return 0;}}");
@@ -65,7 +65,7 @@ namespace KCCAutomate {
             File.Copy(Path.Combine(tools,"kcc-c2e.exe"),Path.Combine(tools,"djxl.exe"),true);File.Copy(Path.Combine(tools,"kcc-c2e.exe"),Path.Combine(tools,@"Kindle Previewer 4\lib\fc\bin\kindlegen.exe"),true);
             var oldContext=System.Threading.SynchronizationContext.Current;System.Threading.SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Window.Dispatcher));
             var automatic=TestWizardAndFolders(wizard,tools,root,results);var frame=new DispatcherFrame();
-            var timeout=new DispatcherTimer{Interval=TimeSpan.FromSeconds(45)};bool timedOut=false;timeout.Tick+=delegate{timedOut=true;frame.Continue=false;};timeout.Start();
+            var timeout=new DispatcherTimer{Interval=TimeSpan.FromSeconds(90)};bool timedOut=false;timeout.Tick+=delegate{timedOut=true;frame.Continue=false;};timeout.Start();
             automatic.ContinueWith(delegate{Window.Dispatcher.BeginInvoke(new Action(delegate{frame.Continue=false;}));});Dispatcher.PushFrame(frame);timeout.Stop();
             System.Threading.SynchronizationContext.SetSynchronizationContext(oldContext);if(timedOut)throw new Exception("Automatic setup validation timed out.");automatic.GetAwaiter().GetResult();
             var content=(FrameworkElement)wizard.Window.Content;content.Measure(new Size(960,700));content.Arrange(new Rect(0,0,960,700));
@@ -73,11 +73,17 @@ namespace KCCAutomate {
                 wizard.RenderStep(i);content.UpdateLayout();var bitmap=new RenderTargetBitmap(960,700,96,96,PixelFormats.Pbgra32);bitmap.Render(content);
                 var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(directory,"wizard-"+i+".png")))encoder.Save(stream);
             }
-            results.Add("PASS: all eight wizard pages load and render, with one tool per page and the folder explanation last, without launching a conversion or schedule");
+            results.Add("PASS: all nine wizard pages load and render, with the folder explanation followed by how-it-works guidance, without launching a conversion or schedule");
             ApplyTheme("Dark");var darkWizard=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir);
             var darkContent=(FrameworkElement)darkWizard.Window.Content;darkContent.Measure(new Size(840,590));darkContent.Arrange(new Rect(0,0,840,590));
             for(int page=1;page<=4;page++){darkWizard.RenderStep(page);darkContent.UpdateLayout();var bitmap=new RenderTargetBitmap(840,590,96,96,PixelFormats.Pbgra32);bitmap.Render(darkContent);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(directory,"wizard-dark-"+page+".png")))encoder.Save(stream);}
             ApplyTheme("Light");results.Add("PASS: all four individual tool pages render in dark mode at the minimum setup size");
+            foreach(string theme in new[]{"Light","Dark"}){
+                ApplyTheme(theme);var shortened=new SetupWizard(Window,new Settings{Format="EPUB",ConvertJxl=false},Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir);
+                var shortenedContent=(FrameworkElement)shortened.Window.Content;var size=theme=="Light"?new Size(960,700):new Size(840,590);shortenedContent.Measure(size);shortenedContent.Arrange(new Rect(new Point(),size));
+                foreach(int page in new[]{0,2,5,7,8}){shortened.RenderStep(page);shortenedContent.UpdateLayout();var bitmap=new RenderTargetBitmap((int)size.Width,(int)size.Height,96,96,PixelFormats.Pbgra32);bitmap.Render(shortenedContent);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(directory,"wizard-short-"+theme.ToLowerInvariant()+"-"+page+".png")))encoder.Save(stream);}
+            }
+            ApplyTheme("Light");results.Add("PASS: shortened EPUB setup renders with seven steps, folders followed by how-it-works guidance, and correct numbering in light/dark themes");
             foreach(string theme in new[]{"Light","Dark"}){
                 ApplyTheme(theme);var guide=KindleGenGuide.Create(Window,delegate{return "";});
                 foreach(string name in new[]{"GuideOpenFolder","GuideKccLink","GuideDone"})if(guide.FindName(name)==null)throw new Exception("Illustrated KindleGen guide action is missing: "+name);
@@ -92,6 +98,18 @@ namespace KCCAutomate {
         }
         async Task TestWizardAndFolders(SetupWizard wizard,string tools,string root,List<string> results){
             await wizard.TestAutomaticTools(tools,results);
+            string install=Path.Combine(root,"previewer-check","Kindle Previewer 4");
+            foreach(bool simulate in new[]{true,false}){var discovery=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),Path.Combine(root,"previewer-settings"),null,new[]{install});await discovery.TestKindleDiscovery(tools,install,simulate,results);}
+            string inactive=Path.Combine(root,"inactive-tools");Directory.CreateDirectory(inactive);
+            File.WriteAllText(Path.Combine(inactive,"kindlegen.exe"),"inactive file must never run or be copied");File.WriteAllText(Path.Combine(inactive,"djxl.exe"),"inactive file must never run or be copied");
+            foreach(var choice in new[]{Tuple.Create("EPUB",false),Tuple.Create("CBZ",false),Tuple.Create("PDF",false),Tuple.Create("EPUB",true),Tuple.Create("MOBI",false)}){
+                string name=choice.Item1+"-"+choice.Item2;
+                var conditional=new SetupWizard(Window,new Settings{Format=choice.Item1,ConvertJxl=choice.Item2,KindlegenExe=Path.Combine(inactive,"kindlegen.exe"),DjxlExe=Path.Combine(inactive,"djxl.exe")},Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),Path.Combine(root,"conditional",name),Path.Combine(root,"conditional-books",name),new string[0]);
+                await conditional.TestConditionalPages(tools,results);
+            }
+            var mixed=new Settings{Format="EPUB",ConvertJxl=false,KindlegenExe=Path.Combine(inactive,"kindlegen.exe"),DjxlExe=Path.Combine(inactive,"djxl.exe"),FolderRules=new List<FolderRule>{new FolderRule{Pattern="mobi/*",PresetName="Kindle",Options=new Dictionary<string,object>{{"Format","MOBI"}}}}};
+            var mixedWizard=new SetupWizard(Window,mixed,Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),Path.Combine(root,"conditional","mixed"),Path.Combine(root,"conditional-books","mixed"),new string[0]);
+            await mixedWizard.TestConditionalPages(tools,results);
             var custom=new Settings{WatchFolder=Path.Combine(root,"custom-in"),ConvertedFolder=Path.Combine(root,"custom-out"),ArchiveFolder=Path.Combine(root,"custom-originals"),WorkFolder=Path.Combine(root,"custom-work"),KccExe=Path.Combine(tools,"kcc-c2e.exe"),DjxlExe=Path.Combine(tools,"djxl.exe")};
             Directory.CreateDirectory(custom.WatchFolder);File.WriteAllText(Path.Combine(custom.WatchFolder,"keep.cbz"),"keep original");Fill(custom);await PrepareBookFoldersAsync();
             var stored=json.Deserialize<Settings>(File.ReadAllText(configPath));

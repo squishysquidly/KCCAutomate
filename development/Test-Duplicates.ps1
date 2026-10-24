@@ -36,7 +36,7 @@ function New-Input($Name) {
 function Save-Config {[IO.File]::WriteAllText($config,($settings|ConvertTo-Json -Depth 10),(New-Object Text.UTF8Encoding($false)))}
 function Run-Worker([string[]]$Options) {
  Save-Config;$previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
- try{$script:workerLog=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Convert-Manga.ps1') -ConfigPath $config @Options 2>&1;$script:workerCode=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
+ try{$script:workerLog=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Convert-Manga.ps1') -ConfigPath $config @Options 2>&1;$script:workerCode=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
 }
 function Assert($Condition,$Message){if(-not$Condition){throw ($Message+"`n"+($workerLog-join"`n"))}}
 function Rows {Get-Content -LiteralPath (Join-Path $work 'queue.json') -Raw -Encoding UTF8|ConvertFrom-Json}
@@ -125,9 +125,9 @@ Assert ($workerCode-eq0-and(Test-Path -LiteralPath (Join-Path $output ($title+' 
 'PASS: Unicode and bracketed filenames survive selected duplicate handling.'
 
 Save-Config
-$folderReport=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'app\Workspace-Info.ps1') -ConfigPath $config -AvailabilityOnly|ConvertFrom-Json
+$folderReport=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Workspace-Info.ps1') -ConfigPath $config -AvailabilityOnly|ConvertFrom-Json
 Assert $folderReport.Ready 'Existing local folders were reported unavailable.'
 $missing=Join-Path $caseRoot 'missing-work';$settings.WorkFolder=$missing;Save-Config
-$folderReport=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'app\Workspace-Info.ps1') -ConfigPath $config -AvailabilityOnly|ConvertFrom-Json
+$folderReport=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Workspace-Info.ps1') -ConfigPath $config -AvailabilityOnly|ConvertFrom-Json
 Assert (-not$folderReport.Ready-and$folderReport.Message.Contains('Working:')-and-not(Test-Path -LiteralPath $missing)) 'Startup availability did not identify the missing folder without creating it.'
 'PASS: startup availability accepts local folders, identifies an unavailable folder, and creates or moves no book folders.'

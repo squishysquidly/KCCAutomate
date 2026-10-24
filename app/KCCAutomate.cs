@@ -162,7 +162,7 @@ namespace KCCAutomate {
             On("KccBrowse", delegate { Executable("KccExe"); }); On("DjxlBrowse", delegate { Executable("DjxlExe"); });
             On("KindlegenBrowse",delegate {Executable("KindlegenExe");});
             On("SevenZipBrowse",delegate {Executable("SevenZipExe");});
-            On("KccLink", delegate { Open(ReleaseClient.ApprovedKccDownload); });
+            On("KccLink", delegate { Open(ReleaseClient.KccReleasesPage); });
             On("JxlLink", delegate { Open("https://github.com/libjxl/libjxl/releases"); });
             On("SaveSettings", delegate { Save(); Status("Conversion settings saved. To change scheduled times, use Save & enable schedule."); });
             On("RunNow", delegate {

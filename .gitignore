@@ -1,5 +1,10 @@
-dist/
-test-results/
-archive-test-*/
-jxl-test-*/
+/development/dist/
+/development/test-results/
+/development/archive-test-*/
+/development/jxl-test-*/
+.vs/
 *.user
+settings.json
+settings.json.bak
+presets.json
+interface.json

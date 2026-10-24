@@ -15,7 +15,8 @@ class Mock {
   if(File.Exists(Path.Combine(root,"broken"))){Console.Error.WriteLine("ModuleNotFoundError: No module named 'PySide6'");return 1;}
   if(!File.Exists(Path.Combine(root,@"_internal\required.dat"))||!File.Exists(Path.Combine(root,"helper.dll")))return 3;
   if(Array.IndexOf(args,"--help")>=0){Console.WriteLine("comic2ebook v"+(File.Exists(Path.Combine(root,"future"))?"13.0.0":"12.0.0")+" --profile --format");return 0;}
-  string path=Environment.GetEnvironmentVariable("PATH");if(!File.Exists(Path.Combine(path.Split(';')[0],"kindlegen.exe"))||!File.Exists(Path.Combine(path.Split(';')[1],"7z.exe")))return 4;
+  string path=Environment.GetEnvironmentVariable("PATH");bool mobi=Array.IndexOf(args,"MOBI")>=0;
+  if(mobi?(!File.Exists(Path.Combine(path.Split(';')[0],"kindlegen.exe"))||!File.Exists(Path.Combine(path.Split(';')[1],"7z.exe"))):!File.Exists(Path.Combine(path.Split(';')[0],"7z.exe")))return 4;
   File.WriteAllText(args[Array.IndexOf(args,"--output")+1],"mock converted book");return 0;
  }
 }
@@ -36,6 +37,9 @@ $unicodeCompanion='codec[1]'+[char]0x65E5+[char]0x672C+[char]0x8A9E+'.dll'
 [IO.File]::WriteAllText((Join-Path $jxlFolder ('tools\'+$unicodeCompanion)),'Unicode companion')
 [IO.File]::WriteAllText((Join-Path $jxlFolder 'lib\support.dat'),'sibling runtime')
 [IO.File]::WriteAllText((Join-Path $jxlFolder 'LICENSE'),'decoder license')
+New-Item -ItemType Directory -Path (Join-Path $jxlFolder 'samples') -Force|Out-Null
+Copy-Item -LiteralPath $kcc -Destination (Join-Path $jxlFolder 'tools\cjxl.exe')
+[IO.File]::WriteAllText((Join-Path $jxlFolder 'samples\example.jxl'),'unused sample')
 $settings=New-Object KCCAutomate.Settings
 Assert ([string]::IsNullOrEmpty($settings.KccExe)-and[string]::IsNullOrEmpty($settings.DjxlExe)) 'Fresh tool paths should be blank'
 $settings.KccExe=$kcc;$settings.KindlegenExe=$kindle
@@ -71,6 +75,9 @@ Assert ([IO.File]::ReadAllText($locatedKindle)-eq'locator fixture only; never ex
 $managed=Join-Path $root 'app-data\Tools'
 $zip=Join-Path $source 'jxl.zip';[IO.Compression.ZipFile]::CreateFromDirectory($jxlFolder,$zip)
 $settings.DjxlExe=[KCCAutomate.ManagedTools]::PrepareJxl($zip,$seven,$managed)
+$selectedRoot=Split-Path (Split-Path $settings.DjxlExe)
+Assert (-not(Test-Path -LiteralPath (Join-Path $selectedRoot 'tools\cjxl.exe'))-and-not(Test-Path -LiteralPath (Join-Path $selectedRoot 'samples\example.jxl'))) 'ZIP import extracted unrelated utilities or samples'
+Assert ((Test-Path -LiteralPath (Join-Path $selectedRoot 'LICENSE'))-and(Test-Path -LiteralPath (Join-Path $selectedRoot 'lib\support.dat'))) 'Selective ZIP import omitted a licence or runtime companion'
 $checks=[KCCAutomate.ToolValidation]::Check($settings)
 Assert ([KCCAutomate.ToolValidation]::Passed($checks)) ([KCCAutomate.ToolValidation]::Report($checks))
 'PASS: fresh paths are empty; KCC, djxl, KindleGen and actual 7-Zip identify themselves independently.'
@@ -93,11 +100,14 @@ $sevenArchive=Join-Path $source 'jxl.7z'
 & $seven a -t7z $sevenArchive (Join-Path $jxlFolder '*') -bso0 -bsp0
 Assert ($LASTEXITCODE-eq 0) '7-Zip fixture creation failed'
 $decoder=[KCCAutomate.ManagedTools]::PrepareJxl($sevenArchive,$seven,$managed)
+$selectedRoot=Split-Path (Split-Path $decoder)
+Assert (-not(Test-Path -LiteralPath (Join-Path $selectedRoot 'tools\cjxl.exe'))-and-not(Test-Path -LiteralPath (Join-Path $selectedRoot 'samples\example.jxl'))) '7-Zip import extracted unrelated utilities or samples'
 $settings.DjxlExe=$decoder
 Assert ([KCCAutomate.ToolValidation]::Passed([KCCAutomate.ToolValidation]::Check($settings))) 'Real .7z import lost decoder dependencies'
 Assert (Test-Path -LiteralPath (Join-Path (Split-Path $decoder) $unicodeCompanion)) '7-Zip streaming import lost a Unicode/bracketed filename'
 try{[void][KCCAutomate.ManagedTools]::PrepareJxl($sevenArchive,'',$managed);throw 'Missing 7-Zip accepted'}catch{Assert ($_.Exception.Message.Contains('7z.exe')) 'Missing extractor error was unclear'}
 'PASS: an actual .7z package imports djxl and companion libraries and runs; a missing extractor gives an actionable message.'
+'PASS: ZIP and 7z imports select the decoder, runtime companions and licences while omitting encoders and sample images.'
 $settings.ConvertJxl=$false;$settings.DjxlExe='missing-package.7z'
 Assert ([KCCAutomate.ToolValidation]::Passed([KCCAutomate.ToolValidation]::Check($settings))) 'Disabled JPEG XL support blocked setup'
 $settings.ConvertJxl=$true;$settings.DjxlExe=$decoder
@@ -121,6 +131,25 @@ $result=[KCCAutomate.SetupChecks]::ConvertTest($copy,$book,(Join-Path $PSScriptR
 Assert ($result.Passed) ('Managed conversion failed: '+$result.Log)
 Assert (Test-Path -LiteralPath $book) 'Original test book was removed'
 'PASS: managed tools run and convert a copied fixture after the source downloads folder becomes unavailable; helper PATHs stay scoped to conversion processes.'
+$inactiveCopy=New-Object KCCAutomate.Settings
+$inactiveCopy.KccExe=$copy.KccExe;$inactiveCopy.SevenZipExe=$copy.SevenZipExe
+$inactiveCopy.Format='EPUB';$inactiveCopy.ConvertJxl=$false
+$inactiveCopy.KindlegenExe=Join-Path $root 'missing-kindlegen.exe';$inactiveCopy.DjxlExe=Join-Path $root 'missing-djxl.exe'
+$inactiveCopy.WatchFolder=$copy.WatchFolder;$inactiveCopy.ConvertedFolder=$copy.ConvertedFolder;$inactiveCopy.ArchiveFolder=$copy.ArchiveFolder;$inactiveCopy.WorkFolder=$copy.WorkFolder
+Assert ([KCCAutomate.ToolValidation]::Passed([KCCAutomate.ToolValidation]::Check($inactiveCopy))) 'Inactive missing tools blocked a non-MOBI tool check'
+$inactiveManaged=[KCCAutomate.ManagedTools]::Import($inactiveCopy,$managed)
+Assert (($inactiveManaged.KindlegenExe-eq$inactiveCopy.KindlegenExe)-and($inactiveManaged.DjxlExe-eq$inactiveCopy.DjxlExe)) 'Import discarded saved inactive tool paths'
+Assert ($inactiveManaged.KccExe-eq([KCCAutomate.ManagedTools]::Import($inactiveManaged,$managed)).KccExe) 'An inactive external path prevented safe bundle reuse'
+$result=[KCCAutomate.SetupChecks]::ConvertTest($inactiveManaged,$book,(Join-Path $PSScriptRoot 'dist\KCCAutomate'))
+Assert $result.Passed ('EPUB worker still depended on inactive KindleGen or decoder paths: '+$result.Log)
+$rule=New-Object KCCAutomate.FolderRule;$rule.Pattern='mobi/*';$rule.PresetName='Kindle';$rule.Options=New-Object 'System.Collections.Generic.Dictionary[string,object]';$rule.Options.Add('Format','MOBI');$inactiveManaged.FolderRules.Add($rule)
+Assert ([KCCAutomate.ToolValidation]::RequiresKindlegen($inactiveManaged)-and-not([KCCAutomate.ToolValidation]::Check($inactiveManaged,'Kindle')).Passed) 'An EPUB default hid a MOBI folder preset dependency'
+$inactiveManaged.FolderRules.Clear()
+$inactiveManaged.Format='MOBI'
+Assert (-not([KCCAutomate.ToolValidation]::Check($inactiveManaged,'Kindle')).Passed) 'Switching back to MOBI did not require KindleGen'
+$result=[KCCAutomate.SetupChecks]::ConvertTest($inactiveManaged,$book,(Join-Path $PSScriptRoot 'dist\KCCAutomate'))
+Assert (-not$result.Passed-and$result.Log.Contains('KindleGen')-and(Test-Path -LiteralPath $book)) 'A missing re-enabled KindleGen was accepted or lost the original'
+'PASS: non-MOBI imports and copied-book conversion ignore inactive KindleGen/JXL paths, preserve them for later and reuse verified bundles; switching to MOBI restores the dependency without losing originals.'
 [IO.File]::WriteAllText((Join-Path (Split-Path $copy.KccExe) 'future'),'unapproved update')
 $result=[KCCAutomate.SetupChecks]::ConvertTest($copy,$book,(Join-Path $PSScriptRoot 'dist\KCCAutomate'))
 Assert (-not$result.Passed-and$result.Log.Contains('requires the approved KCC')-and(Test-Path -LiteralPath $book)) 'Conversion worker accepted an unapproved replacement tool or lost the original'

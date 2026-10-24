@@ -10,8 +10,8 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
-[assembly: AssemblyVersion("0.8.0.0")]
-[assembly: AssemblyFileVersion("0.8.0.0")]
+[assembly: AssemblyVersion("0.1.18.0")]
+[assembly: AssemblyFileVersion("0.1.18.0")]
 [assembly: AssemblyProduct("KCCAutomate")]
 namespace KCCAutomate {
     public partial class Settings {
@@ -74,12 +74,13 @@ namespace KCCAutomate {
         public Dictionary<string,string> VerifiedToolFiles { get; set; }
     }
     public static class ReleaseClient {
-        public const string AppVersion="0.8.0";
+        public const string AppVersion="0.1.18";
         // Change this policy only after the maintainer tests a full conversion with the new CLI.
         public const string ApprovedKccVersion="12.0.0";
         public const string ApprovedKccAsset="tool_cli_c2e_12.0.0_AMD64.exe";
         public const string ApprovedKccDigest="sha256:8300504c7d6685eaa63a803e490c7ef2f87a4c9e43cc49c3e361fada892d85ff";
         public const string ApprovedKccPage="https://github.com/ciromattia/kcc/releases/tag/v12.0.0";
+        public const string KccReleasesPage="https://github.com/ciromattia/kcc/releases";
         public const string ApprovedKccDownload="https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_AMD64.exe";
         static readonly JavaScriptSerializer json=new JavaScriptSerializer { MaxJsonLength=8000000 };
         public static string Repository(string text) {
@@ -124,7 +125,7 @@ namespace KCCAutomate {
             row.Status=Version.TryParse(tag.TrimStart('v','V'),out latest) && Version.TryParse(installed.TrimStart('v','V'),out current) ? (latest>current ? "Update available" : "Up to date") : "Version needs review";
             if (row.Asset==null) row.Status="No matching Windows asset";
             if(component=="KCC") {
-                row.Notes="KCCAutomate supports the manually approved Windows c2e build "+ApprovedKccVersion+". KCC upgrades are offered only after maintainer testing and a KCCAutomate update. The Windows CLI .exe bundles Python and its Python libraries; a separate GUI or Python installation is not required.\n\n"+row.Notes;
+                row.Notes="Latest verified compatible version for this Windows build: KCC "+ApprovedKccVersion+". Download the c2e CLI yourself from KCC's GitHub releases page, then choose it in setup. KCCAutomate does not download KCC binaries. New compatibility approvals follow maintainer testing and a KCCAutomate update. The Windows CLI bundles Python and its libraries.\n\n"+row.Notes;
                 try {ValidateKccRelease(row);row.Status=(installed??"").TrimStart('v','V')==ApprovedKccVersion?"Approved version selected":"Approved version available";}
                 catch(Exception ex){row.Asset=null;row.Status="KCC release not approved";row.Notes=ex.Message+"\n\n"+row.Notes;}
             }
@@ -146,7 +147,7 @@ namespace KCCAutomate {
             if (!String.Equals(Hash(path),digest.Substring(7),StringComparison.OrdinalIgnoreCase)) throw new Exception("Download checksum failed. Nothing will be installed.");
         }
         public static string Download(UpdateRow row,string directory) {
-            if(row.Component=="KCC")ValidateKccRelease(row);
+            if(row.Component=="KCC"){ValidateKccRelease(row);throw new Exception("KCC downloads are user-managed. Open KCC's GitHub releases page and choose the downloaded CLI in setup: "+KccReleasesPage);}
             if (row.Asset==null) throw new Exception("No compatible Windows download is available.");
             if (!Regex.IsMatch(row.Asset.Digest ?? "",@"^sha256:[0-9a-fA-F]{64}$")) throw new Exception("GitHub supplied no SHA-256 digest for this asset. Installation is blocked.");
             var uri=new Uri(row.Asset.Url);
@@ -169,7 +170,7 @@ namespace KCCAutomate {
             }
             return path;
         }
-        public static readonly string[] RequiredFiles={"KCCAutomate.exe","MainWindow.xaml","Convert-Manga.ps1","Workflow-Support.ps1","Manage-Schedule.ps1","Read-Log.ps1","Notify-Result.ps1","Apply-Update.ps1","Workspace-Info.ps1","README.md"};
+        public static readonly string[] RequiredFiles={"KCCAutomate.exe","MainWindow.xaml","Convert-Manga.ps1","Workflow-Support.ps1","Manage-Schedule.ps1","Read-Log.ps1","Notify-Result.ps1","Apply-Update.ps1","Workspace-Info.ps1","README.md","license.txt"};
         public static void SafeExtract(string zipPath,string destination) {
             string prefix=Path.GetFullPath(destination).TrimEnd('\\')+"\\";
             Directory.CreateDirectory(destination);

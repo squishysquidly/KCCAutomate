@@ -83,7 +83,7 @@ namespace KCCAutomate {
             foreach(var name in new[]{"AutoCleanup","QuietHoursEnabled"}) {Find<CheckBox>(name).Checked+=delegate {Dirty();};Find<CheckBox>(name).Unchecked+=delegate {Dirty();};}
             Find<ComboBox>("Theme").SelectionChanged+=delegate {ApplyTheme(ComboText("Theme"));Dirty();};
             Find<ComboBox>("NotificationMode").SelectionChanged+=delegate {Dirty();};
-            Find<DataGrid>("UpdatesGrid").SelectionChanged+=delegate {var r=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow; Find<TextBox>("ReleaseNotes").Text=r==null?"":r.Notes;};
+            Find<DataGrid>("UpdatesGrid").SelectionChanged+=delegate {var r=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow; Find<TextBox>("ReleaseNotes").Text=r==null?"":r.Notes;Find<Button>("DownloadUpdate").Content=r!=null&&r.Component=="KCC"?"Open KCC releases":"Download & verify";Find<Button>("InstallUpdate").Content=r!=null&&r.Component=="KCC"?"Choose downloaded KCC":"Install / use selected";};
             ApplyTheme(saved.Theme);
             var result=Path.Combine(userDir,"last-update.txt");
             if(!testing && File.Exists(result)) {Status(File.ReadAllText(result)); Append(File.ReadAllText(result));}
@@ -215,7 +215,9 @@ namespace KCCAutomate {
             Find<TextBlock>("UpdateStatus").Text="Checks finished. KCC stays on the approved "+ReleaseClient.ApprovedKccVersion+" CLI until a KCCAutomate update approves another version. Select a component for details.";
         }
         async Task DownloadUpdateAsync() {
-            var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row==null || row.Asset==null) throw new Exception("Select an available release first.");
+            var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row==null)throw new Exception("Select a component first.");
+            if(row.Component=="KCC"){Process.Start(new ProcessStartInfo(ReleaseClient.KccReleasesPage){UseShellExecute=true});Find<TextBlock>("UpdateStatus").Text="Download KCC "+ReleaseClient.ApprovedKccVersion+" c2e yourself from its GitHub releases page, then choose the downloaded file in setup.";return;}
+            if(row.Asset==null) throw new Exception("Select an available release first.");
             Find<TextBlock>("UpdateStatus").Text="Downloading and checking SHA-256...";
             string directory=Path.Combine(userDir,"Updates",Guid.NewGuid().ToString("N"));
             string path=await Task.Run(delegate {return ReleaseClient.Download(row,directory);});
@@ -233,7 +235,7 @@ namespace KCCAutomate {
             Find<DataGrid>("UpdatesGrid").Items.Refresh();Find<TextBlock>("UpdateStatus").Text=row.Status+". Existing installed versions have not changed.";
         }
         void InstallSelected() {
-            var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row==null || String.IsNullOrEmpty(row.VerifiedPath)) throw new Exception("Download and verify a release first.");
+            var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row!=null&&row.Component=="KCC"){ShowGuidedSetup();return;}if(row==null || String.IsNullOrEmpty(row.VerifiedPath)) throw new Exception("Download and verify a release first.");
             if(running!=null || asyncBusy) throw new Exception("Wait until the current operation finishes.");
             if(row.Component=="KCCAutomate") {
                 Save();if(MessageBox.Show(Window,"Close KCCAutomate, back up this installation and apply the verified update? Settings and scheduled paths will be retained.","Install update",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;
@@ -291,8 +293,8 @@ namespace KCCAutomate {
             if(duplicateSettings.DuplicateAction!="KeepBoth"||duplicateSettings.OverwriteConverted||Options(duplicateSettings).ContainsKey("DuplicateAction"))throw new Exception("Duplicate policy persistence or preset isolation failed.");
             if(!IsOutputConflict(new QueueRow{Status="Failed",Detail="Different output already exists: file.mobi"})||IsOutputConflict(new QueueRow{Status="Conflict",ConflictKind="MultipleInputs"}))throw new Exception("Retry conflict classification failed.");
             results.Add("PASS: duplicate-policy migration, persistence, preset isolation and scoped retry classification");
-            var release="{\"tag_name\":\"v0.6.0\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"KCCAutomate-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.6.0/KCCAutomate-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
-            var row=ReleaseClient.Parse("KCCAutomate","squishysquidly/KCCAutomate","0.5.0",release);
+            var release="{\"tag_name\":\"v0.1.6\",\"body\":\"Release notes\",\"assets\":[{\"name\":\"KCCAutomate-Windows.zip\",\"size\":12,\"browser_download_url\":\"https://github.com/squishysquidly/KCCAutomate/releases/download/v0.1.6/KCCAutomate-Windows.zip\",\"digest\":\"sha256:"+new string('0',64)+"\"}]}";
+            var row=ReleaseClient.Parse("KCCAutomate","squishysquidly/KCCAutomate","0.1.5",release);
             if(row.Status!="Update available" || row.Asset==null)throw new Exception("Release parsing failed.");
             if(ReleaseClient.Repository("https://github.com/squishysquidly/KCCAutomate")!="squishysquidly/KCCAutomate")throw new Exception("Repository normalization failed.");
             try{ReleaseClient.Repository("https://evil.example/repo");throw new Exception("Invalid repository accepted");}catch(Exception ex){if(!ex.Message.Contains("owner/repository"))throw;}
@@ -302,6 +304,10 @@ namespace KCCAutomate {
             using(var z=System.IO.Compression.ZipFile.Open(zipPath,System.IO.Compression.ZipArchiveMode.Create)){z.CreateEntry("../escape.txt");}
             try{ReleaseClient.SafeExtract(zipPath,Path.Combine(directory,"extract-"+Guid.NewGuid().ToString("N")));throw new Exception("Unsafe ZIP accepted");}catch(Exception ex){if(!ex.Message.Contains("Unsafe path"))throw;}
             results.Add("PASS: release selection, repository validation, SHA-256 verification and ZIP traversal rejection");
+            var manualKcc=new UpdateRow{Component="KCC",Notes="Manually download from upstream"};updates.Add(manualKcc);Find<DataGrid>("UpdatesGrid").SelectedItem=manualKcc;
+            if(Convert.ToString(Find<Button>("DownloadUpdate").Content)!="Open KCC releases"||Convert.ToString(Find<Button>("InstallUpdate").Content)!="Choose downloaded KCC")throw new Exception("KCC update actions did not use manual upstream acquisition.");
+            Find<DataGrid>("UpdatesGrid").SelectedItem=null;updates.Clear();
+            results.Add("PASS: KCC update actions use the upstream releases page and user-selected downloads");
             queue[@"C:\test\in\Example.cbz"]=new QueueRow{SourcePath=@"C:\test\in\Example.cbz",Name="Example manga.cbz",Batch="Example series",Status="Failed",Detail="Example decoder failure",Advice="Check the decoder path, then retry.",JxlPages=24};
             UpdateQueueView();
         }

@@ -9,7 +9,7 @@ param(
     [switch]$NoRelaunch
 )
 $ErrorActionPreference='Stop'
-$files=@('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
+$files=@('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md','license.txt')
 $target=[IO.Path]::GetFullPath($TargetDirectory).TrimEnd('\')
 $backup=[IO.Path]::GetFullPath($BackupDirectory).TrimEnd('\')
 if ($target -eq [IO.Path]::GetPathRoot($target).TrimEnd('\') -or $target -eq $backup) { throw 'Invalid update or backup location.' }

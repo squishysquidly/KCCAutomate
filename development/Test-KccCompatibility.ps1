@@ -25,6 +25,9 @@ $bad=New-Object KCCAutomate.UpdateRow;$bad.Component='KCC';$bad.Repository='ciro
 $unused=Join-Path $PSScriptRoot ('test-results\must-not-download-'+[guid]::NewGuid().ToString('N'))
 try{[void][KCCAutomate.ReleaseClient]::Download($bad,$unused);throw 'Unapproved download allowed'}catch{Assert ($_.Exception.Message.Contains('approved')) 'Download approval gate did not reject the release'}
 Assert (-not(Test-Path -LiteralPath $unused)) 'Rejected KCC download created staging files'
+try{[void][KCCAutomate.ReleaseClient]::Download($row,$unused);throw 'In-app KCC binary download allowed'}catch{Assert ($_.Exception.Message.Contains('user-managed')) 'Verified KCC did not direct the user to manual acquisition'}
+Assert (-not(Test-Path -LiteralPath $unused)) 'A manual-only KCC download created staging files'
+'PASS: KCC acquisition is manual-only through the upstream releases page; even a verified asset cannot be downloaded by the app.'
 'PASS: future tags, changed checksums and GUI assets are blocked; direct downloads recheck approval before network or filesystem changes.'
 if($CheckLiveRelease){
  $live=[KCCAutomate.ReleaseClient]::Check('KCC','ciromattia/kcc',$approved)

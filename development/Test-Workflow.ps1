@@ -41,7 +41,7 @@ function Run-Engine([string[]]$Extra) {
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $script:engineOutput = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Convert-Manga.ps1') -ConfigPath $configPath @Extra 2>&1
+        $script:engineOutput = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Convert-Manga.ps1') -ConfigPath $configPath @Extra 2>&1
         $script:engineExit = $LASTEXITCODE
     } finally { $ErrorActionPreference = $previousPreference }
 }

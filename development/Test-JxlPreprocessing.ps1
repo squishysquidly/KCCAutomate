@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $errors = $null; $tokens = $null
-$ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Convert-Manga.ps1'), [ref]$tokens, [ref]$errors)
+$ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Convert-Manga.ps1'), [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
 $ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] }, $false) |
     ForEach-Object { Invoke-Expression $_.Extent.Text }

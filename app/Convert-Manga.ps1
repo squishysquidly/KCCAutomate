@@ -137,7 +137,7 @@ function Invoke-Converter([string]$Executable, [string[]]$Options, [string]$LogF
         if (-not (Test-Path -LiteralPath $sevenZipExe -PathType Leaf)) { throw 'The selected 7-Zip executable is missing. Re-run guided setup.' }
         $start.EnvironmentVariables['PATH'] = (Split-Path $sevenZipExe -Parent) + ';' + $start.EnvironmentVariables['PATH']
     }
-    if ($kindlegenExe) {
+    if ($kindlegenExe -and $outputExtension -eq '.mobi') {
         if (-not (Test-Path -LiteralPath $kindlegenExe -PathType Leaf)) { throw 'The selected KindleGen executable is missing.' }
         $start.EnvironmentVariables['PATH'] = (Split-Path $kindlegenExe -Parent) + ';' + $start.EnvironmentVariables['PATH']
     }

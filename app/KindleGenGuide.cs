@@ -9,8 +9,13 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 
 namespace KCCAutomate {
+    public class KindleGenLocation {
+        public string Compiler {get;set;}
+        public bool PreviewerFolderFound {get;set;}
+    }
     public static class KindleGenGuide {
         public const string GuideUrl="https://github.com/ciromattia/kcc/wiki/Installation#kindlegen";
+        public const string PreviewerUrl="https://kdp.amazon.com/en_US/help/topic/G202131170";
 
         public static string[] InstallationRoots(string local,string programFiles,string programFilesX86) {
             var roots=new List<string>();
@@ -46,6 +51,11 @@ namespace KCCAutomate {
             // Prefer a folder containing the requested file over an empty, newer installation.
             foreach(string folder in candidates)if(File.Exists(Path.Combine(folder,"kindlegen.exe")))return folder;
             return candidates.FirstOrDefault(Directory.Exists);
+        }
+        public static KindleGenLocation Locate(string selected,IEnumerable<string> installationRoots) {
+            var roots=(installationRoots??new string[0]).ToArray();string folder=FindFolder(selected,roots);
+            string compiler=folder==null?null:Path.Combine(folder,"kindlegen.exe");
+            return new KindleGenLocation{Compiler=compiler!=null&&File.Exists(compiler)?compiler:null,PreviewerFolderFound=roots.Any(r=>!String.IsNullOrWhiteSpace(r)&&Path.GetFileName(r).StartsWith("Kindle Previewer",StringComparison.OrdinalIgnoreCase)&&Directory.Exists(r))};
         }
         public static string OpenFolder(string selected) {
             string folder=FindFolder(selected,InstallationRoots());

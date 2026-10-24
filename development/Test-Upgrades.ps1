@@ -23,7 +23,7 @@ $configPath=Join-Path $fixture 'settings.json'
 function Invoke-Worker([string[]]$Options){
  $config|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $configPath -Encoding UTF8
  $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
- try{$script:workerLog=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Convert-Manga.ps1') -ConfigPath $configPath @Options 2>&1;$script:workerCode=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
+ try{$script:workerLog=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Convert-Manga.ps1') -ConfigPath $configPath @Options 2>&1;$script:workerCode=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
 }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 function New-Cbz($Path,[string]$Entry='001.jpg'){
@@ -63,15 +63,15 @@ if($workerCode -ne 0 -or (Test-Path -LiteralPath $success) -or (Test-Path -Liter
 'PASS: separate success/failure retention; receipts and originals preserved.'
 $target=Join-Path $fixture 'installed';$stage=Join-Path $fixture 'stage';$backup=Join-Path $fixture 'backup'
 New-Item -ItemType Directory -Path $target,$stage|Out-Null
-$required=@('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md')
+$required=@('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','Workflow-Support.ps1','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1','README.md','license.txt')
 $manifest=@()
 foreach($name in $required){[IO.File]::WriteAllText((Join-Path $stage $name),"new $name");$manifest+=@{Name=$name;Hash=(Get-FileHash -LiteralPath (Join-Path $stage $name)).Hash}}
-foreach($name in @('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1')){[IO.File]::WriteAllText((Join-Path $target $name),"old $name")}
+foreach($name in @('KCCAutomate.exe','MainWindow.xaml','Convert-Manga.ps1','license.txt')){[IO.File]::WriteAllText((Join-Path $target $name),"old $name")}
 $manifestPath=Join-Path $stage 'verified-files.json';ConvertTo-Json -InputObject $manifest|Set-Content -LiteralPath $manifestPath
 $manifestHash=(Get-FileHash -LiteralPath $manifestPath).Hash
 function Invoke-Installer([string[]]$Options){
  $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
- try{$script:installLog=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'app\Apply-Update.ps1') -TargetDirectory $target -ConfigPath $configPath -BackupDirectory $backup -NoRelaunch @Options 2>&1;$script:installCode=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
+ try{$script:installLog=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\Apply-Update.ps1') -TargetDirectory $target -ConfigPath $configPath -BackupDirectory $backup -NoRelaunch @Options 2>&1;$script:installCode=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
 }
 $handle=[IO.File]::Open((Join-Path $work 'running.lock'),'OpenOrCreate','ReadWrite','None')
 try{Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)}finally{$handle.Dispose()}
@@ -79,8 +79,10 @@ if($installCode -eq 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate
 'PASS: app update is blocked while conversion lock is held.'
 Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)
 if($installCode -ne 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'new KCCAutomate.exe' -or -not(Test-Path -LiteralPath (Join-Path $backup 'backup-info.json'))){throw "Update installation failed: $installLog"}
+if([IO.File]::ReadAllText((Join-Path $target 'license.txt')) -ne 'new license.txt'){throw 'The app update did not carry the licence notices.'}
 Invoke-Installer @('-Rollback')
 if($installCode -ne 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'old KCCAutomate.exe' -or (Test-Path -LiteralPath (Join-Path $target 'Notify-Result.ps1'))){throw "Rollback failed: $installLog"}
+if([IO.File]::ReadAllText((Join-Path $target 'license.txt')) -ne 'old license.txt'){throw 'Rollback did not restore the corresponding licence notices.'}
 'PASS: verified update, backup creation and restoration of the old file set.'
 [IO.File]::WriteAllText((Join-Path $stage 'KCCAutomate.exe'),'tampered')
 Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)

@@ -33,7 +33,7 @@ namespace KCCAutomateInstaller {
             if(result.Equals(Path.GetPathRoot(result).TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))throw new Exception("Choose an application subfolder, not a drive or share root.");
             return result;
         }
-        static string[] AppFiles {get{return ReleaseClient.RequiredFiles.Concat(new[]{"license.txt",Uninstaller}).ToArray();}}
+        static string[] AppFiles {get{return ReleaseClient.RequiredFiles.Concat(new[]{Uninstaller}).ToArray();}}
         sealed class InstallerGate:IDisposable {
             readonly System.Threading.Mutex mutex;
             public InstallerGate(){mutex=new System.Threading.Mutex(false,@"Local\KCCAutomate-Installation-"+WindowsIdentity.GetCurrent().User.Value);if(!mutex.WaitOne(0)){mutex.Dispose();throw new Exception("Another installation or removal is in progress. Let it finish first.");}}

@@ -14,42 +14,42 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build portable app
         shell: powershell
-        run: ./Build-App.ps1
+        run: ./development/Build-App.ps1
       - name: Test conversion workflow and JPEG XL preparation
         shell: powershell
         run: |
-          ./Test-Workflow.ps1
-          ./Test-JxlPreprocessing.ps1
-          ./Test-Upgrades.ps1
-          ./Test-Duplicates.ps1
-          ./Test-ToolSetup.ps1
-          ./Test-KccCompatibility.ps1
+          ./development/Test-Workflow.ps1
+          ./development/Test-JxlPreprocessing.ps1
+          ./development/Test-Upgrades.ps1
+          ./development/Test-Duplicates.ps1
+          ./development/Test-ToolSetup.ps1
+          ./development/Test-KccCompatibility.ps1
       - name: Test desktop and update validation without opening a window
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Path test-results -Force | Out-Null
-          $report = Join-Path $pwd 'test-results\desktop.txt'
-          $p = Start-Process -FilePath .\dist\KCCAutomate\KCCAutomate.exe -ArgumentList @('--self-test', ('"' + $report + '"')) -WindowStyle Hidden -Wait -PassThru
+          New-Item -ItemType Directory -Path development/test-results -Force | Out-Null
+          $report = Join-Path $pwd 'development/test-results\desktop.txt'
+          $p = Start-Process -FilePath .\development\dist\KCCAutomate\KCCAutomate.exe -ArgumentList @('--self-test', ('"' + $report + '"')) -WindowStyle Hidden -Wait -PassThru
           Get-Content -LiteralPath $report
           if ($p.ExitCode) { throw 'Desktop tests failed.' }
       - name: Package app
         shell: powershell
-        run: ./Package-App.ps1 -SkipBuild
+        run: ./development/Package-App.ps1 -SkipBuild
       - name: Build Windows installer
         shell: powershell
-        run: ./Build-Installer.ps1 -SkipPackage
+        run: ./development/Build-Installer.ps1 -SkipPackage
       - name: Test installation and isolated setup conversion
         shell: powershell
-        run: ./Test-Installation.ps1
+        run: ./development/Test-Installation.ps1
       - name: Save build downloads
         uses: actions/upload-artifact@v7
         with:
           name: KCCAutomate-Windows
           if-no-files-found: error
           path: |
-            dist/KCCAutomate-Setup.exe
-            dist/KCCAutomate-Windows.zip
-            dist/SHA256SUMS
+            development/dist/KCCAutomate-Setup.exe
+            development/dist/KCCAutomate-Windows.zip
+            development/dist/SHA256SUMS
       - name: Verify release version and upload assets
         if: github.event_name == 'release'
         shell: powershell
@@ -57,8 +57,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'dist\KCCAutomate\KCCAutomate.exe')).Version
+          $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $pwd 'development\dist\KCCAutomate\KCCAutomate.exe')).Version
           $expected = '{0}.{1}.{2}' -f $version.Major, $version.Minor, $version.Build
           if ($env:RELEASE_TAG.TrimStart('v') -ne $expected) { throw 'Release tag must match the app version.' }
-          gh release upload $env:RELEASE_TAG dist/KCCAutomate-Setup.exe dist/KCCAutomate-Windows.zip dist/SHA256SUMS --clobber
+          gh release upload $env:RELEASE_TAG development/dist/KCCAutomate-Setup.exe development/dist/KCCAutomate-Windows.zip development/dist/SHA256SUMS --clobber
           if ($LASTEXITCODE) { throw 'Release upload failed.' }

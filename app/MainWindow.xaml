@@ -86,7 +86,7 @@
                 <TextBlock Text="7-Zip executable (optional archive support)" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="SevenZipBrowse" DockPanel.Dock="Right" Content="Choose 7z.exe" Margin="10,0,0,0"/><TextBox x:Name="SevenZipExe" AutomationProperties.Name="7-Zip executable"/></DockPanel>
                 <TextBlock Text="Guided setup can import .zip/.7z JXL packages and copy tools into KCCAutomate's tools folder. Direct edits here use the selected locations." Style="{StaticResource Hint}"/>
-                <StackPanel Orientation="Horizontal"><Button x:Name="CheckTools" Content="Check setup"/><Button x:Name="KccLink" Content="Get approved KCC CLI"/><Button x:Name="JxlLink" Content="Get JXL tools"/></StackPanel>
+                <StackPanel Orientation="Horizontal"><Button x:Name="CheckTools" Content="Check setup"/><Button x:Name="KccLink" Content="Open KCC releases"/><Button x:Name="JxlLink" Content="Get JXL tools"/></StackPanel>
               </StackPanel></Border>
             </StackPanel>
           </ScrollViewer>
@@ -184,7 +184,7 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.8.0" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.1.18" Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleUpdateSource" Style="{StaticResource Hint}"/>
               <StackPanel x:Name="AdvancedRepository"><TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
               <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. App and JXL checks use stable releases; KCC checks use the version manually approved for this KCCAutomate release." Style="{StaticResource Hint}"/>
@@ -193,7 +193,7 @@
               <DataGrid x:Name="UpdatesGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Height="150" Margin="0,14,0,10" HeadersVisibility="Column"><DataGrid.Columns><DataGridTextColumn Header="Component" Binding="{Binding Component}" Width="*"/><DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="100"/><DataGridTextColumn Header="Offered" Binding="{Binding Latest}" Width="100"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/></DataGrid.Columns></DataGrid>
               <TextBox x:Name="ReleaseNotes" IsReadOnly="True" Height="110" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
               <WrapPanel Margin="0,12,0,0"><Button x:Name="DownloadUpdate" Content="Download &amp; verify selected"/><Button x:Name="InstallUpdate" Content="Install / use verified version"/><Button x:Name="RollbackUpdate" Content="Restore previous version"/></WrapPanel>
-              <TextBlock Text="Downloads are checked against GitHub's SHA-256 digest. Tools are smoke-tested before switching. App installation waits for conversion to be idle, preserves settings and backs up the current app. Changing repositories changes whom you trust." Style="{StaticResource Hint}"/>
+              <TextBlock Text="KCC is downloaded by you from its GitHub releases page, then selected in setup. App and JXL downloads are checked against GitHub's SHA-256 digest. App installation waits for conversion to be idle, preserves settings and backs up the current app. Changing repositories changes whom you trust." Style="{StaticResource Hint}"/>
               <TextBlock x:Name="UpdateStatus" Text="No updates checked yet." Style="{StaticResource Hint}"/>
             </StackPanel></Border>
           </StackPanel></ScrollViewer>
