@@ -4,6 +4,28 @@ Convert downloaded comics with your existing KCC tools, preserve folder
 structure, and archive originals after verified conversion. Local and UNC
 network folders are supported, including processing on a network share.
 
+## What's new in 0.8.0
+
+The KindleGen setup page now includes an **illustrated guide** showing the
+Kindle Previewer folder route: **lib → fc → bin → kindlegen.exe**. It explains
+how to select an existing working copy and what to do when Windows does not
+offer **Open file location**. These are original folder illustrations, rather
+than screenshots of a particular Windows or Previewer version. The route is
+based on [KCC's KindleGen instructions](https://github.com/ciromattia/kcc/wiki/Installation#kindlegen).
+
+**Open likely installation folder** checks common Kindle Previewer 3/4 and
+Kindle Comic Creator locations and the current selection. A folder containing
+KindleGen is preferred over an empty installation. If none exists, the app
+explains how to use KCC's guide or choose a custom installation. Opening a
+folder does not select, run or validate its contents; choose the compiler in
+setup and wait for the actual green check. **Find installed copy** remains
+available and uses the expanded installation locations too.
+
+Tool downloads remain user-managed, including Amazon's files. The embedded
+guide works offline; its external guide link needs an internet connection.
+Unfinished setup is not saved for resumption. Skipping unnecessary setup pages
+is the next separate build, following review of this improvement.
+
 ## What's new in 0.7.0
 
 Guided setup now presents **one tool per page**, in dependency order:
@@ -37,9 +59,9 @@ creation. In the app, **Create & check folders** saves chosen paths, creates
 missing folders and verifies read/write/rename/delete access without converting
 books. Startup availability checks remain read-only.
 
-Both installer and portable packages are provided. Setup progress is still
-saved when you finish; resuming an unfinished wizard is a possible later
-improvement. Tray controls remain a separate future build.
+Both installer and portable packages are provided. Settings are saved when
+you finish; unfinished setup is not saved for resumption. Tray controls remain
+a separate future build.
 
 ## What's new in 0.6.1
 
@@ -320,7 +342,7 @@ Updates require published release assets; merely pushing source changes does
 not make an app update available. This project includes
 `.github/workflows/release.yml`, which builds and tests on Windows and attaches
 `KCCAutomate-Setup.exe`, `KCCAutomate-Windows.zip` and `SHA256SUMS` when a release is
-published. The release tag must match the compiled version, currently `v0.7.0`. A manual workflow run
+published. The release tag must match the compiled version, currently `v0.8.0`. A manual workflow run
 builds/tests/packages without publishing. No GitHub release has been published
 by the local build scripts.
 

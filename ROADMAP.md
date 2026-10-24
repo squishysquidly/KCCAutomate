@@ -20,7 +20,13 @@ numbers are noted where helpful; the current order is below.
 5. **0.7.0 — Separate tool setup pages: implemented by request.** Dependency-first
    pages, focused automatic checks and clearer instructions; final folder
    explanation with an app-settings shortcut and Create & check folders action.
-6. **Next — Tray controls (original priority 7).** Quick access to progress,
+6. **0.8.0 — Illustrated KindleGen instructions: implemented by request.**
+   Original folder-route illustrations, guidance when Open file location is
+   missing, and an action to open likely Previewer/Comic Creator locations.
+   Tools remain user-supplied; unfinished setup is not saved for resumption.
+7. **Next — Skip unnecessary setup pages.** Start with omitting KindleGen
+   when the selected output does not need it. Deliver after review of 0.8.0.
+8. **Then — Tray controls (original priority 7).** Quick access to progress,
    stop-after-file and opening the app. Deliver as its own build.
 
 After duplicate handling and tray controls, reassess potential improvements

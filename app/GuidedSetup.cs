@@ -78,6 +78,17 @@ namespace KCCAutomate {
             var darkContent=(FrameworkElement)darkWizard.Window.Content;darkContent.Measure(new Size(840,590));darkContent.Arrange(new Rect(0,0,840,590));
             for(int page=1;page<=4;page++){darkWizard.RenderStep(page);darkContent.UpdateLayout();var bitmap=new RenderTargetBitmap(840,590,96,96,PixelFormats.Pbgra32);bitmap.Render(darkContent);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(directory,"wizard-dark-"+page+".png")))encoder.Save(stream);}
             ApplyTheme("Light");results.Add("PASS: all four individual tool pages render in dark mode at the minimum setup size");
+            foreach(string theme in new[]{"Light","Dark"}){
+                ApplyTheme(theme);var guide=KindleGenGuide.Create(Window,delegate{return "";});
+                foreach(string name in new[]{"GuideOpenFolder","GuideKccLink","GuideDone"})if(guide.FindName(name)==null)throw new Exception("Illustrated KindleGen guide action is missing: "+name);
+                foreach(var size in new[]{new Size(810,700),new Size(650,540)}){
+                    var guideContent=(FrameworkElement)guide.Content;guideContent.Measure(size);guideContent.Arrange(new Rect(new Point(),size));guideContent.UpdateLayout();
+                    var bitmap=new RenderTargetBitmap((int)size.Width,(int)size.Height,96,96,PixelFormats.Pbgra32);bitmap.Render(guideContent);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using(var stream=File.Create(Path.Combine(directory,"kindlegen-guide-"+theme.ToLowerInvariant()+(size.Width<700?"-minimum":"")+".png")))encoder.Save(stream);
+                    if(size.Width<700){((System.Windows.Controls.Expander)guide.FindName("GuideWindowsHelp")).IsExpanded=true;guideContent.UpdateLayout();((System.Windows.Controls.ScrollViewer)guide.FindName("GuideSteps")).ScrollToBottom();guideContent.UpdateLayout();bitmap=new RenderTargetBitmap((int)size.Width,(int)size.Height,96,96,PixelFormats.Pbgra32);bitmap.Render(guideContent);encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(Path.Combine(directory,"kindlegen-guide-"+theme.ToLowerInvariant()+"-help-bottom.png")))encoder.Save(stream);}
+                }
+            }
+            ApplyTheme("Light");results.Add("PASS: embedded illustrated KindleGen guide loads with folder, official-guide and return actions; renders in both themes at normal and minimum sizes without opening folders, downloading or running tools");
         }
         async Task TestWizardAndFolders(SetupWizard wizard,string tools,string root,List<string> results){
             await wizard.TestAutomaticTools(tools,results);

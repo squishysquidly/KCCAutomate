@@ -50,6 +50,24 @@ Assert ([KCCAutomate.ToolValidation]::KindlegenReplyValid(1,($kindleBanner+'Erro
 Assert (-not[KCCAutomate.ToolValidation]::KindlegenReplyValid(1,($kindleBanner+'Error(kindlegen):E99999:Failure'))) 'Unexpected KindleGen errors were accepted'
 Assert (-not[KCCAutomate.ToolValidation]::KindlegenReplyValid(1,'Unrelated program usage')) 'An unrelated program was accepted as KindleGen'
 'PASS: installed 7-Zip creates and extracts an archive; folder paths resolve to tools; the reported kindlgen banner and expected help error are accepted while unrelated programs/fatal errors are rejected.'
+$locations=Join-Path $root 'installation-locations'
+$emptyInstall=Join-Path $locations 'Amazon\Kindle Previewer 4'
+$workingInstall=Join-Path $locations 'Amazon\Kindle Previewer 3'
+$compilerFolder=Join-Path $workingInstall 'lib\fc\bin'
+New-Item -ItemType Directory -Path $emptyInstall,$compilerFolder -Force|Out-Null
+$locatedKindle=Join-Path $compilerFolder 'kindlegen.exe';[IO.File]::WriteAllText($locatedKindle,'locator fixture only; never execute')
+$candidates=[string[]]@($emptyInstall,$workingInstall)
+Assert ([KCCAutomate.KindleGenGuide]::FindFolder('', $candidates)-eq$compilerFolder) 'A newer empty installation hid an older working KindleGen location'
+Assert ([KCCAutomate.KindleGenGuide]::FindFolder(('"'+$kindle+'"'),$candidates)-eq(Split-Path $kindle)) 'The existing selected compiler location was not preferred'
+Assert ([KCCAutomate.KindleGenGuide]::FindFolder($workingInstall,[string[]]@())-eq$compilerFolder) 'A selected custom Previewer folder did not open its compiler subfolder'
+Assert ([KCCAutomate.KindleGenGuide]::FindFolder('',[string[]]@($emptyInstall))-eq$emptyInstall) 'An installed folder without KindleGen could not be opened for manual inspection'
+$missingInstall=Join-Path $locations 'not-installed'
+Assert ($null-eq[KCCAutomate.KindleGenGuide]::FindFolder('',[string[]]@($missingInstall))) 'A missing installation yielded a folder to open'
+Assert (-not(Test-Path -LiteralPath $missingInstall)) 'The folder locator created a missing installation'
+$known=[KCCAutomate.KindleGenGuide]::InstallationRoots($locations,'','')
+Assert (($known-contains(Join-Path $locations 'Amazon\Kindle Previewer 4'))-and($known-contains(Join-Path $locations 'Programs\Kindle Previewer 3'))-and($known-contains(Join-Path $locations 'Amazon\Kindle Comic Creator'))) 'Known installation locations omitted Previewer or Comic Creator'
+Assert ([IO.File]::ReadAllText($locatedKindle)-eq'locator fixture only; never execute') 'Locating KindleGen changed the file'
+'PASS: illustrated-guide folder lookup prefers the selected copy and folders containing KindleGen; supports custom, Previewer and Comic Creator locations; handles absent installations without creating, copying or executing files.'
 $managed=Join-Path $root 'app-data\Tools'
 $zip=Join-Path $source 'jxl.zip';[IO.Compression.ZipFile]::CreateFromDirectory($jxlFolder,$zip)
 $settings.DjxlExe=[KCCAutomate.ManagedTools]::PrepareJxl($zip,$seven,$managed)

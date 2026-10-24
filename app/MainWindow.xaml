@@ -184,7 +184,7 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.7.0" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.8.0" Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleUpdateSource" Style="{StaticResource Hint}"/>
               <StackPanel x:Name="AdvancedRepository"><TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
               <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. App and JXL checks use stable releases; KCC checks use the version manually approved for this KCCAutomate release." Style="{StaticResource Hint}"/>

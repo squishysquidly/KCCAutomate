@@ -54,6 +54,8 @@ namespace KCCAutomate {
             Click("TestBrowse",delegate{BrowseFile("TestBook","Comic files|*.cbz;*.pdf;*.epub;*.cbr;*.cb7");});
             Click("GetKcc",delegate{Open(ReleaseClient.ApprovedKccDownload);});Click("GetJxl",delegate{Open("https://github.com/libjxl/libjxl/releases");});Click("GetKindle",delegate{Open("https://github.com/ciromattia/kcc/wiki/Installation#kindlegen");});
             Click("GetKccFallback",delegate{Open(ReleaseClient.ApprovedKccPage);});Click("GetDependencies",delegate{Open("https://github.com/ciromattia/kcc/wiki/Installation");});Click("GetSevenZip",delegate{Open("https://www.7-zip.org/");});
+            Click("ShowKindleGuide",delegate{KindleGenGuide.Create(Window,delegate{return Text("Kindle");}).ShowDialog();});
+            Click("OpenKindleFolder",delegate{Feedback(KindleGenGuide.OpenFolder(Text("Kindle")));});
             Click("OpenTest",delegate{if(testOutput!=null)Open(testOutput);});
             Async("FindTools",Discover);Async("CheckFolders",CheckFolders);Async("CheckTools",delegate{return CheckPageTool(CurrentTool());});Async("RunTest",RunTest);Async("Next",Next);
             Click("Back",delegate{if(step>0){step--;ShowStep();}});
@@ -177,7 +179,7 @@ namespace KCCAutomate {
         async Task Discover(){
             string key=CurrentTool();if(key==null)return;if(key=="SevenZip"){await CheckPageTool(key);return;}Capture();Feedback("Looking for this tool in common app locations...");
             string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var roots=new[]{(String.IsNullOrWhiteSpace(draft.KccExe)?null:Path.GetDirectoryName(draft.KccExe)),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"7-Zip"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),"7-Zip"),toolsRoot,appDirectory,@"C:\kindletomanga",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"KindleComicConverter"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"Amazon"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),"Amazon"),Path.Combine(local,"Amazon"),Path.Combine(local,"Programs","Kindle Previewer 3"),Path.Combine(local,"Programs","Kindle Previewer 4"),Path.Combine(local,"KCCAutomate","Updates")};
+            var roots=new[]{(String.IsNullOrWhiteSpace(draft.KccExe)?null:Path.GetDirectoryName(draft.KccExe)),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"7-Zip"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),"7-Zip"),toolsRoot,appDirectory,@"C:\kindletomanga",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"KindleComicConverter"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"Amazon"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),"Amazon"),Path.Combine(local,"Amazon"),Path.Combine(local,"Programs","Kindle Previewer 3"),Path.Combine(local,"Programs","Kindle Previewer 4"),Path.Combine(local,"KCCAutomate","Updates")}.Concat(key=="Kindle"?KindleGenGuide.InstallationRoots():new string[0]);
             var found=await Task.Run(delegate{return SetupChecks.Discover(roots);});
             string selected=key=="Kcc"?found.Kcc:key=="Jxl"?found.Jxl:found.Kindlegen;
             if(selected!=null&&!File.Exists(Text(key)))Set(key,selected);

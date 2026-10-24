@@ -39,9 +39,10 @@
       <TabItem Header="KindleGen"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
         <TextBlock Text="Add KindleGen for MOBI books" FontSize="23" Margin="0,10,0,14"/>
         <TextBlock x:Name="KindleNeed" Text="KindleGen is Amazon's compiler. KCC uses it to build the final MOBI file for your Kindle." TextWrapping="Wrap"/>
-        <TextBlock Text="1. Click Find installed copy if you already have Kindle Previewer or KindleGen.&#10;2. If it is not found, follow KCC's guide below to locate kindlegen.exe.&#10;3. Choose the file or paste its folder, then wait for the green check." TextWrapping="Wrap" Margin="0,20,0,16"/>
-        <Button x:Name="GetKindle" Content="Open KindleGen instructions (KCC guide)" Style="{DynamicResource Primary}" HorizontalAlignment="Left"/>
-        <TextBlock Text="In Kindle Previewer, look under lib\fc\bin\kindlegen.exe. Your existing working kindlegen.exe can also be selected." Style="{DynamicResource Hint}"/>
+        <TextBlock Text="1. Try Find installed copy if you already have Kindle Previewer or KindleGen.&#10;2. Need help locating it? Open the illustrated guide or the likely installation folder below.&#10;3. Choose kindlegen.exe or paste its folder, then wait for the green check." TextWrapping="Wrap" Margin="0,20,0,16"/>
+        <WrapPanel><Button x:Name="ShowKindleGuide" Content="Show illustrated guide" Style="{DynamicResource Primary}"/><Button x:Name="OpenKindleFolder" Content="Open likely installation folder"/></WrapPanel>
+        <TextBlock Text="Kindle Previewer folder → lib → fc → bin → kindlegen.exe. An existing working copy is fine. The illustrated guide also covers Windows without 'Open file location'." Style="{DynamicResource Hint}"/>
+        <Button x:Name="GetKindle" Content="Open KCC's KindleGen instructions" HorizontalAlignment="Left"/>
         <DockPanel Margin="0,14,0,0"><Button x:Name="KindleBrowse" Content="Choose kindlegen.exe" DockPanel.Dock="Right" Margin="10,0,0,0"/><TextBox x:Name="Kindle"/></DockPanel>
         <Border Background="{DynamicResource SoftBrush}" Padding="18" CornerRadius="6" Margin="0,18,0,12"><TextBlock x:Name="KindleStatus" TextWrapping="Wrap" FontSize="17" FontWeight="SemiBold"/></Border>
         <Expander Header="What does this check verify?" Margin="0,10,0,0"><TextBlock Text="We start KindleGen without a book and recognize its Amazon compiler banner. Some working builds spell it kindlgen and report an unsupported -help argument; that expected response is accepted. A sample conversion later checks the complete MOBI workflow." Style="{DynamicResource Hint}"/></Expander>
