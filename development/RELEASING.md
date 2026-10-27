@@ -1,6 +1,6 @@
-# Publishing KCCAutomate
+﻿# Publishing KCCAutomate
 
-Current version: **0.1.18**. Default repository: **squishysquidly/KCCAutomate**.
+Current version: **0.1.19**. Default repository: **squishysquidly/KCCAutomate**.
 The app reads published GitHub Releases, rather than source commits.
 
 ## Build and validate
@@ -15,12 +15,14 @@ The app reads published GitHub Releases, rather than source commits.
    its runtime scripts, the user README and licence, without personal settings,
    books, third-party converters, test fixtures or build sources.
 4. Verify the compiled assembly/file version, manifest, app label and
-   `ReleaseClient.AppVersion` all say **0.1.18** (four-part fields: **0.1.18.0**).
+   `ReleaseClient.AppVersion` all say **0.1.19** (four-part fields: **0.1.19.0**).
    Future releases must update those fields together.
 
 ## Prepare and publish an immutable release
 
-Each public build uses a new version: for example, 0.1.19 after 0.1.18.
+The current release is **0.1.19**, the first update from **0.1.18**. Its
+consolidated notes are in [RELEASE-NOTES.md](RELEASE-NOTES.md). Later public
+builds must each use a new, higher version.
 Update the app version fields above and current-version documentation, then
 commit and push the reviewed source. Existing releases and tags stay intact.
 Local builds do not push, tag, upload or publish anything.
@@ -84,6 +86,10 @@ twelve files including portable.flag; installed-mode updates preserve the mode.
 The app continues to discover public updates through GitHub's latest release;
 unpublished drafts are not offered to users. Keep published downloads intact
 and choose a new version for every later public build.
+
+A local development installation with a higher version number will need a manual
+installation of the consolidated build once; the updater correctly offers only
+newer versions. This does not affect upgrades from the 0.1.18 release.
 
 ## Approve a later KCC version
 

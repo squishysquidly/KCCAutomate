@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "targetId": "windows-x86_64",
+  "folders": {
+    "incoming": "C:\\Books\\Incoming",
+    "converted": "C:\\Books\\Converted",
+    "originals": "C:\\Books\\Originals",
+    "working": "C:\\Books\\Working"
+  },
+  "tools": {
+    "kcc": {
+      "program": "C:\\Tools\\kcc-c2e.exe",
+      "prefixArgs": []
+    },
+    "djxl": {
+      "program": "C:\\Tools\\djxl.exe",
+      "prefixArgs": []
+    },
+    "kindlegen": {
+      "program": "C:\\Tools\\kindlegen.exe",
+      "prefixArgs": []
+    },
+    "sevenZip": {
+      "program": "C:\\Program Files\\7-Zip\\7z.exe",
+      "prefixArgs": []
+    }
+  },
+  "conversion": {
+    "Profile": "KS",
+    "Format": "MOBI",
+    "Cropping": 0,
+    "Splitter": 0,
+    "MangaStyle": true,
+    "Upscale": true,
+    "Stretch": false,
+    "Autolevel": false,
+    "NoAutocontrast": false,
+    "ForceColor": false,
+    "ForcePng": false,
+    "Webtoon": false,
+    "Gamma": 0
+  },
+  "workflow": {
+    "QuietMinutes": 30,
+    "InputExtensions": [
+      ".cbz",
+      ".pdf"
+    ],
+    "DuplicateAction": "Replace",
+    "OutputNaming": "{name}",
+    "ConvertJxl": true,
+    "AutoCleanup": false,
+    "SuccessRetentionDays": 7,
+    "FailureRetentionDays": 30
+  },
+  "folderRules": [
+    {
+      "Pattern": "Series `[A`]\\*",
+      "PatternSyntax": "powershell-like-v1",
+      "PresetName": "Reader",
+      "Options": {
+        "Gamma": 1.2
+      }
+    }
+  ],
+  "schedule": {
+    "Times": [
+      "08:00",
+      "14:00",
+      "20:00"
+    ],
+    "WakeComputer": false,
+    "Activation": "manual"
+  },
+  "extensions": {
+    "legacyWindowsSettings": {
+      "Version": 1,
+      "WatchFolder": "C:\\Books\\Incoming",
+      "ConvertedFolder": "C:\\Books\\Converted",
+      "ArchiveFolder": "C:\\Books\\Originals",
+      "WorkFolder": "C:\\Books\\Working",
+      "KccExe": "C:\\Tools\\kcc-c2e.exe",
+      "DjxlExe": "C:\\Tools\\djxl.exe",
+      "KindlegenExe": "C:\\Tools\\kindlegen.exe",
+      "SevenZipExe": "C:\\Program Files\\7-Zip\\7z.exe",
+      "Profile": "KS",
+      "Format": "MOBI",
+      "Cropping": 0,
+      "Splitter": 0,
+      "MangaStyle": true,
+      "Upscale": true,
+      "Autolevel": false,
+      "ConvertJxl": true,
+      "QuietMinutes": 30,
+      "InputExtensions": [
+        ".cbz",
+        ".pdf"
+      ],
+      "OverwriteConverted": true,
+      "ScheduleTimes": "08:00, 14:00, 20:00",
+      "WakeComputer": false,
+      "FolderRules": [
+        {
+          "Pattern": "Series `[A`]\\*",
+          "PresetName": "Reader",
+          "Options": {
+            "Gamma": 1.2
+          }
+        }
+      ],
+      "Theme": "Dark",
+      "UpdateRepository": "squishysquidly/KCCAutomate",
+      "CustomPreference": {
+        "keep": true
+      }
+    }
+  }
+}

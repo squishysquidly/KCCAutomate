@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -76,6 +76,8 @@ namespace KCCAutomate {
                 bool created;
                 using (var mutex = new Mutex(true, @"Local\KCCAutomate-Desktop", out created)) {
                     if (!created) { MessageBox.Show("KCCAutomate is already open.", "KCCAutomate"); return; }
+                    // Also covers portable replacements and updates applied by older updaters.
+                    ShellIcons.Refresh(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"KCCAutomate.exe"));
                     var app = new Application();
                     var desktop = new Desktop();
                     app.Run(desktop.Window);
@@ -105,6 +107,7 @@ namespace KCCAutomate {
             configPath = Path.Combine(userDir, "settings.json");
             if(!testing&&!File.Exists(Path.Combine(baseDir,"portable.flag")))ImportLegacySettings(userDir,Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MangaFlow"));
             using (var reader = new StreamReader(Path.Combine(baseDir, "MainWindow.xaml"))) Window = (Window)XamlReader.Load(reader.BaseStream);
+            Window.Icon=AppBranding.Icon;
             var devices = new[] {
                 new Device("KS","Kindle Scribe 2022 / 2024"), new Device("KS3","Kindle Scribe 2025"),
                 new Device("KPW5","Kindle Paperwhite 5 / Signature"), new Device("KPW6","Kindle Paperwhite 6"),
@@ -167,7 +170,8 @@ namespace KCCAutomate {
             On("SaveSettings", delegate { Save(); Status("Conversion settings saved. To change scheduled times, use Save & enable schedule."); });
             On("RunNow", delegate {
                 var settings = Save();
-                if (MessageBox.Show(Window, "Convert selected files, then move successful batches to the archive? Matching archived originals will be replaced.", "Run conversion", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
+                string message=settings.OriginalsAction=="Delete"?"Convert selected files, then permanently delete their originals after the entire batch is verified? Deleted originals will not go to the Recycle Bin.":"Convert selected files, then move successful batches to Originals? Matching archived originals will be replaced.";
+                if (MessageBox.Show(Window, message, "Run conversion", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
                     Start("Convert-Manga.ps1", "", "Converting. You can request a stop after the current file.", true, settings);
             });
             On("Preview", delegate { var s = Save(); Start("Convert-Manga.ps1", "-Preview", "Reading the queue. No books will be changed.", false, s); });
@@ -282,19 +286,24 @@ namespace KCCAutomate {
             ValidateConversion(s);
         }
         public static void ValidateFolders(Settings s) {
-            var paths = new[] {s.WatchFolder,s.ConvertedFolder,s.ArchiveFolder,s.WorkFolder};
+            var paths = s.OriginalsAction=="Delete"?new[]{s.WatchFolder,s.ConvertedFolder,s.WorkFolder}:new[] {s.WatchFolder,s.ConvertedFolder,s.ArchiveFolder,s.WorkFolder};
             foreach (var path in paths) {
-                if (String.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path)) throw new Exception("Choose watch, converted, archive and working folders using full paths.");
+                if (String.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path)) throw new Exception("Choose all required folders using full paths.");
                 var full = Path.GetFullPath(path).TrimEnd('\\');
                 if (full == Path.GetPathRoot(full).TrimEnd('\\')) throw new Exception("Choose a subfolder, rather than the root of a drive or network share.");
             }
             for (int i = 0; i < paths.Length; i++) for (int j = i + 1; j < paths.Length; j++) {
                 var a = Path.GetFullPath(paths[i]).TrimEnd('\\') + "\\";
                 var b = Path.GetFullPath(paths[j]).TrimEnd('\\') + "\\";
-                if (a.StartsWith(b, StringComparison.OrdinalIgnoreCase) || b.StartsWith(a, StringComparison.OrdinalIgnoreCase)) throw new Exception("The four folders must be separate. None can be inside another.");
+                if (a.StartsWith(b, StringComparison.OrdinalIgnoreCase) || b.StartsWith(a, StringComparison.OrdinalIgnoreCase)) throw new Exception("The required folders must be separate. None can be inside another.");
             }
         }
         public static void ValidateConversion(Settings s) {
+            if(s.OriginalsAction!="Archive"&&s.OriginalsAction!="Delete")throw new Exception("Choose how to handle original files.");
+            if(s.OriginalsAction=="Delete"&&!s.DeleteOriginalsConfirmed)throw new Exception("Read the deletion warning and acknowledge permanent removal before saving or running this mode.");
+            if(s.VolumeTargetPages<100||s.VolumeTargetPages>5000)throw new Exception("Combined volumes need a target between 100 and 5000 source pages.");
+            if(!new[]{"Original","SeriesFirst","NumberFirst","Clean"}.Contains(s.BookTitleStyle))throw new Exception("Choose a supported book title style.");
+            if(s.BundleTargetPages<50||s.BundleTargetPages>1000||s.ChapterPageThreshold<1||s.ChapterPageThreshold>s.BundleTargetPages||s.BundleMaxMiB<10||s.BundleMaxMiB>390)throw new Exception("Chapter grouping needs a 50-1000 page target, a chapter threshold no higher than the target, and a 10-390 MiB budget.");
             if (String.IsNullOrEmpty(s.Profile)) throw new Exception("Choose a device profile.");
             if (!new[] {"MOBI","EPUB","CBZ","PDF"}.Contains(s.Format)) throw new Exception("Choose an output format.");
             if (s.Format == "MOBI" && (!s.Profile.StartsWith("K") || s.Profile.StartsWith("Ko"))) throw new Exception("MOBI requires a Kindle profile. Choose EPUB, CBZ or PDF for this device.");
@@ -365,7 +374,7 @@ namespace KCCAutomate {
             var s = new Settings { WatchFolder = @"C:\test\in", ConvertedFolder = @"C:\test\out", ArchiveFolder = @"C:\test\archive", WorkFolder = @"C:\test\work", KccExe=@"C:\tools\kcc-c2e.exe",DjxlExe=@"C:\tools\djxl.exe" };
             Validate(s); results.Add("PASS: separate folders accepted");
             s.ArchiveFolder = @"C:\test\in\archive";
-            try { Validate(s); throw new Exception("Nested path accepted"); } catch (Exception ex) { if (!ex.Message.Contains("four folders")) throw; }
+            try { Validate(s); throw new Exception("Nested path accepted"); } catch (Exception ex) { if (!ex.Message.Contains("must be separate")) throw; }
             results.Add("PASS: nested folder rejected");
             s.ArchiveFolder = @"C:\test\archive"; s.Profile = "KoL";
             try { Validate(s); throw new Exception("Non-Kindle MOBI accepted"); } catch (Exception ex) { if (!ex.Message.Contains("MOBI requires")) throw; }

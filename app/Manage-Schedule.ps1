@@ -36,5 +36,5 @@ $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIden
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Days 2) `
     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun:([bool]$config.WakeComputer)
 Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $triggers -Principal $principal -Settings $settings `
-    -Description 'KCCAutomate: convert selected comic formats, verify outputs, then archive originals.' -Force | Out-Null
+    -Description 'KCCAutomate: convert selected comic formats, verify outputs, then apply the saved original-handling policy.' -Force | Out-Null
 Write-Output "Automatic checks enabled at $($config.ScheduleTimes), while your Windows account is signed in. You may close KCCAutomate."

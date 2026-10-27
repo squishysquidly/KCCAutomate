@@ -93,6 +93,7 @@ namespace KCCAutomate {
             Desktop.ValidateFolders(settings);
             var report=new StringBuilder();
             foreach(var item in new[]{Tuple.Create("Incoming",settings.WatchFolder),Tuple.Create("Converted",settings.ConvertedFolder),Tuple.Create("Archive",settings.ArchiveFolder),Tuple.Create("Working",settings.WorkFolder)}) {
+                if(item.Item1=="Archive"&&settings.OriginalsAction=="Delete")continue;
                 Directory.CreateDirectory(item.Item2);
                 string token=Guid.NewGuid().ToString("N");
                 string path=Path.Combine(item.Item2,".kccautomate-check-"+token+".tmp"),moved=path+".moved";
@@ -132,6 +133,7 @@ namespace KCCAutomate {
             string root;
             do{root=Path.Combine(original.WorkFolder,"SetupTests",Guid.NewGuid().ToString("N").Substring(0,12));}while(Directory.Exists(root));
             test.WatchFolder=Path.Combine(root,"input");test.ConvertedFolder=Path.Combine(root,"converted");test.ArchiveFolder=Path.Combine(root,"copied-original");test.WorkFolder=Path.Combine(root,"w");
+            test.OriginalsAction="Archive";test.DeleteOriginalsConfirmed=false;
             if(Path.Combine(test.WorkFolder,new string('0',64),new string('0',32),"book.mobi").Length>=260)
                 throw new Exception("The working folder path is too long for this isolated test and older conversion tools. Choose a shorter working path on the same share, then try again.");
             test.QuietMinutes=0;test.InputExtensions=new[]{extension};test.NotificationMode="Off";test.AutoCleanup=false;test.OutputNaming="{name}";test.FolderRules=new List<FolderRule>();

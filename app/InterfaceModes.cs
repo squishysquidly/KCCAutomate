@@ -85,6 +85,14 @@ namespace KCCAutomate {
             var bitmap=new RenderTargetBitmap(width,height,96,96,PixelFormats.Pbgra32);bitmap.Render(root);
             var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(path))encoder.Save(stream);
         }
+        void RenderSection(string name,string path) {
+            RenderInterface(path,1180,850);
+            var target=Find<FrameworkElement>(name);DependencyObject parent=target;
+            while(parent!=null&&!(parent is ScrollViewer))parent=VisualTreeHelper.GetParent(parent);
+            var scroll=parent as ScrollViewer;
+            if(scroll!=null){var content=scroll.Content as UIElement;if(content!=null){scroll.ScrollToVerticalOffset(Math.Max(0,target.TranslatePoint(new Point(0,0),content).Y-12));scroll.UpdateLayout();}}
+            RenderInterface(path,1180,850);
+        }
         static object SortJson(object value) {
             var fields=value as IDictionary<string,object>;
             if(fields!=null){var sorted=new SortedDictionary<string,object>(StringComparer.Ordinal);foreach(var field in fields)sorted[field.Key]=SortJson(field.Value);return sorted;}
@@ -100,8 +108,15 @@ namespace KCCAutomate {
             File.WriteAllText(fixture,"{\"ViewMode\":\"Unknown\"}");if(LoadInterfaceMode(fixture)!="Simple")throw new Exception("Unknown view was accepted.");
 
             var settings=new Settings{KccExe=@"C:\tools\kcc-c2e.exe",DjxlExe=@"C:\tools\djxl.exe",WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work",Gamma=1.2,Stretch=true,Autolevel=true,ForcePng=true,OverwriteConverted=true,OutputNaming="{name} - {profile}",AutoCleanup=true,QuietHoursEnabled=true,QuietMinutes=45,InputExtensions=new[]{".cbz",".pdf"}};
+            settings.BundleChapters=true;settings.BundleTargetPages=235;settings.ChapterPageThreshold=120;settings.BundleMaxMiB=300;settings.HoldShortBundles=false;
+            settings.BookTitleStyle="NumberFirst";settings.CoverNumberBadge=true;settings.SeriesAliases.Add("A Long Series","Short");settings.BundleVolumes=true;settings.VolumeTargetPages=800;
             var preset=new Preset{Name="View preservation fixture",Options=Options(settings)};presets.Add(preset);
             settings.FolderRules.Add(new FolderRule{Pattern="Series\\*",PresetName=preset.Name});Fill(settings);Navigate(1);Find<ComboBox>("Presets").SelectedItem=preset;
+            var chapterSettings=Read();if(!chapterSettings.BundleChapters||chapterSettings.BundleTargetPages!=235||chapterSettings.ChapterPageThreshold!=120||chapterSettings.BundleMaxMiB!=300||chapterSettings.HoldShortBundles)throw new Exception("Chapter grouping settings did not survive the UI round trip.");
+            if(chapterSettings.BookTitleStyle!="NumberFirst"||!chapterSettings.CoverNumberBadge||chapterSettings.SeriesAliases["A Long Series"]!="Short"||!chapterSettings.BundleVolumes||chapterSettings.VolumeTargetPages!=800)throw new Exception("Readable labels or whole-volume settings did not survive the UI round trip.");
+            Find<ComboBox>("BookTitleStyle").SelectedIndex=3;
+            if(Read().BookTitleStyle!="Clean")throw new Exception("Clean filename style did not survive the UI round trip.");
+            Find<ComboBox>("BookTitleStyle").SelectedIndex=2;
             string draft=ComparableSettings(Read()),savedHash=ReleaseClient.Hash(configPath),presetsHash=ReleaseClient.Hash(presetPath),dirty=Find<TextBlock>("SavedState").Text;
             var page=Find<TabControl>("Pages").SelectedItem;
             SetViewMode("Advanced",true);SetViewMode("Simple",true);
@@ -129,6 +144,17 @@ namespace KCCAutomate {
             results.Add("PASS: Simple-view save retains advanced options; incomplete edits survive switching; active settings are summarized");
             results.Add("PASS: view preference is independent, remembered and defaults safely when absent, damaged or unknown");
 
+            Find<ComboBox>("OriginalsAction").SelectedIndex=1;
+            if(Checked("DeleteOriginalsConfirmed")||Find<FrameworkElement>("DeleteOriginalsWarning").Visibility!=Visibility.Visible||Find<TextBox>("ArchiveFolder").IsEnabled)throw new Exception("Deletion choice did not show its warning and disable the unused archive folder.");
+            bool rejected=false;try{Read();}catch(Exception){rejected=true;}if(!rejected)throw new Exception("Unacknowledged source deletion was accepted.");
+            Find<CheckBox>("DeleteOriginalsConfirmed").IsChecked=true;
+            var removal=Read();if(removal.OriginalsAction!="Delete"||!removal.DeleteOriginalsConfirmed)throw new Exception("Acknowledged removal settings were not preserved.");
+            RenderSection("DeleteOriginalsWarning",Path.Combine(directory,"screen-originals-warning.png"));
+            Find<ComboBox>("OriginalsAction").SelectedIndex=0;
+            if(Checked("DeleteOriginalsConfirmed")||Find<FrameworkElement>("DeleteOriginalsWarning").Visibility!=Visibility.Collapsed||!Find<TextBox>("ArchiveFolder").IsEnabled)throw new Exception("Returning to Archive did not reset deletion consent.");
+            results.Add("PASS: labels, aliases and whole-volume options survive both views; permanent deletion requires acknowledgement and resets consent when changed");
+            TestSeriesAliasEditor(results,directory);
+
             Fill(new Settings{WatchFolder=@"\\server\share\manga_downloaded",ConvertedFolder=@"\\server\share\manga_kindle",ArchiveFolder=@"\\server\share\manga_sorted",WorkFolder=@"\\server\share\manga_work"});
             foreach(var mode in new[]{"Simple","Advanced"}) {
                 SetViewMode(mode,false);
@@ -136,6 +162,9 @@ namespace KCCAutomate {
                 ApplyTheme("Dark");Navigate(1);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-dark.png"),1180,850);ApplyTheme("Light");
                 Navigate(5);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-small.png"),1040,720);
                 Navigate(1);Window.UpdateLayout();Find<ComboBox>("DuplicateAction").BringIntoView();RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-duplicates.png"),1180,850);
+                Find<CheckBox>("BundleChapters").BringIntoView();RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-chapters.png"),1180,850);
+                RenderSection("BookBundlesCard",Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-volumes.png"));
+                RenderSection("BookLabelsCard",Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-labels.png"));
             }
             Find<FrameworkElement>("FolderErrorBanner").Visibility=Visibility.Visible;
             Find<TextBlock>("FolderErrorText").Text="Some saved folders are unavailable:\nArchive: C:\\Comics\\Archive - Folder is missing, disconnected, or not accessible.\nWorking: \\\\server\\share\\manga_work - Folder is missing, disconnected, or not accessible.";

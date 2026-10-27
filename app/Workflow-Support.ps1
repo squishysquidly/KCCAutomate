@@ -1,4 +1,4 @@
-# Shared queue reporting and maintenance. Loaded by the conversion worker.
+﻿# Shared queue reporting and maintenance. Loaded by the conversion worker.
 $queueState = @{}
 $queuePersistent = $false
 $currentSource = $null
@@ -50,7 +50,7 @@ function Save-QueueHistory {
 function Get-OutputName($File) {
     $template = '{name}'
     if ($activeNaming) { $template = $activeNaming }
-    $name = $template.Replace('{name}', $File.BaseName).Replace('{format}', $outputExtension.TrimStart('.')).Replace('{profile}', $activeProfile)
+    $name = $template.Replace('{name}', (Get-BookLabel $File)).Replace('{format}', $outputExtension.TrimStart('.')).Replace('{profile}', $activeProfile)
     if (-not $name -or $name -match '[<>:"/\\|?*\x00-\x1f]' -or $name -match '[{}]' -or $name.EndsWith('.') -or $name.EndsWith(' ')) {
         throw 'Output naming must be a filename using {name}, {format} or {profile}; folders and invalid filename characters are not allowed.'
     }
@@ -89,13 +89,14 @@ function Set-QueueRecord([string]$Source, [string]$Status, [string]$Detail = '',
     Save-QueueHistory
 }
 function Get-JobFolder($File) {
-    Join-Path $work (Key ((Fingerprint $File) + ($arguments -join ' ') + '|jxl-preprocessing-v1|' + $output + '|' + (Get-OutputName $File)))
+    Join-Path $work (Key ((Fingerprint $File) + ($arguments -join ' ') + '|jxl-preprocessing-v1|' + $output + '|' + (Get-OutputName $File) + (Get-BundleKey $File) + (Get-LabelKey) + (Get-OutputFolderKey $File)))
 }
 function Test-Receipt($File) {
     $receipt = Join-Path (Get-JobFolder $File) 'receipt.json'
-    if (-not (Test-Path -LiteralPath $receipt)) { return $false }
+    $chapterReceipt=@(Get-ChapterReceipt $File)
+    if (-not $chapterReceipt.Count -and -not (Test-Path -LiteralPath $receipt)) { return $false }
     try {
-        $items = Get-Content -LiteralPath $receipt -Raw -Encoding UTF8 | ConvertFrom-Json
+        $items = if ($chapterReceipt.Count) { $chapterReceipt } else { Get-Content -LiteralPath $receipt -Raw -Encoding UTF8 | ConvertFrom-Json }
         if (-not $items -or -not @($items).Count) { return $false }
         foreach ($item in $items) {
             if (-not $item.Path -or -not $item.Hash -or -not (Test-Path -LiteralPath $item.Path -PathType Leaf) -or (Get-FileHash -LiteralPath $item.Path -Algorithm SHA256).Hash -ne $item.Hash) { return $false }
@@ -149,6 +150,7 @@ function Publish-ConvertedBooks($File, $Books, [string]$Destination, [string]$Po
     [pscustomobject]@{Skipped=$false;Target=$receipt[0].Path;Receipt=$receipt}
 }
 function Get-PreviewQueue {
+    if ($bundleOptions.Enabled) { Get-ChapterPreview; return }
     Read-QueueHistory
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $batches=@(Get-ChildItem -LiteralPath $incoming -Force | Where-Object { $_.Name -notlike 'KCC-*' })
@@ -158,7 +160,7 @@ function Get-PreviewQueue {
             $previewFiles[$batch.FullName]=@(BatchFiles $batch)
             foreach ($file in @($previewFiles[$batch.FullName] | Where-Object { $_.Extension.ToLowerInvariant() -in $inputExtensions })) {
                 Select-Conversion $file
-                $folder=Join-Path $output (Split-Path ($file.FullName.Substring($incoming.Length).TrimStart('\')) -Parent)
+                $folder=Get-OutputDirectory $file
                 $target=Join-Path $folder (Get-OutputName $file)
                 if (-not $targets.ContainsKey($target)) { $targets[$target]=@() }
                 $targets[$target]+=$file.FullName
@@ -174,11 +176,11 @@ function Get-PreviewQueue {
                 $source = $file.FullName
                 $old = $queueState[$source]
                 if ($file.Extension.ToLowerInvariant() -notin $inputExtensions) {
-                    Set-QueueRecord $source $(if ($batch.PSIsContainer -and $selected.Count) { 'Accompanying' } else { 'Ignored' }) 'Not converted; accompanies a successful folder into the archive.'
+                    Set-QueueRecord $source $(if ($batch.PSIsContainer -and $selected.Count) { 'Accompanying' } else { 'Ignored' }) $(if($originalsAction -eq 'Delete'){'Not converted; retained in Incoming when converted originals are deleted.'}else{'Not converted; accompanies a successful folder into the archive.'})
                     continue
                 }
                 Select-Conversion $file
-                $destinationFolder=Join-Path $output (Split-Path ($source.Substring($incoming.Length).TrimStart('\')) -Parent)
+                $destinationFolder=Get-OutputDirectory $file
                 $target = Join-Path $destinationFolder (Get-OutputName $file)
                 $fingerprint = Fingerprint $file
                 $jxl = 0

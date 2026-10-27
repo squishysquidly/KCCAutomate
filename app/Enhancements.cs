@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -79,12 +79,18 @@ namespace KCCAutomate {
             OnAsync("CheckUpdates",CheckUpdatesAsync); OnAsync("DownloadUpdate",DownloadUpdateAsync);
             On("InstallUpdate",InstallSelected); On("RollbackUpdate",RollbackSelected);
             foreach(var name in new[]{"RefreshQueue","RetrySelected","CleanupNow","WorkspaceUsage","CheckUpdates","DownloadUpdate","InstallUpdate","RollbackUpdate","SavePreset","ApplyPreset","DeletePreset","ImportPresets","ExportPresets","GuidedSetup"}) actionButtons.Add(Find<Button>(name));
-            foreach(var name in new[]{"OutputNaming","SuccessRetentionDays","FailureRetentionDays","QuietHoursStart","QuietHoursEnd","UpdateRepository"}) Find<TextBox>(name).TextChanged+=delegate {Dirty();};
-            foreach(var name in new[]{"AutoCleanup","QuietHoursEnabled"}) {Find<CheckBox>(name).Checked+=delegate {Dirty();};Find<CheckBox>(name).Unchecked+=delegate {Dirty();};}
+            foreach(var name in new[]{"BundleTargetPages","ChapterPageThreshold","BundleMaxMiB","OutputNaming","SuccessRetentionDays","FailureRetentionDays","QuietHoursStart","QuietHoursEnd","UpdateRepository"}) Find<TextBox>(name).TextChanged+=delegate {Dirty();};
+            foreach(var name in new[]{"BundleChapters","HoldShortBundles","AutoCleanup","QuietHoursEnabled"}) {Find<CheckBox>(name).Checked+=delegate {Dirty();};Find<CheckBox>(name).Unchecked+=delegate {Dirty();};}
             Find<ComboBox>("Theme").SelectionChanged+=delegate {ApplyTheme(ComboText("Theme"));Dirty();};
             Find<ComboBox>("NotificationMode").SelectionChanged+=delegate {Dirty();};
             Find<DataGrid>("UpdatesGrid").SelectionChanged+=delegate {var r=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow; Find<TextBox>("ReleaseNotes").Text=r==null?"":r.Notes;Find<Button>("DownloadUpdate").Content=r!=null&&r.Component=="KCC"?"Open KCC releases":"Download & verify";Find<Button>("InstallUpdate").Content=r!=null&&r.Component=="KCC"?"Choose downloaded KCC":"Install / use selected";};
             ApplyTheme(saved.Theme);
+            Find<ComboBox>("OriginalsAction").SelectionChanged+=delegate{RefreshOriginalsChoice(true);Dirty();};
+            Find<CheckBox>("DeleteOriginalsConfirmed").Checked+=delegate{Dirty();};Find<CheckBox>("DeleteOriginalsConfirmed").Unchecked+=delegate{Dirty();};
+            Find<CheckBox>("BundleVolumes").Checked+=delegate{Dirty();};Find<CheckBox>("BundleVolumes").Unchecked+=delegate{Dirty();};Find<TextBox>("VolumeTargetPages").TextChanged+=delegate{Dirty();};
+            Find<ComboBox>("BookTitleStyle").SelectionChanged+=delegate{Dirty();};
+            On("AddSeriesAlias",delegate{var row=AddSeriesAliasRow("","");row.Original.Focus();Dirty();});
+            Find<CheckBox>("CoverNumberBadge").Checked+=delegate{Dirty();};Find<CheckBox>("CoverNumberBadge").Unchecked+=delegate{Dirty();};
             var result=Path.Combine(userDir,"last-update.txt");
             if(!testing && File.Exists(result)) {Status(File.ReadAllText(result)); Append(File.ReadAllText(result));}
         }
@@ -99,7 +105,18 @@ namespace KCCAutomate {
         string ComboText(string name) {var item=Find<ComboBox>(name).SelectedItem as ComboBoxItem;return item==null?"":Convert.ToString(item.Content);}
         void SelectCombo(string name,string text) {var c=Find<ComboBox>(name);c.SelectedItem=c.Items.Cast<ComboBoxItem>().FirstOrDefault(i=>Convert.ToString(i.Content)==text);}
         void FillExtras(Settings s) {
+            Find<ComboBox>("OriginalsAction").SelectedIndex=s.OriginalsAction=="Delete"?1:0;
+            Find<CheckBox>("DeleteOriginalsConfirmed").IsChecked=s.DeleteOriginalsConfirmed;RefreshOriginalsChoice(false);
+            Find<CheckBox>("BundleVolumes").IsChecked=s.BundleVolumes;Find<TextBox>("VolumeTargetPages").Text=s.VolumeTargetPages.ToString();
+            Find<ComboBox>("BookTitleStyle").SelectedIndex=Array.IndexOf(new[]{"Original","SeriesFirst","NumberFirst","Clean"},s.BookTitleStyle??"Original");
+            Find<CheckBox>("CoverNumberBadge").IsChecked=s.CoverNumberBadge;
+            FillSeriesAliases(s.SeriesAliases);
             FillDuplicatePolicy(s);
+            Find<CheckBox>("BundleChapters").IsChecked=s.BundleChapters;
+            Find<CheckBox>("HoldShortBundles").IsChecked=s.HoldShortBundles;
+            Find<TextBox>("BundleTargetPages").Text=s.BundleTargetPages.ToString();
+            Find<TextBox>("ChapterPageThreshold").Text=s.ChapterPageThreshold.ToString();
+            Find<TextBox>("BundleMaxMiB").Text=s.BundleMaxMiB.ToString();
             Find<TextBox>("OutputNaming").Text=s.OutputNaming??"{name}";
             Find<CheckBox>("AutoCleanup").IsChecked=s.AutoCleanup;
             Find<TextBox>("SuccessRetentionDays").Text=s.SuccessRetentionDays.ToString();
@@ -111,7 +128,15 @@ namespace KCCAutomate {
             rules.Clear();foreach(var r in s.FolderRules??new List<FolderRule>()) rules.Add(r);
         }
         void ReadExtras(Settings s) {
+            s.OriginalsAction=Find<ComboBox>("OriginalsAction").SelectedIndex==1?"Delete":"Archive";s.DeleteOriginalsConfirmed=s.OriginalsAction=="Delete"&&Checked("DeleteOriginalsConfirmed");
+            s.BundleVolumes=Checked("BundleVolumes");int volumePages;if(!Int32.TryParse(Text("VolumeTargetPages"),out volumePages))throw new Exception("Choose a whole number of pages for combined volumes.");s.VolumeTargetPages=volumePages;
+            s.BookTitleStyle=new[]{"Original","SeriesFirst","NumberFirst","Clean"}[Math.Max(0,Find<ComboBox>("BookTitleStyle").SelectedIndex)];s.CoverNumberBadge=Checked("CoverNumberBadge");
+            s.SeriesAliases=ReadSeriesAliases();
             ReadDuplicatePolicy(s);
+            s.BundleChapters=Checked("BundleChapters");s.HoldShortBundles=Checked("HoldShortBundles");
+            int target,threshold,size;
+            if(!Int32.TryParse(Text("BundleTargetPages"),out target)||!Int32.TryParse(Text("ChapterPageThreshold"),out threshold)||!Int32.TryParse(Text("BundleMaxMiB"),out size))throw new Exception("Chapter grouping needs whole numbers for pages and size.");
+            s.BundleTargetPages=target;s.ChapterPageThreshold=threshold;s.BundleMaxMiB=size;
             s.SetupCompleted=saved.SetupCompleted;
             s.OutputNaming=Text("OutputNaming");
             var testName=s.OutputNaming.Replace("{name}","Book").Replace("{format}","mobi").Replace("{profile}","KS");
@@ -135,6 +160,14 @@ namespace KCCAutomate {
         }
         public static Dictionary<string,object> Options(Settings s) {
             var result=new Dictionary<string,object>();foreach(var field in OptionFields) result[field]=typeof(Settings).GetProperty(field).GetValue(s,null);return result;
+        }
+        void RefreshOriginalsChoice(bool resetAcknowledgement){
+            bool deleting=Find<ComboBox>("OriginalsAction").SelectedIndex==1;
+            if(resetAcknowledgement)Find<CheckBox>("DeleteOriginalsConfirmed").IsChecked=false;
+            Find<FrameworkElement>("DeleteOriginalsWarning").Visibility=deleting?Visibility.Visible:Visibility.Collapsed;
+            Find<TextBox>("ArchiveFolder").IsEnabled=!deleting;Find<Button>("ArchiveBrowse").IsEnabled=!deleting;
+            Find<TextBlock>("OriginalsHeading").Text=deleting?"Original removal enabled":"Your originals, preserved.";
+            Find<TextBlock>("OriginalsSummary").Text=deleting?"Converted originals are permanently deleted after verification. Failed and unconverted files stay in Incoming.":"Files move to Originals after successful conversion and verification.";
         }
         public static void ValidatePreset(Preset p) {
             if(p==null || String.IsNullOrWhiteSpace(p.Name) || p.Name.Length>100 || p.Options==null || p.Options.Keys.Any(k=>!OptionFields.Contains(k))) throw new Exception("Invalid preset file; only conversion settings are accepted.");
@@ -170,12 +203,12 @@ namespace KCCAutomate {
             switch(ComboText("QueueFilter")) {
                 case "Needs attention":rows=rows.Where(r=>r.Status=="Failed" || r.Status=="Conflict" || r.Status=="Review existing output");break;
                 case "Waiting":rows=rows.Where(r=>r.Status.StartsWith("Waiting")||r.Status=="Skipped existing output");break;
-                case "Completed":rows=rows.Where(r=>r.Status=="Converted" || r.Status=="Archived");break;
+                case "Completed":rows=rows.Where(r=>r.Status=="Converted" || r.Status=="Archived" || r.Status=="Originals deleted");break;
             }
             var items=rows.OrderBy(r=>r.Batch).ThenBy(r=>r.Name).ToList();
             Find<DataGrid>("QueueGrid").ItemsSource=items;
             if(selected!=null) Find<DataGrid>("QueueGrid").SelectedItem=items.FirstOrDefault(r=>r.SourcePath==selected);
-            Find<TextBlock>("QueueSummary").Text=String.Format("{0} books / files · {1} need attention · {2} completed · refreshed {3:t}",queue.Count,queue.Values.Count(r=>r.Status=="Failed" || r.Status=="Conflict"),queue.Values.Count(r=>r.Status=="Archived" || r.Status=="Converted"),DateTime.Now);
+            Find<TextBlock>("QueueSummary").Text=String.Format("{0} books / files · {1} need attention · {2} completed · refreshed {3:t}",queue.Count,queue.Values.Count(r=>r.Status=="Failed" || r.Status=="Conflict"),queue.Values.Count(r=>r.Status=="Archived" || r.Status=="Converted" || r.Status=="Originals deleted"),DateTime.Now);
         }
         void RefreshQueue() {
             var s=Save();Start("Convert-Manga.ps1","-Preview","Inspecting filenames, JXL pages and archive companions. No books are changed.",false,s);

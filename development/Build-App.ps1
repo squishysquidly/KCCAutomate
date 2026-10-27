@@ -1,4 +1,4 @@
-param([string]$Destination = (Join-Path $PSScriptRoot 'dist\KCCAutomate'))
+﻿param([string]$Destination = (Join-Path $PSScriptRoot 'dist\KCCAutomate'))
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $appSource = Join-Path $projectRoot 'app'
@@ -12,9 +12,17 @@ $references = @('System.dll','System.Core.dll','System.Xaml.dll','System.Web.Ext
 $references += @('PresentationFramework.dll','PresentationCore.dll','WindowsBase.dll') |
     ForEach-Object { '/reference:' + (Join-Path $wpf $_) }
 $sources = @(Get-ChildItem -LiteralPath $appSource -Filter '*.cs' | ForEach-Object FullName)
-& $compiler /nologo /target:winexe /platform:anycpu /optimize+ @references "/resource:$appSource\SetupWizard.xaml,KCCAutomate.SetupWizard.xaml" "/resource:$appSource\KindleGenGuide.xaml,KCCAutomate.KindleGenGuide.xaml" "/win32manifest:$appSource\app.manifest" "/out:$Destination\KCCAutomate.exe" @sources
+$icon=Join-Path $appSource 'assets\KCCAutomate.ico'
+if(-not (Test-Path -LiteralPath $icon)){throw 'Application icon missing. Run development/Build-Icon.ps1 first.'}
+& $compiler /nologo /target:winexe /platform:anycpu /optimize+ @references "/win32icon:$icon" "/resource:$icon,KCCAutomate.Icon.ico" "/resource:$appSource\SetupWizard.xaml,KCCAutomate.SetupWizard.xaml" "/resource:$appSource\KindleGenGuide.xaml,KCCAutomate.KindleGenGuide.xaml" "/win32manifest:$appSource\app.manifest" "/out:$Destination\KCCAutomate.exe" @sources
 if ($LASTEXITCODE -ne 0) { throw 'App compilation failed.' }
 foreach ($file in @('Convert-Manga.ps1','Workflow-Support.ps1')) { Copy-Item -LiteralPath (Join-Path $appSource $file) -Destination $Destination -Force }
+# Preserve the established updater payload: new helper functions travel inside
+# an existing runtime script, so 0.1.18 can install this build completely.
+$support=(Get-Content -LiteralPath (Join-Path $appSource 'Workflow-Support.ps1') -Raw -Encoding UTF8)+"`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Chapter-Support.ps1') -Raw -Encoding UTF8)
+$support+="`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Book-Labels.ps1') -Raw -Encoding UTF8)
+$support+="`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Originals-Handling.ps1') -Raw -Encoding UTF8)
+[IO.File]::WriteAllText((Join-Path $Destination 'Workflow-Support.ps1'),$support,[Text.UTF8Encoding]::new($true))
 foreach ($file in @('MainWindow.xaml','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1')) {
     Copy-Item -LiteralPath (Join-Path $appSource $file) -Destination $Destination -Force
 }

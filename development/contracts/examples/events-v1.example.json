@@ -1,0 +1,34 @@
+[
+  {
+    "protocolVersion": 1,
+    "requestId": "example-preview",
+    "runId": "example-run",
+    "sequence": 1,
+    "timestampUtc": "2026-10-24T12:00:00Z",
+    "type": "item",
+    "data": {
+      "sourceRelativePath": "Series [A]/Book.cbz",
+      "state": "waiting"
+    }
+  },
+  {
+    "protocolVersion": 1,
+    "requestId": "example-preview",
+    "runId": "example-run",
+    "sequence": 2,
+    "timestampUtc": "2026-10-24T12:00:01Z",
+    "type": "result",
+    "data": {
+      "status": "completed",
+      "exitCode": 0,
+      "counts": {
+        "converted": 0,
+        "archived": 0,
+        "failed": 0,
+        "conflicts": 0,
+        "waiting": 1,
+        "skipped": 0
+      }
+    }
+  }
+]

@@ -1,4 +1,4 @@
-# KCCAutomate
+﻿# KCCAutomate
 
 Automatically turn downloaded comics and manga into books for your e-reader,
 then keep the original files in a separate folder.
@@ -10,9 +10,13 @@ for the portable version. Open the release's **Assets** list to find them.
 The repository's **Code → Download ZIP** is source code; use a release asset
 when you want to run the app.
 
-The current build is **0.1.18**, for **Windows**. Linux and macOS support are
+The current build is **0.1.19**, for **Windows**. Linux and macOS support are
 planned. KCCAutomate uses [Kindle Comic Converter (KCC)](https://github.com/ciromattia/kcc)
 for conversion; you obtain KCC and any required tools separately during setup.
+
+**0.1.19 is the first update from 0.1.18.** It brings chapter/volume grouping,
+clearer book and series-folder names, optional numbered covers, original-handling
+choices and the application icon. See the [0.1.19 release overview](https://github.com/squishysquidly/KCCAutomate/blob/main/development/RELEASE-NOTES.md).
 
 ## Why use it?
 
@@ -96,7 +100,7 @@ not need them.
 | Folder | What happens there |
 | --- | --- |
 | **Incoming/Watch** | Place completed original comics/manga here. Loose books and series subfolders are supported. |
-| **Converted** | Reader-ready output appears here, retaining the input folder structure. |
+| **Converted** | Reader-ready output appears here. Input subfolders are retained; Clean filename also shortens matching series folder names. |
 | **Originals** | Original-format files move here after successful conversion and verification of their batch. |
 | **Working** | Temporary conversion files, logs and completion records. |
 
@@ -113,6 +117,14 @@ Originals is your retained source library. Matching archived filenames are
 replaced during later successful batches; other archived files are kept.
 Keep an independent backup if you need previous versions of those files.
 
+Keeping originals is the default. In **Conversion → After successful conversion**,
+you may instead select **Permanently delete converted originals** and acknowledge
+the warning. This bypasses the Recycle Bin and leaves no original-format backup.
+Only converted input files with verified output are removed, after their source
+hashes are checked against the scan. A failed/incomplete batch stays in Incoming;
+unconverted files such as notes and unsupported formats are always retained.
+The Originals folder is unused in this mode. Preview never removes anything.
+
 ## Everyday use
 
 1. Add completed books to Incoming, manually or through your downloader.
@@ -126,6 +138,133 @@ By default, only **CBZ** input is selected. Advanced settings can also enable
 series folder is treated as a batch: its originals move only after all selected
 books in that batch are successfully processed. Failed/incomplete batches stay
 in Incoming; other batches can continue. Unsupported files alone are skipped.
+
+### Readable titles and cover numbers
+
+Choose **Conversion → Book title and filename → Clean filename (keep v/ch numbering)**
+to remove leading square-bracketed release tags, keep the title through its
+volume/chapter number and remove trailing release information. For example:
+
+```text
+The Hero and the Sage, Reincarnated and Engaged v01 (Digital-Compilation) (Square Enix) (DigitalMangaFan).cbz
+→ The Hero and the Sage, Reincarnated and Engaged v01.mobi
+
+[sunshine] Rainbows v1 [truth].cbz
+→ Rainbows v1.mobi
+```
+
+The generated filename and embedded book title both use the clean name. Compact
+`v01`/`ch001`, `Vol. 1`/`Ch. 1` and `Volume 1`/`Chapter 1` markers are supported,
+including fractional chapters and ranges. Existing ranges such as `v01-02` keep
+both numbers and convert separately. Multiple leading tags such as `[Group] [EN]`
+are removed too. Brackets within a title and leading parentheses are preserved.
+Without a clear v/ch marker, only complete leading bracketed tags are removed;
+the remaining name is kept. An all-tag name is preserved to avoid an empty title.
+Two releases cleaning to the same name are flagged for review.
+
+If a CBZ is named only `v1`, `Vol. 2`, `ch001` or another supported number marker,
+Clean filename adds the immediate containing series folder's title. For example:
+
+```text
+Artist/First Series/v1.cbz → Artist/First Series/First Series v1.mobi
+Artist/Second Series/v1.cbz → Artist/Second Series/Second Series v1.mobi
+```
+
+This also works with CBZ output. Series-first and Number-first use the inferred
+series title in their own numbering styles. Saved shortened names still apply,
+and chapter/whole-volume grouping stays separate for each series folder. The
+series folder takes priority over conflicting series metadata for these files;
+a title already present in the filename takes priority over the folder. Leading
+tags and recognized release suffixes are removed from an inferred folder title.
+Artist/collection folders above it are retained. A loose `v1.cbz` in the watch
+folder keeps its name; the app does not guess a series from the watch folder or
+search upwards past an uninformative immediate parent. Original CBZ filenames
+and archived folder names remain unchanged.
+
+With Clean filename selected, matching series folders in Converted also use just
+the series title. For example, `Series (Digital) (Publisher)/Series v01 (Digital).cbz`
+becomes `Series/Series v01.mobi`. Leading `[release tags]` on matching series
+folders are removed too. Saved shortened series names apply to the folder
+as well as the book. Other parent/subfolders are retained; an unclear series match
+keeps its existing folder name. This applies to new conversions, including grouped
+chapters/volumes. Previously converted folders are not renamed automatically.
+Originals retain their downloaded folder names.
+
+These markers also determine grouping: `v` means volume and `ch` means chapter,
+even if the page count suggests otherwise. An explicit volume marker takes
+priority when a volume filename also lists internal chapter details. The title
+and number in a marked filename take priority over conflicting ComicInfo values;
+metadata and page-count inference remain available for names without a marker.
+An individual unit above its grouping page target converts separately.
+The existing **Keep original names** preference remains unchanged. Originals
+retain their downloaded filenames and contents when archived.
+
+In **Conversion**, choose **Series, then number** to keep a series together when
+sorting by Title, or **Number, then series** to show the order before a long title.
+Both the filename and embedded title are set during conversion. Number-first
+sorting mixes different series under 001, 002, and so on; it does not create a
+Kindle collection. Chapter navigation and reading direction are kept.
+
+Under **Shorten really long series names (optional)**, enter the series title in
+**Original long name** and your preferred shorter title in **Shortened name**.
+Use the title without volume/chapter numbers or publisher/release tags. Leave the
+two boxes empty if unused. **Add another series** adds another pair, and **Remove**
+removes an extra pair. Saved pairs are loaded automatically. A cover-number option adds a contrasting
+number strip above the cover artwork, preserving its proportions. Unsupported
+cover-image codecs fall back to the original cover with a warning. The Kindle's
+firmware still controls library thumbnail display. Existing books on the device
+are not renamed or replaced automatically.
+
+### Combine short chapters into longer books
+
+In **Conversion**, enable **Combine short CBZ chapters into volume-sized books**.
+Grouping is off by default, so existing settings keep their previous behavior.
+
+- The starting target is **200 source pages**. The app stops before adding a
+  chapter that would exceed the target; chapters are never cut to fill a book.
+- Files with **100 or more source pages**, and filenames labelled Vol./Volume,
+  stay separate. These adjustable thresholds are useful estimates, not a rule
+  about every manga. A source image counts as one page before spread splitting.
+- A **350 MiB converted-output budget** provides a second limit. If KCC splits
+  a proposed bundle or its output exceeds the budget, the app retries with fewer
+  whole chapters. A single chapter that cannot fit stays in Incoming with an
+  explanation. This budget is not a claimed Kindle hardware maximum.
+- Chapter numbers come from ComicInfo metadata or names such as `Series Ch. 001`.
+  The app groups only the same series, folder and effective conversion settings.
+  Duplicate numbers need attention; unclear numbers and short groups around
+  missing chapters wait rather than guessing the order. Loose files with clear
+  series/chapter names are supported too.
+- Short leftover groups convert on each scan by default. Enable **Keep short
+  leftover groups in Incoming** if you prefer to wait for more chapters instead.
+  A folder containing pending chapters
+  stays in Incoming until every selected input has verified output.
+
+For example, four 60-page chapters create a 180-page book containing chapters
+001-003 and a 60-page book containing chapter 004. With waiting enabled, chapter
+004 stays for the next group instead. New arrivals never append to an
+already published bundle. Changing grouping targets affects unconverted inputs;
+changing image/conversion settings can require conversion again.
+
+Bundles receive names and embedded titles such as **Series - Ch. 001-003**.
+They are convenient reading groups and may not match official published volumes.
+The first chapter supplies the cover: its ComicInfo FrontCover marker is used
+when available, otherwise its first naturally sorted image. JPEG XL preparation
+remains supported. Original CBZs retain their individual names and contents.
+Use **Preview queue** to review group names and waiting reasons before running.
+
+**Combine complete CBZ volumes** is a separate option, off by default. Its starting
+page target is 600. For example, three 180-page volumes and a 500-page target
+create one book containing volumes 001-002 (360 pages), then a separate volume 003.
+If KCC would split a combined book, the app retries after removing the last whole
+volume. Chapters and volumes never share a group. Unnumbered volumes and volumes
+larger than the grouping page target convert separately. Previously published
+groups remain stable; the app does not consolidate books already on your Kindle.
+
+On a Kindle Scribe, create one **Collection** per series and add its converted
+books, then open that collection and sort by Title. USB subfolders do not create
+Kindle collections automatically. See [Amazon's Scribe guide](https://d1ergij2b6wmg5.cloudfront.net/kug/kindle_scribe_2024/v1/en-US/html/kug.html).
+Cover images shown in the Kindle library still need testing on the actual reader;
+see [KCC's cover guidance](https://github.com/ciromattia/kcc/wiki/Automatic-cover-upload).
 
 ### Automatic conversion while the app is closed
 
@@ -155,6 +294,10 @@ when you want future scheduled runs to use them.
 | **Reader and output** | Device profile; MOBI (AZW3/Kindle compatible), EPUB, CBZ or PDF output. MOBI requires a compatible Kindle profile. |
 | **Image options** | Right-to-left manga reading, page enlargement, spread handling, cropping, stretching, gamma, autolevel, contrast, colour, PNG and webtoon options. |
 | **JPEG XL support** | Prepare JXL pages as PNG for conversion while keeping original archives unchanged. |
+| **Chapter grouping** | Optional volume-sized CBZ bundles, source-page/chapter thresholds, converted-size budget and waiting/releasing short leftovers. |
+| **Whole-volume grouping** | A separate page target; complete numbered volumes only, with shorter leftovers converted on each scan by default. |
+| **Readable book labels** | Series-first or number-first embedded titles and filenames, short series aliases and optional cover-number strips. |
+| **Original handling** | Keep originals in Originals by default, or acknowledge permanent deletion after verified conversion. Unconverted files remain in Incoming in deletion mode. |
 | **Input formats** | Choose which file types a scan should process. |
 | **Presets** | Save, apply, import or export conversion settings. Folder/tool locations remain separate. |
 | **Folder rules** | Apply a named preset to matching relative paths, such as `Series A\*`. The first matching rule wins. |

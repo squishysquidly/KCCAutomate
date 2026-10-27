@@ -95,11 +95,11 @@ namespace KCCAutomateInstaller {
                     foreach(var name in AppFiles){File.Copy(Path.Combine(payload,name),Path.Combine(root,name),true);if(ReleaseClient.Hash(Path.Combine(root,name))!=ReleaseClient.Hash(Path.Combine(payload,name)))throw new Exception("Installed file verification failed: "+name);}
                     var record=new InstallRecord{Product=Product,Location=root,Version=ReleaseClient.AppVersion,Files=AppFiles,DesktopShortcut=desktop};
                     File.WriteAllText(Path.Combine(root,RecordName),json.Serialize(record));
-                    if(!test){Register(root);Shortcuts(root,desktop);}
+                    if(!test){Register(root);Shortcuts(root,desktop);ShellIcons.Refresh(Path.Combine(root,"KCCAutomate.exe"));}
                 }catch{
                     foreach(var name in replaced)File.Copy(Path.Combine(backup,name),Path.Combine(root,name),true);
                     foreach(var name in created){string path=Path.GetFullPath(Path.Combine(root,name));if(path.StartsWith(root+"\\",StringComparison.OrdinalIgnoreCase)&&File.Exists(path))File.Delete(path);}
-                    if(!test){RestoreRegistry(registryBefore);foreach(var shortcut in shortcutsBefore){if(shortcut.Value!=null)File.WriteAllBytes(shortcut.Key,shortcut.Value);else RemoveShortcut(shortcut.Key,Path.Combine(root,"KCCAutomate.exe"));}}
+                    if(!test){RestoreRegistry(registryBefore);foreach(var shortcut in shortcutsBefore){if(shortcut.Value!=null){File.WriteAllBytes(shortcut.Key,shortcut.Value);ShellIcons.Refresh(shortcut.Key);}else RemoveShortcut(shortcut.Key,Path.Combine(root,"KCCAutomate.exe"));}ShellIcons.Refresh(Path.Combine(root,"KCCAutomate.exe"));}
                     throw;
                 }
             }
@@ -116,7 +116,7 @@ namespace KCCAutomateInstaller {
         static string DesktopShortcut {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),"KCCAutomate.lnk");}}
         static void Shortcut(string path,string target) {
             Directory.CreateDirectory(Path.GetDirectoryName(path));dynamic shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));dynamic link=shell.CreateShortcut(path);
-            link.TargetPath=target;link.WorkingDirectory=Path.GetDirectoryName(target);link.Description="KCCAutomate comic conversion";link.Save();
+            link.TargetPath=target;link.WorkingDirectory=Path.GetDirectoryName(target);link.Description="KCCAutomate comic conversion";link.IconLocation=target+",0";link.Save();ShellIcons.Refresh(path);
         }
         static void Shortcuts(string root,bool desktop){string target=Path.Combine(root,"KCCAutomate.exe");Shortcut(MenuShortcut,target);if(desktop)Shortcut(DesktopShortcut,target);}
         static void RemoveShortcut(string path,string target) {
@@ -168,6 +168,7 @@ namespace KCCAutomateInstaller {
     public class SetupForm:Form {
         readonly TextBox location=new TextBox();readonly CheckBox desktop=new CheckBox(),launch=new CheckBox();readonly Button install=new Button();readonly Label status=new Label();
         public SetupForm(){
+            Icon=System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             Text="Install KCCAutomate "+ReleaseClient.AppVersion;ClientSize=new Size(660,440);MinimumSize=new Size(650,470);StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",10);BackColor=Color.FromArgb(244,245,241);
             var title=new Label{Text="Make room for your next read.",Font=new Font("Segoe UI",20,FontStyle.Bold),AutoSize=true,Location=new Point(28,25)};Controls.Add(title);
             var description=new Label{Text="Install KCCAutomate for your Windows account. No administrator password is needed. The app's setup wizard will guide your folders and converter tools.",Location=new Point(30,80),Size=new Size(595,80)};Controls.Add(description);

@@ -4,6 +4,8 @@
 /development/jxl-test-*/
 .vs/
 *.user
+__pycache__/
+*.py[cod]
 settings.json
 settings.json.bak
 presets.json

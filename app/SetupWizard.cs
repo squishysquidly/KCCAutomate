@@ -41,6 +41,7 @@ namespace KCCAutomate {
             toolsRoot=Path.Combine(storage,"Tools");
             kindleRoots=(kindleLocations??KindleGenGuide.InstallationRoots()).ToArray();
             using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("KCCAutomate.SetupWizard.xaml"))Window=(Window)XamlReader.Load(stream);
+            Window.Icon=AppBranding.Icon;
             if(owner.IsVisible)Window.Owner=owner;Window.Resources.MergedDictionaries.Add(owner.Resources);
             Get<ComboBox>("Device").ItemsSource=devices;Get<ComboBox>("Device").SelectedValue=draft.Profile;
             Select("Format",draft.Format);Get<CheckBox>("Manga").IsChecked=draft.MangaStyle;

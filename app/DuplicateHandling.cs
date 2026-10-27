@@ -22,7 +22,7 @@ namespace KCCAutomate {
         }
         string DuplicateDescription() {
             switch(Find<ComboBox>("DuplicateAction").SelectedIndex) {
-                case 1:return "Existing converted books are replaced only after conversion. Incoming originals are archived after output verification.";
+                case 1:return "Existing converted books are replaced only after conversion. Original handling follows your chosen policy after output verification.";
                 case 2:return "Keep different existing output and publish the new book as Name (2), (3), and so on. Identical verified output is reused. Split parts share one number.";
                 case 3:return "Keep existing output and leave incoming originals in place. Other books continue; a folder stays incoming until all selected books have verified conversions.";
                 default:return "Keep conflicting output and incoming originals for review. Matching output can be reused after verification. Choose a one-run action in the queue to resolve a conflict.";

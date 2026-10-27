@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$KccExe = 'C:\kindletomanga\kcc-c2e.exe',
     [string]$DjxlExe = 'C:\Program Files\KindleComicConverter\jxl\djxl.exe',
     [int]$QuietMinutes = 30,
@@ -30,8 +30,12 @@ $convertJxl = $true
 $kindlegenExe = ''
 $sevenZipExe = ''
 $approvedKccVersion = ''
+$originalsAction='Archive'
 if ($ConfigPath) {
     $config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if($config.OriginalsAction){$originalsAction=[string]$config.OriginalsAction}
+    if($originalsAction -notin @('Archive','Delete')){throw 'Choose Archive or Delete for original handling.'}
+    if($originalsAction -eq 'Delete' -and (-not ($config.DeleteOriginalsConfirmed -is [bool]) -or -not $config.DeleteOriginalsConfirmed)){throw 'Deleting originals requires explicit acknowledgement in KCCAutomate settings.'}
     $incoming = $config.WatchFolder
     $output = $config.ConvertedFolder
     $archive = $config.ArchiveFolder
@@ -66,7 +70,7 @@ if ($ConfigPath) {
     if ([double]$config.Gamma -gt 0) { $arguments += @('--gamma', ([double]$config.Gamma).ToString([Globalization.CultureInfo]::InvariantCulture)) }
 }
 # Refuse overlapping locations before touching any files. UNC paths are supported.
-$paths = @($incoming,$output,$archive,$work)
+$paths = if($originalsAction -eq 'Delete'){@($incoming,$output,$work)}else{@($incoming,$output,$archive,$work)}
 for ($i = 0; $i -lt $paths.Count; $i++) {
     if (-not $paths[$i] -or -not [IO.Path]::IsPathRooted($paths[$i])) { throw 'Select absolute folder paths.' }
     $paths[$i] = [IO.Path]::GetFullPath($paths[$i]).TrimEnd('\')
@@ -81,8 +85,14 @@ for ($i = 0; $i -lt $paths.Count; $i++) {
         }
     }
 }
-$incoming,$output,$archive,$work = $paths
+if($originalsAction -eq 'Delete'){$incoming,$output,$work=$paths}else{$incoming,$output,$archive,$work=$paths}
 . (Join-Path $PSScriptRoot 'Workflow-Support.ps1')
+# Packaged builds include the helper in Workflow-Support.ps1, retaining the
+# runtime file set understood by the 0.1.18 updater. Source runs load it here.
+if (-not (Get-Command Get-BundleOptions -ErrorAction SilentlyContinue)) { . (Join-Path $PSScriptRoot 'Chapter-Support.ps1') }
+if(-not (Get-Command Get-LabelStyle -ErrorAction SilentlyContinue)){. (Join-Path $PSScriptRoot 'Book-Labels.ps1')}
+if(-not (Get-Command Remove-VerifiedOriginals -ErrorAction SilentlyContinue)){. (Join-Path $PSScriptRoot 'Originals-Handling.ps1')}
+$bundleOptions=Get-BundleOptions
 $selectedPaths = $null
 if ($SelectionPath) {
     $selectedPaths = Get-Content -LiteralPath $SelectionPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -288,7 +298,7 @@ if (-not (Test-Path -LiteralPath $incoming -PathType Container)) {
     Write-Host '@@FOLDERS:Watch folder is unavailable. Check the drive, connection and account permissions.'
     throw "Incoming folder is unavailable: $incoming"
 }
-Write-Host '@@FOLDERS:Watch folder is reachable. Output and archive folders are created on demand.'
+Write-Host $(if($originalsAction -eq 'Delete'){'@@FOLDERS:Watch folder is reachable. Output and working folders are created on demand; Originals is unused.'}else{'@@FOLDERS:Watch folder is reachable. Output and archive folders are created on demand.'})
 if ($Preview) {
     Get-PreviewQueue
     return
@@ -300,7 +310,7 @@ if (-not $CleanupOnly -and $approvedKccVersion) {
     $check = Invoke-Converter $KccExe @('--help') ''
     Assert-ApprovedKcc $check
 }
-foreach ($dir in @($output,$archive,$work)) {
+foreach ($dir in @($output,$work)+$(if($originalsAction -eq 'Archive'){@($archive)}else{@()})) {
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
 }
 # Exclusive SMB file handle prevents simultaneous runs, including other PCs.
@@ -331,7 +341,7 @@ try {
                 Log "WAIT recent or partial files: $($batch.FullName)"; continue
             }
             $before = Snapshot $batch
-            $archivePath = Join-Path $archive $batch.Name
+            $archivePath = if($originalsAction -eq 'Archive'){Join-Path $archive $batch.Name}else{''}
             # Probe exclusive access; this detects many, but not all, active downloads.
             foreach ($file in $files) {
                 $handle = [IO.File]::Open($file.FullName,'Open','Read','None')
@@ -340,23 +350,44 @@ try {
             $destinations = @{}
             foreach ($file in $cbzs) {
                 Select-Conversion $file
-                $name = Join-Path (Split-Path $file.FullName -Parent) (Get-OutputName $file)
-                if ($destinations.ContainsKey($name)) { throw "Multiple inputs would create the same output: $name. Move them into separate folders." }
+                $name = Join-Path (Get-OutputDirectory $file) (Get-OutputName $file)
+                if (-not $bundleOptions.Enabled -and $destinations.ContainsKey($name)) { throw "Multiple inputs would create the same output: $name. Move them into separate folders." }
                 $destinations[$name] = $true
                 if (-not $selectedPaths -or $file.FullName -in $selectedPaths) { Set-QueueRecord $file.FullName 'Waiting' 'Queued for this run.' }
                 elseif (-not $queueState.ContainsKey($file.FullName)) { Set-QueueRecord $file.FullName 'Waiting' 'Not selected for this retry.' }
                 $queueState[$file.FullName].Fingerprint=Fingerprint $file
             }
-            $plans += [pscustomobject]@{ Batch=$batch; Files=$cbzs; Before=$before; ArchivePath=$archivePath; Failed=$false }
+            $sourceHashes=@{}
+            if($originalsAction -eq 'Delete'){foreach($file in $cbzs){$sourceHashes[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash}}
+            $plans += [pscustomobject]@{ Batch=$batch; Files=$cbzs; Before=$before; ArchivePath=$archivePath; Failed=$false;SourceHashes=$sourceHashes }
         } catch { $failed = $true; Log "ERROR $($batch.Name): $_"; foreach ($file in @($files | Where-Object { $_.Extension.ToLowerInvariant() -in $inputExtensions })) { $kind=Get-ConflictKind ([string]$_); Set-QueueRecord $file.FullName $(if($kind){'Conflict'}else{'Failed'}) ([string]$_) '' $kind } }
+    }
+    if ($bundleOptions.Enabled) {
+        $bundlePlan=New-BundlePlan @($plans | ForEach-Object Files)
+        foreach ($plan in $plans) {
+            $names=@($plan.Files | ForEach-Object FullName)
+            $groups=@($bundlePlan.Groups | Where-Object {$_.Members[0].File.FullName -in $names})
+            $plan | Add-Member -NotePropertyName Bundles -NotePropertyValue ([pscustomobject]@{Groups=$groups;States=$bundlePlan.States})
+            foreach ($file in $plan.Files) {
+                if ($bundlePlan.States.ContainsKey($file.FullName)) {
+                    $state=$bundlePlan.States[$file.FullName]
+                    Set-QueueRecord $file.FullName $state.State $state.Detail
+                    if ($state.State -eq 'Failed') { $plan.Failed=$true; $failed=$true }
+                }
+            }
+        }
     }
     # Reserve all planned names, including loose files in separate batches.
     $reservedOutputs=@{}
     foreach ($plan in $plans) {
-        foreach ($file in $plan.Files) {
+        $reservations=@($plan.Files)
+        if ($bundleOptions.Enabled) {
+            $reservations=@($plan.Files | Where-Object {-not $bundlePlan.States.ContainsKey($_.FullName)})
+            $reservations+=@($plan.Bundles.Groups | Where-Object Ready | ForEach-Object {Bundle-File $_.Members})
+        }
+        foreach ($file in $reservations) {
             Select-Conversion $file
-            $relative=$file.FullName.Substring($incoming.Length).TrimStart('\')
-            $target=Join-Path (Join-Path $output (Split-Path $relative -Parent)) (Get-OutputName $file)
+            $target=Join-Path (Get-OutputDirectory $file) (Get-OutputName $file)
             if (-not $reservedOutputs.ContainsKey($target)) { $reservedOutputs[$target]=@() }
             $reservedOutputs[$target] += [pscustomobject]@{Plan=$plan;Source=$file.FullName}
         }
@@ -374,14 +405,24 @@ try {
     foreach ($extension in @('.cbz','.pdf','.epub','.cbr','.cb7') | Where-Object { $_ -in $inputExtensions }) {
         foreach ($plan in $plans) {
             if ($plan.Failed) { continue }
+            if ($bundleOptions.Enabled -and $extension -eq '.cbz') {
+                if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Chapter originals retained.'; exit 2 }
+                try { Invoke-ChapterGroups $plan } catch {
+                    if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Chapter originals retained.'; exit 2 }
+                    $plan.Failed=$true; $failed=$true; Log ('ERROR chapter grouping: '+$_)
+                    foreach ($group in $plan.Bundles.Groups) { foreach ($member in $group.Members) { Set-QueueRecord $member.File.FullName 'Failed' ([string]$_) } }
+                }
+                if ($plan.Failed) { continue }
+            }
             foreach ($cbz in @($plan.Files | Where-Object { $_.Extension.ToLowerInvariant() -eq $extension })) {
+              if ($bundleOptions.Enabled -and $bundlePlan.States.ContainsKey($cbz.FullName)) { continue }
               if ($selectedPaths -and $cbz.FullName -notin $selectedPaths) { continue }
               if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Current file finished; remaining inputs stay in place.'; exit 2 }
               try {
                 $currentSource=$cbz.FullName
                 Select-Conversion $cbz
                 $relative = $cbz.FullName.Substring($incoming.Length).TrimStart('\')
-                $dest = Join-Path $output (Split-Path $relative -Parent)
+                $dest = Get-OutputDirectory $cbz
                 $job = Get-JobFolder $cbz
                 $receiptPath = Join-Path $job 'receipt.json'
                 if (Test-Path -LiteralPath $receiptPath) {
@@ -406,6 +447,7 @@ try {
                 New-Item -ItemType Directory -Path $attempt | Out-Null
                 $conversionSource = $cbz.FullName
                 if ($extension -eq '.cbz') { $conversionSource = Prepare-Cbz $cbz.FullName $attempt }
+                if($extension -eq '.cbz'){$conversionSource=Prepare-LabelledCbz $cbz $conversionSource $attempt}
                 Log "CONVERT: $relative"
                 Set-QueueRecord $cbz.FullName 'Converting' 'KCC is creating the book.'
                 # KindleGen is a legacy program: keep its EPUB/MOBI paths short.
@@ -414,6 +456,7 @@ try {
                 $shortOutput = Join-Path $attempt ('book' + $outputExtension)
                 $titleArguments = @()
                 if ($conversionSource -ne $cbz.FullName) { $titleArguments = @('--title', $cbz.BaseName) }
+                if((Get-LabelStyle) -ne 'Original'){$titleArguments=@('--title',[IO.Path]::GetFileNameWithoutExtension((Get-OutputName $cbz)))}
                 $conversion = Invoke-Converter $KccExe ($arguments + $titleArguments + @('--output',$shortOutput,$conversionSource)) (Join-Path $job 'kcc.log')
                 if ($conversion.ExitCode -ne 0) { throw "KCC failed; see $job\kcc.log" }
                 $books = @(Get-ChildItem -LiteralPath $attempt -File | Where-Object { $_.Name -like ('book*' + $outputExtension) })
@@ -442,10 +485,23 @@ try {
             foreach ($file in $plan.Files) { Select-Conversion $file; if (-not (Test-Receipt $file)) { $complete=$false; break } }
             if (-not $complete) { Log "WAIT $($plan.Batch.Name): other selected inputs still need successful conversions."; continue }
             if ((Snapshot $plan.Batch) -ne $plan.Before) { throw "Batch changed; originals left in place: $($plan.Batch.Name)" }
-            Archive-Batch $plan.Batch $plan.ArchivePath $plan.Before
-            Log "ARCHIVED: $($plan.Batch.Name)"
-            foreach ($file in $plan.Files) { Set-QueueRecord $file.FullName 'Archived' 'Conversion and archive copy verified.' }
-        } catch { $failed = $true; Log "ERROR $($plan.Batch.Name): $_"; foreach ($file in $plan.Files) { Set-QueueRecord $file.FullName 'Failed' ([string]$_) } }
+            if($originalsAction -eq 'Delete'){
+                Remove-VerifiedOriginals $plan
+                Log "ORIGINALS REMOVED after verified conversion: $($plan.Batch.Name)"
+            }else{
+                Archive-Batch $plan.Batch $plan.ArchivePath $plan.Before
+                Log "ARCHIVED: $($plan.Batch.Name)"
+                foreach ($file in $plan.Files) { Set-QueueRecord $file.FullName 'Archived' 'Conversion and archive copy verified.' }
+            }
+        } catch {
+            $failed = $true; Log "ERROR $($plan.Batch.Name): $_"
+            foreach ($file in $plan.Files) {
+                # A later removal can fail after an earlier file was removed.
+                # Retain its completed status and report only remaining inputs.
+                if($originalsAction -eq 'Delete' -and -not (Test-Path -LiteralPath $file.FullName)){continue}
+                Set-QueueRecord $file.FullName 'Failed' ([string]$_)
+            }
+        }
     }
     Log 'Scan finished.'
     Remove-ExpiredAttempts

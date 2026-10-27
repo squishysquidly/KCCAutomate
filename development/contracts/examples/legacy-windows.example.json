@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "WatchFolder": "C:\\Books\\Incoming",
+  "ConvertedFolder": "C:\\Books\\Converted",
+  "ArchiveFolder": "C:\\Books\\Originals",
+  "WorkFolder": "C:\\Books\\Working",
+  "KccExe": "C:\\Tools\\kcc-c2e.exe",
+  "DjxlExe": "C:\\Tools\\djxl.exe",
+  "KindlegenExe": "C:\\Tools\\kindlegen.exe",
+  "SevenZipExe": "C:\\Program Files\\7-Zip\\7z.exe",
+  "Profile": "KS",
+  "Format": "MOBI",
+  "Cropping": 0,
+  "Splitter": 0,
+  "MangaStyle": true,
+  "Upscale": true,
+  "Autolevel": false,
+  "ConvertJxl": true,
+  "QuietMinutes": 30,
+  "InputExtensions": [
+    ".cbz",
+    ".pdf"
+  ],
+  "OverwriteConverted": true,
+  "ScheduleTimes": "08:00, 14:00, 20:00",
+  "WakeComputer": false,
+  "FolderRules": [
+    {
+      "Pattern": "Series `[A`]\\*",
+      "PresetName": "Reader",
+      "Options": {
+        "Gamma": 1.2
+      }
+    }
+  ],
+  "Theme": "Dark",
+  "UpdateRepository": "squishysquidly/KCCAutomate",
+  "CustomPreference": {
+    "keep": true
+  }
+}

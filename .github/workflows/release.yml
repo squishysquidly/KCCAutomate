@@ -18,6 +18,14 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check shared contracts and Windows behavior parity
+        shell: powershell
+        run: |
+          ./development/Test-PlatformFoundation.ps1
+          ./development/Test-BehaviorParity.ps1
       - name: Check release preparation safeguards
         shell: powershell
         run: ./development/Test-ReleasePreparation.ps1
@@ -28,6 +36,14 @@ jobs:
         shell: powershell
         run: |
           ./development/Test-Workflow.ps1
+          ./development/Test-ChapterBundles.ps1
+          ./development/Test-BookLabels.ps1
+          ./development/Test-FilenameMarkers.ps1
+          ./development/Test-OutputFolders.ps1
+          ./development/Test-LeadingTags.ps1
+          ./development/Test-FolderSeries.ps1
+          ./development/Test-WholeVolumes.ps1
+          ./development/Test-OriginalHandling.ps1
           ./development/Test-JxlPreprocessing.ps1
           ./development/Test-Upgrades.ps1
           ./development/Test-Duplicates.ps1
@@ -49,7 +65,10 @@ jobs:
         run: ./development/Build-Installer.ps1 -SkipPackage
       - name: Test installation and isolated setup conversion
         shell: powershell
-        run: ./development/Test-Installation.ps1
+        run: |
+          ./development/Test-Installation.ps1
+          ./development/Test-AppIcon.ps1
+          ./development/Test-TaskbarIcon.ps1
       - name: Save build downloads
         uses: actions/upload-artifact@v7
         with:

@@ -56,6 +56,7 @@ Download **KCCAutomate-Setup.exe** to install, or extract **KCCAutomate-Windows.
 KCC and the required conversion tools are obtained separately during guided setup.
 
 [Installation, usage and settings](https://github.com/$Repository/blob/$Commit/README.md)
+[Release overview](https://github.com/$Repository/blob/$Commit/development/RELEASE-NOTES.md)
 
 Source commit: $Commit
 "@

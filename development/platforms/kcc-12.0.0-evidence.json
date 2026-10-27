@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-24",
+  "repository": "ciromattia/kcc",
+  "tag": "v12.0.0",
+  "sourceCommit": "f127adbca992456e173d88ada18643eae66802fb",
+  "releaseUrl": "https://github.com/ciromattia/kcc/releases/tag/v12.0.0",
+  "assets": [
+    {
+      "name": "KCC_12.0.0.exe",
+      "sha256": "493e6f5b0dfe6a2d4415583cf1a1d1159d98bce1495df1a4d446ad7916966b5a",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/KCC_12.0.0.exe",
+      "sizeBytes": 89542456
+    },
+    {
+      "name": "KCC_ARM64_12.0.0.exe",
+      "sha256": "eb4d775f05ae593a0c6969babcb488c821ad0ee115d588f44e576e9bb4d6394d",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/KCC_ARM64_12.0.0.exe",
+      "sizeBytes": 68917400
+    },
+    {
+      "name": "kcc_linux-12.0.0-aarch64.AppImage",
+      "sha256": "88cd4e99233e0b92aa927c03454e640f84c9bdb30920a103801bcefb34bda708",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_linux-12.0.0-aarch64.AppImage",
+      "sizeBytes": 108380147
+    },
+    {
+      "name": "kcc_linux-12.0.0-x86_64.AppImage",
+      "sha256": "43c68e3c7e7f3d0b79e6d1284b62fe641d6cf01b1404436de6de97fac0bc54a8",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_linux-12.0.0-x86_64.AppImage",
+      "sizeBytes": 112962041
+    },
+    {
+      "name": "kcc_macos_arm_12.0.0.dmg",
+      "sha256": "bbfd451af6c215949b5b6e040152e577da2023b3684ace726c6b9e777ad7540b",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_macos_arm_12.0.0.dmg",
+      "sizeBytes": 73188181
+    },
+    {
+      "name": "kcc_macos_i386_12.0.0.dmg",
+      "sha256": "1b047592ea5bfdb8b86ad30bea236933906674059a243b715d51ccdfd51a6abd",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_macos_i386_12.0.0.dmg",
+      "sizeBytes": 85705774
+    },
+    {
+      "name": "kcc_win7_legacy_12.0.0.exe",
+      "sha256": "a4bc0b2b718e38b5a7c4d4046287154a1a2419de1e525981293960d5d42b3a08",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_win7_legacy_12.0.0.exe",
+      "sizeBytes": 71096816
+    },
+    {
+      "name": "LICENSE.txt",
+      "sha256": "c3804b980827b38b27178fc99141117c60555f46fb3e27e75f4791c230e06190",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/LICENSE.txt",
+      "sizeBytes": 960
+    },
+    {
+      "name": "tool_cli_c2e_12.0.0_AMD64.exe",
+      "sha256": "8300504c7d6685eaa63a803e490c7ef2f87a4c9e43cc49c3e361fada892d85ff",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_AMD64.exe",
+      "sizeBytes": 89546400
+    },
+    {
+      "name": "tool_cli_c2e_12.0.0_ARM64.exe",
+      "sha256": "4a41261dec9387a29b781d83bd6099a47ebaa5124a6a6aa8b27e5d4669dcd444",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_ARM64.exe",
+      "sizeBytes": 68925944
+    },
+    {
+      "name": "tool_cli_c2p_12.0.0_AMD64.exe",
+      "sha256": "2b989dfb689c111ce69a56278a8cc38e123c88b4e4700fcc6609edfa14301c02",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2p_12.0.0_AMD64.exe",
+      "sizeBytes": 89547720
+    },
+    {
+      "name": "tool_cli_c2p_12.0.0_ARM64.exe",
+      "sha256": "4579f7d39721c0dac658966ebcc6ff21c49e20f71faece82faff43cf23a6b79e",
+      "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2p_12.0.0_ARM64.exe",
+      "sizeBytes": 68925296
+    }
+  ],
+  "recipes": [
+    {
+      "path": ".github/workflows/package-linux.yml",
+      "url": "https://raw.githubusercontent.com/ciromattia/kcc/f127adbca992456e173d88ada18643eae66802fb/.github/workflows/package-linux.yml",
+      "sha256": "0113557fac5c4c6aced081c249a274ea5ef4747e41bf41a8391f8cc22d644973"
+    },
+    {
+      "path": ".github/workflows/package-macos.yml",
+      "url": "https://raw.githubusercontent.com/ciromattia/kcc/f127adbca992456e173d88ada18643eae66802fb/.github/workflows/package-macos.yml",
+      "sha256": "91f513b057ba0312678230289f67918d548a997287b89624325737f75a015350"
+    },
+    {
+      "path": ".github/workflows/package-osx-legacy.yml",
+      "url": "https://raw.githubusercontent.com/ciromattia/kcc/f127adbca992456e173d88ada18643eae66802fb/.github/workflows/package-osx-legacy.yml",
+      "sha256": "9eadaeddfa777ddbc7e2e0ada2b98d662cf3fd7c50e9e7bfdccd052ac52786e2"
+    },
+    {
+      "path": ".github/workflows/package-windows.yml",
+      "url": "https://raw.githubusercontent.com/ciromattia/kcc/f127adbca992456e173d88ada18643eae66802fb/.github/workflows/package-windows.yml",
+      "sha256": "e5d63c5b6c3cf7dc33b6f3d6ad0607bf3f91d11a53704759bd26942c7cfe540a"
+    },
+    {
+      "path": ".github/workflows/package-windows7.yml",
+      "url": "https://raw.githubusercontent.com/ciromattia/kcc/f127adbca992456e173d88ada18643eae66802fb/.github/workflows/package-windows7.yml",
+      "sha256": "aa159a9a16fbd20ff1f32c7e1adbf5331b7eb85bc2bde8b436429ec5b03baf94"
+    }
+  ],
+  "scope": "Public release metadata and build definitions only. No native binaries were downloaded or executed."
+}

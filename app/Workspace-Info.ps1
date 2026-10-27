@@ -5,6 +5,7 @@ $settings=Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom
 if ($AvailabilityOnly) {
     $errors=@()
     foreach ($pair in @(@('Incoming','WatchFolder'),@('Converted','ConvertedFolder'),@('Archive','ArchiveFolder'),@('Working','WorkFolder'))) {
+        if($pair[1] -eq 'ArchiveFolder' -and $settings.OriginalsAction -eq 'Delete'){continue}
         $path=[string]$settings.($pair[1])
         try {
             if (-not $path -or -not [IO.Path]::IsPathRooted($path) -or -not [IO.Directory]::Exists($path)) { throw 'Folder is missing, disconnected, or not accessible.' }

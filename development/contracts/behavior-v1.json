@@ -1,0 +1,806 @@
+{
+  "schemaVersion": 1,
+  "description": "Replay these scenarios against the current Windows worker and future native adapters. Fake converters test workflow behavior, not ebook quality or platform readiness.",
+  "settings": {
+    "Profile": "KS",
+    "Format": "MOBI",
+    "Cropping": 0,
+    "Splitter": 0,
+    "MangaStyle": true,
+    "Upscale": true,
+    "ConvertJxl": true,
+    "QuietMinutes": 0,
+    "InputExtensions": [
+      ".cbz",
+      ".pdf"
+    ],
+    "DuplicateAction": "Review",
+    "OutputNaming": "{name}"
+  },
+  "scenarios": [
+    {
+      "id": "order-and-archive-merge",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "Series [A]/one.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Series [A]/two.pdf",
+            "kind": "text",
+            "content": "source",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Series [A]/notes.txt",
+            "kind": "text",
+            "content": "notes",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Loose.pdf",
+            "kind": "text",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ],
+        "originals": [
+          {
+            "path": "Series [A]/one.cbz",
+            "kind": "text",
+            "content": "stale",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Series [A]/keep.txt",
+            "kind": "text",
+            "content": "keep",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [],
+              "converted": [
+                "Series [A]/one.mobi",
+                "Series [A]/two.mobi",
+                "Loose.mobi"
+              ],
+              "originals": [
+                "Series [A]/one.cbz",
+                "Series [A]/two.pdf",
+                "Series [A]/notes.txt",
+                "Series [A]/keep.txt",
+                "Loose.pdf"
+              ]
+            },
+            "callFormats": [
+              ".cbz",
+              ".pdf",
+              ".pdf"
+            ],
+            "states": {},
+            "unchanged": [
+              "originals:Series [A]/keep.txt"
+            ],
+            "archivedFromIncoming": [
+              "Series [A]/one.cbz",
+              "Series [A]/two.pdf",
+              "Series [A]/notes.txt",
+              "Loose.pdf"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "failure-isolation-and-receipt-retry",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "Series/good.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Series/fail.pdf",
+            "kind": "text",
+            "content": "source",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Other/book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 1,
+            "trees": {
+              "incoming": [
+                "Series/good.cbz",
+                "Series/fail.pdf"
+              ],
+              "converted": [
+                "Series/good.mobi",
+                "Other/book.mobi"
+              ],
+              "originals": [
+                "Other/book.cbz"
+              ]
+            },
+            "callFormats": [
+              ".cbz",
+              ".cbz",
+              ".pdf"
+            ],
+            "states": {
+              "Series/fail.pdf": "failed",
+              "Other/book.cbz": "archived"
+            },
+            "unchanged": [
+              "incoming:Series/good.cbz",
+              "incoming:Series/fail.pdf"
+            ],
+            "archivedFromIncoming": [
+              "Other/book.cbz"
+            ]
+          }
+        },
+        {
+          "command": "run",
+          "allowFailures": true,
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [],
+              "converted": [
+                "Series/good.mobi",
+                "Series/fail.mobi",
+                "Other/book.mobi"
+              ],
+              "originals": [
+                "Series/good.cbz",
+                "Series/fail.pdf",
+                "Other/book.cbz"
+              ]
+            },
+            "callFormats": [
+              ".pdf"
+            ],
+            "states": {},
+            "unchanged": [],
+            "archivedFromIncoming": [
+              "Series/good.cbz",
+              "Series/fail.pdf",
+              "Other/book.cbz"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-retains-both",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ],
+        "converted": [
+          {
+            "path": "book.mobi",
+            "kind": "text",
+            "content": "old",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 1,
+            "trees": {
+              "incoming": [
+                "book.cbz"
+              ],
+              "converted": [
+                "book.mobi"
+              ],
+              "originals": []
+            },
+            "callFormats": [
+              ".cbz"
+            ],
+            "states": {
+              "book.cbz": "conflict"
+            },
+            "unchanged": [
+              "incoming:book.cbz",
+              "converted:book.mobi"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "keep-both-numbering",
+      "settings": {
+        "DuplicateAction": "KeepBoth"
+      },
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ],
+        "converted": [
+          {
+            "path": "book.mobi",
+            "kind": "text",
+            "content": "old",
+            "ageMinutes": 120
+          },
+          {
+            "path": "book (2).mobi",
+            "kind": "text",
+            "content": "second",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [],
+              "converted": [
+                "book.mobi",
+                "book (2).mobi",
+                "book (3).mobi"
+              ],
+              "originals": [
+                "book.cbz"
+              ]
+            },
+            "callFormats": [
+              ".cbz"
+            ],
+            "states": {},
+            "unchanged": [
+              "converted:book.mobi",
+              "converted:book (2).mobi"
+            ],
+            "archivedFromIncoming": [
+              "book.cbz"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "skip-retains-original",
+      "settings": {
+        "DuplicateAction": "Skip"
+      },
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ],
+        "converted": [
+          {
+            "path": "book.mobi",
+            "kind": "text",
+            "content": "old",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [
+                "book.cbz"
+              ],
+              "converted": [
+                "book.mobi"
+              ],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {
+              "book.cbz": "skipped-existing"
+            },
+            "unchanged": [
+              "incoming:book.cbz",
+              "converted:book.mobi"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview-does-not-change-books",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "漫画 [A]/book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ],
+        "converted": [
+          {
+            "path": "keep.mobi",
+            "kind": "text",
+            "content": "keep",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "preview",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [
+                "漫画 [A]/book.cbz"
+              ],
+              "converted": [
+                "keep.mobi"
+              ],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {
+              "漫画 [A]/book.cbz": "waiting"
+            },
+            "unchanged": [
+              "incoming:漫画 [A]/book.cbz",
+              "converted:keep.mobi"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "quiet-period",
+      "settings": {
+        "QuietMinutes": 30
+      },
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 1
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [
+                "book.cbz"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {
+              "book.cbz": "waiting-download"
+            },
+            "unchanged": [
+              "incoming:book.cbz"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "empty-selection-is-not-all-books",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "selection": [],
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 4,
+            "trees": {
+              "incoming": [
+                "book.cbz"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {},
+            "unchanged": [
+              "incoming:book.cbz"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "missing-jxl-decoder",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "jxl-cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 1,
+            "trees": {
+              "incoming": [
+                "book.cbz"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {
+              "book.cbz": "failed"
+            },
+            "unchanged": [
+              "incoming:book.cbz"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "all-split-parts-reviewed-first",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "split.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ],
+        "converted": [
+          {
+            "path": "split_002.mobi",
+            "kind": "text",
+            "content": "keep second",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 1,
+            "trees": {
+              "incoming": [
+                "split.cbz"
+              ],
+              "converted": [
+                "split_002.mobi"
+              ],
+              "originals": []
+            },
+            "callFormats": [
+              ".cbz"
+            ],
+            "states": {},
+            "unchanged": [
+              "incoming:split.cbz",
+              "converted:split_002.mobi"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "stop-keeps-pending-originals",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "stopBeforeRun": true,
+          "expect": {
+            "windowsExitCode": 2,
+            "workerExitCode": 2,
+            "trees": {
+              "incoming": [
+                "book.cbz"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {},
+            "unchanged": [
+              "incoming:book.cbz"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "unsupported-format-kept-incoming",
+      "settings": {
+        "InputExtensions": [
+          ".cbz"
+        ]
+      },
+      "files": {
+        "incoming": [
+          {
+            "path": "Series/book.pdf",
+            "kind": "text",
+            "content": "source",
+            "ageMinutes": 120
+          },
+          {
+            "path": "Series/notes.txt",
+            "kind": "text",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [
+                "Series/book.pdf",
+                "Series/notes.txt"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {},
+            "unchanged": [
+              "incoming:Series/book.pdf",
+              "incoming:Series/notes.txt"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "zero-exit-without-output-is-failure",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "empty.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 1,
+            "trees": {
+              "incoming": [
+                "empty.cbz"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [
+              ".cbz"
+            ],
+            "states": {
+              "empty.cbz": "failed"
+            },
+            "unchanged": [
+              "incoming:empty.cbz"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "first-folder-rule-preserves-naming",
+      "settings": {
+        "FolderRules": [
+          {
+            "Pattern": "series `[a`]\\*",
+            "Options": {
+              "Profile": "KPW5",
+              "OutputNaming": "{name}-{profile}"
+            }
+          },
+          {
+            "Pattern": "*",
+            "Options": {
+              "OutputNaming": "wrong-rule"
+            }
+          }
+        ]
+      },
+      "files": {
+        "incoming": [
+          {
+            "path": "Series [A]/book.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 0,
+            "workerExitCode": 0,
+            "trees": {
+              "incoming": [],
+              "converted": [
+                "Series [A]/book-KPW5.mobi"
+              ],
+              "originals": [
+                "Series [A]/book.cbz"
+              ]
+            },
+            "callFormats": [
+              ".cbz"
+            ],
+            "states": {},
+            "unchanged": [],
+            "archivedFromIncoming": [
+              "Series [A]/book.cbz"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "multiple-inputs-one-output",
+      "settings": {},
+      "files": {
+        "incoming": [
+          {
+            "path": "same.cbz",
+            "kind": "cbz",
+            "content": "source",
+            "ageMinutes": 120
+          },
+          {
+            "path": "same.pdf",
+            "kind": "text",
+            "content": "source",
+            "ageMinutes": 120
+          }
+        ]
+      },
+      "runs": [
+        {
+          "command": "run",
+          "expect": {
+            "windowsExitCode": 1,
+            "workerExitCode": 1,
+            "trees": {
+              "incoming": [
+                "same.cbz",
+                "same.pdf"
+              ],
+              "converted": [],
+              "originals": []
+            },
+            "callFormats": [],
+            "states": {
+              "same.cbz": "conflict",
+              "same.pdf": "conflict"
+            },
+            "unchanged": [
+              "incoming:same.cbz",
+              "incoming:same.pdf"
+            ],
+            "archivedFromIncoming": []
+          }
+        }
+      ]
+    }
+  ]
+}

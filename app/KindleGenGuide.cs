@@ -66,6 +66,7 @@ namespace KCCAutomate {
         public static Window Create(Window owner,Func<string> selected) {
             Window guide;
             using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("KCCAutomate.KindleGenGuide.xaml"))guide=(Window)XamlReader.Load(stream);
+            guide.Icon=AppBranding.Icon;
             guide.Resources.MergedDictionaries.Add(owner.Resources);if(owner.IsVisible)guide.Owner=owner;
             var message=(TextBlock)guide.FindName("GuideFeedback");
             ((Button)guide.FindName("GuideOpenFolder")).Click+=delegate{try{message.Text=OpenFolder(selected());}catch(Exception ex){message.Text="Windows could not open that folder. Choose the file manually in setup. "+ex.Message;}};

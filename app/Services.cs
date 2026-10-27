@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,16 +6,43 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
-[assembly: AssemblyVersion("0.1.18.0")]
-[assembly: AssemblyFileVersion("0.1.18.0")]
+[assembly: AssemblyVersion("0.1.19.0")]
+[assembly: AssemblyFileVersion("0.1.19.0")]
 [assembly: AssemblyProduct("KCCAutomate")]
 namespace KCCAutomate {
+    public static class ShellIcons {
+        [DllImport("shell32.dll", CharSet=CharSet.Unicode)]
+        static extern void SHChangeNotify(uint eventId,uint flags,string path,IntPtr unused);
+        public static void Refresh(string path) {
+            // Replacing an EXE or saving a shortcut does not reliably invalidate
+            // Explorer's per-path icon cache. Notify only the item we changed.
+            try {
+                if(File.Exists(path))SHChangeNotify(0x2000,0x1005,Path.GetFullPath(path),IntPtr.Zero);
+            } catch(Exception ex) {
+                // A cosmetic shell refresh must not prevent launch or installation.
+                Debug.WriteLine("KCCAutomate icon refresh: "+ex.Message);
+            }
+        }
+    }
     public partial class Settings {
         public string OutputNaming { get; set; }
+        public bool BundleChapters { get; set; }
+        public bool BundleVolumes { get; set; }
+        public int VolumeTargetPages { get; set; }
+        public int BundleTargetPages { get; set; }
+        public int ChapterPageThreshold { get; set; }
+        public int BundleMaxMiB { get; set; }
+        public bool HoldShortBundles { get; set; }
+        public string BookTitleStyle { get; set; }
+        public string OriginalsAction { get; set; }
+        public bool DeleteOriginalsConfirmed { get; set; }
+        public bool CoverNumberBadge { get; set; }
+        public Dictionary<string,string> SeriesAliases { get; set; }
         public bool AutoCleanup { get; set; }
         public int SuccessRetentionDays { get; set; }
         public int FailureRetentionDays { get; set; }
@@ -29,6 +56,10 @@ namespace KCCAutomate {
         public string PreviousDjxlExe { get; set; }
         public List<FolderRule> FolderRules { get; set; }
         public void NewDefaults() {
+            BundleTargetPages=200; ChapterPageThreshold=100; BundleMaxMiB=350; HoldShortBundles=false;
+            VolumeTargetPages=600;
+            BookTitleStyle="Original";SeriesAliases=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+            OriginalsAction="Archive";
             OutputNaming="{name}"; SuccessRetentionDays=7; FailureRetentionDays=30;
             NotificationMode="Off"; QuietHoursStart="22:00"; QuietHoursEnd="08:00";
             Theme="Light"; UpdateRepository="squishysquidly/KCCAutomate"; FolderRules=new List<FolderRule>();
@@ -74,7 +105,7 @@ namespace KCCAutomate {
         public Dictionary<string,string> VerifiedToolFiles { get; set; }
     }
     public static class ReleaseClient {
-        public const string AppVersion="0.1.18";
+        public const string AppVersion="0.1.19";
         // Change this policy only after the maintainer tests a full conversion with the new CLI.
         public const string ApprovedKccVersion="12.0.0";
         public const string ApprovedKccAsset="tool_cli_c2e_12.0.0_AMD64.exe";

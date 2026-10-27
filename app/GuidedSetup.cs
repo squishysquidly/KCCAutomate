@@ -38,7 +38,7 @@ namespace KCCAutomate {
             SetupChecks.ProbeFolders(settings);
             if(File.ReadAllText(Path.Combine(settings.WatchFolder,"keep.cbz"))!="keep original"||Directory.GetFiles(settings.WatchFolder).Length!=1)throw new Exception("Folder access probe changed user files or left a probe behind.");
             settings.ArchiveFolder=Path.Combine(settings.WatchFolder,"nested");
-            try{SetupChecks.ProbeFolders(settings);throw new Exception("Nested wizard folder accepted");}catch(Exception ex){if(!ex.Message.Contains("four folders"))throw;}
+            try{SetupChecks.ProbeFolders(settings);throw new Exception("Nested wizard folder accepted");}catch(Exception ex){if(!ex.Message.Contains("must be separate"))throw;}
             if(Directory.Exists(settings.ArchiveFolder))throw new Exception("Invalid setup created folders before validation.");
             settings.WorkFolder=Path.Combine(root,new string('x',150));
             try{SetupChecks.ConvertTest(settings,Path.Combine(settings.WatchFolder,"keep.cbz"),baseDir);throw new Exception("Overlong setup test path accepted");}catch(Exception ex){if(!ex.Message.Contains("working folder path is too long"))throw;}

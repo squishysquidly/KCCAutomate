@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "upstreamRepository": "ciromattia/kcc",
+  "baselineVersion": "12.0.0",
+  "sourceCommit": "f127adbca992456e173d88ada18643eae66802fb",
+  "reviewedAt": "2026-10-24",
+  "evidenceFile": "kcc-12.0.0-evidence.json",
+  "acquisition": "manual-upstream-releases",
+  "approvalsUnchanged": true,
+  "targets": [
+    {
+      "id": "linux-x86_64",
+      "os": "linux",
+      "architectureCandidate": "x86_64",
+      "deliveryPriority": 1,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "kcc_linux-12.0.0-x86_64.AppImage",
+          "sha256": "43c68e3c7e7f3d0b79e6d1284b62fe641d6cf01b1404436de6de97fac0bc54a8",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_linux-12.0.0-x86_64.AppImage",
+          "sizeBytes": 112962041
+        }
+      ],
+      "status": "planned",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Verify an unattended c2e entry point; a GUI AppImage is not CLI approval.",
+        "Measure ELF loader, libc and CPU baseline on native Linux.",
+        "Validate KindleGen and djxl on the same system."
+      ]
+    },
+    {
+      "id": "windows7-legacy",
+      "os": "windows",
+      "architectureCandidate": null,
+      "deliveryPriority": 2,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "kcc_win7_legacy_12.0.0.exe",
+          "sha256": "a4bc0b2b718e38b5a7c4d4046287154a1a2419de1e525981293960d5d42b3a08",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_win7_legacy_12.0.0.exe",
+          "sizeBytes": 71096816
+        }
+      ],
+      "status": "planned",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Inspect upstream PE architecture; no 32-bit support claim.",
+        "Resolve a legacy c2e path: no separately named Win7 CLI is published.",
+        "Replace ScheduledTasks cmdlets; require tested SP1/WMF/.NET prerequisites."
+      ]
+    },
+    {
+      "id": "linux-aarch64",
+      "os": "linux",
+      "architectureCandidate": "aarch64",
+      "deliveryPriority": 3,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "kcc_linux-12.0.0-aarch64.AppImage",
+          "sha256": "88cd4e99233e0b92aa927c03454e640f84c9bdb30920a103801bcefb34bda708",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_linux-12.0.0-aarch64.AppImage",
+          "sizeBytes": 108380147
+        }
+      ],
+      "status": "planned",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Verify native ARM64 c2e and helpers.",
+        "Measure ELF/libc baseline and MOBI compiler requirements."
+      ]
+    },
+    {
+      "id": "macos-intel",
+      "os": "macos",
+      "architectureCandidate": "x86_64",
+      "deliveryPriority": 4,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "kcc_macos_i386_12.0.0.dmg",
+          "sha256": "1b047592ea5bfdb8b86ad30bea236933906674059a243b715d51ccdfd51a6abd",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_macos_i386_12.0.0.dmg",
+          "sizeBytes": 85705774
+        }
+      ],
+      "status": "planned",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Inspect Mach-O architecture and actual bundled minimum OS; i386 is an upstream label.",
+        "The 10.14 legacy build recipe alone does not certify this DMG.",
+        "Verify c2e, KindleGen and launchd on native Intel macOS."
+      ]
+    },
+    {
+      "id": "macos-arm64",
+      "os": "macos",
+      "architectureCandidate": "arm64",
+      "deliveryPriority": 4,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "kcc_macos_arm_12.0.0.dmg",
+          "sha256": "bbfd451af6c215949b5b6e040152e577da2023b3684ace726c6b9e777ad7540b",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/kcc_macos_arm_12.0.0.dmg",
+          "sizeBytes": 73188181
+        }
+      ],
+      "status": "planned",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Verify native c2e and helpers on Apple Silicon.",
+        "Record any Rosetta requirement of KindleGen separately from KCC architecture."
+      ]
+    },
+    {
+      "id": "windows-arm64",
+      "os": "windows",
+      "architectureCandidate": "arm64",
+      "deliveryPriority": 5,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "KCC_ARM64_12.0.0.exe",
+          "sha256": "eb4d775f05ae593a0c6969babcb488c821ad0ee115d588f44e576e9bb4d6394d",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/KCC_ARM64_12.0.0.exe",
+          "sizeBytes": 68917400
+        },
+        {
+          "name": "tool_cli_c2e_12.0.0_ARM64.exe",
+          "sha256": "4a41261dec9387a29b781d83bd6099a47ebaa5124a6a6aa8b27e5d4669dcd444",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_ARM64.exe",
+          "sizeBytes": 68925944
+        }
+      ],
+      "status": "planned",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Approve the native ARM64 CLI and helper versions on ARM hardware.",
+        "No approval is inherited from the AMD64 converter."
+      ]
+    },
+    {
+      "id": "windows-x86_64",
+      "os": "windows",
+      "architectureCandidate": "x86_64",
+      "deliveryPriority": 0,
+      "upstreamVersion": "12.0.0",
+      "upstreamAssets": [
+        {
+          "name": "KCC_12.0.0.exe",
+          "sha256": "493e6f5b0dfe6a2d4415583cf1a1d1159d98bce1495df1a4d446ad7916966b5a",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/KCC_12.0.0.exe",
+          "sizeBytes": 89542456
+        },
+        {
+          "name": "tool_cli_c2e_12.0.0_AMD64.exe",
+          "sha256": "8300504c7d6685eaa63a803e490c7ef2f87a4c9e43cc49c3e361fada892d85ff",
+          "url": "https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_AMD64.exe",
+          "sizeBytes": 89546400
+        }
+      ],
+      "status": "existing-windows-policy",
+      "certification": {
+        "nativeVerified": false,
+        "minimumOs": null,
+        "libc": null,
+        "cliCommand": null,
+        "helperVersions": {},
+        "testedFormats": [],
+        "evidence": []
+      },
+      "blockers": [
+        "Keep the existing Windows approval policy unchanged.",
+        "Formal native acceptance still needs recorded OS/helper/output evidence."
+      ]
+    }
+  ]
+}

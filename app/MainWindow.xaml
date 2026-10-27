@@ -1,4 +1,4 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="KCCAutomate" Width="1180" Height="850" MinWidth="1040" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource CanvasBrush}" FontFamily="Segoe UI" FontSize="14">
@@ -36,7 +36,7 @@
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
           <Border Background="#284B3B" CornerRadius="8" Padding="14">
-            <StackPanel><TextBlock Text="Your originals, preserved." Foreground="#DDEACD" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Files move to the archive only after successful conversion and verification." Foreground="#B6CBB8" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0"/></StackPanel>
+            <StackPanel><TextBlock x:Name="OriginalsHeading" Text="Your originals, preserved." Foreground="#DDEACD" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock x:Name="OriginalsSummary" Text="Files move to Originals after successful conversion and verification." Foreground="#B6CBB8" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0"/></StackPanel>
           </Border>
           <TextBlock Text="Powered by your KCC installation" Foreground="#9FB9A7" FontSize="11" Margin="0,18,0,0" TextWrapping="Wrap"/>
         </StackPanel>
@@ -127,8 +127,15 @@
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="What should enter the queue?" FontSize="20" FontWeight="SemiBold"/>
               <WrapPanel Margin="0,12,0,0"><CheckBox x:Name="InputCbz" Content="CBZ"/><CheckBox x:Name="InputPdf" Content="PDF"/><CheckBox x:Name="InputEpub" Content="EPUB"/><CheckBox x:Name="InputCbr" Content="CBR"/><CheckBox x:Name="InputCb7" Content="CB7"/></WrapPanel>
-              <TextBlock Text="CBZs run first, then PDFs, EPUBs, CBRs and CB7s. These settings are for image-based comics and manga. A folder moves only when all selected inputs succeed; unselected files move along with it." Style="{StaticResource Hint}"/>
+              <TextBlock Text="CBZs run first, then PDFs, EPUBs, CBRs and CB7s. These settings are for image-based comics and manga. Original handling waits until all selected inputs in a folder succeed. Archive mode moves accompanying files too; deletion mode keeps unconverted files in Incoming." Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleFileSummary" Style="{StaticResource Hint}"/>
+              <TextBlock Text="After successful conversion" Style="{StaticResource Label}"/>
+              <ComboBox x:Name="OriginalsAction"><ComboBoxItem Content="Keep originals in the Originals folder (recommended)"/><ComboBoxItem Content="Permanently delete converted originals"/></ComboBox>
+              <Border x:Name="DeleteOriginalsWarning" Visibility="Collapsed" Background="#FFF1EE" Padding="12" Margin="0,8,0,8"><StackPanel>
+                <TextBlock Foreground="#7A2418" Text="Warning: converted original files will be permanently deleted, without going to the Recycle Bin. You may lose the ability to convert them again with different settings. Only successfully converted input files are removed; failed and unconverted files stay in Incoming." TextWrapping="Wrap"/>
+                <CheckBox x:Name="DeleteOriginalsConfirmed" Foreground="#7A2418" Content="I understand that converted originals will be permanently deleted"/>
+              </StackPanel></Border>
+              <TextBlock Text="Keeping originals is the default. The Originals folder is unused when deletion is selected. Preview never removes anything." Style="{StaticResource Hint}"/>
               <TextBlock Text="When converted output already exists" Style="{StaticResource Label}"/>
               <ComboBox x:Name="DuplicateAction" AutomationProperties.Name="Default action for existing converted output"><ComboBoxItem Content="Review conflicts and keep incoming" IsSelected="True"/><ComboBoxItem Content="Replace existing converted books"/><ComboBoxItem Content="Keep both with numbered filenames"/><ComboBoxItem Content="Skip existing output and keep incoming"/></ComboBox>
               <TextBlock x:Name="DuplicateDescription" Style="{StaticResource Hint}"/>
@@ -136,6 +143,36 @@
               <TextBlock Text="Output naming" Style="{StaticResource Label}"/><TextBox x:Name="OutputNaming" Text="{}{name}"/>
               <TextBlock Text="Use {name}, {profile} and {format}. Example: {name} - {profile}. The file extension is added automatically." Style="{StaticResource Hint}"/>
               </StackPanel>
+            </StackPanel></Border>
+            <Border x:Name="BookLabelsCard" Style="{StaticResource Card}"><StackPanel>
+              <TextBlock Text="Readable book labels" FontSize="20" FontWeight="SemiBold"/>
+              <TextBlock Text="Book title and filename" Style="{StaticResource Label}"/>
+              <ComboBox x:Name="BookTitleStyle"><ComboBoxItem Content="Keep original names"/><ComboBoxItem Content="Series, then number"/><ComboBoxItem Content="Number, then series"/><ComboBoxItem Content="Clean filename (keep v/ch numbering)"/></ComboBox>
+              <TextBlock Text="Clean filename removes leading [release tags] and keeps the title through v01 or ch001, removing everything after that number. For example: [sunshine] Rainbows v1 [truth] becomes Rainbows v1. Matching series folders in Converted also use just the series title, including your shortened name if set. Existing ranges such as v01-02 are kept whole. Without a clear marker, only leading bracketed tags are removed; the rest of the name is kept." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Series-first keeps each series together when sorting by Title. Number-first shows the order before a long name, but mixes series under 001, 002, and so on. Neither changes the chapter links or reading direction inside the book." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Files named only v1, Vol. 2 or ch001 use their containing series folder as the title with Clean filename, Series-first or Number-first. For example: Artist/Series/v1.cbz becomes Artist/Series/Series v1.mobi with Clean filename. Artist folders are kept. Keep original names leaves the filename as downloaded." Style="{StaticResource Hint}"/>
+              <CheckBox x:Name="CoverNumberBadge" Content="Add a clear chapter/volume number strip above the cover artwork"/>
+              <TextBlock Text="Only the generated cover is changed. Kindle library thumbnails depend on the reader and firmware; the numbered embedded cover cannot guarantee a thumbnail will appear." Style="{StaticResource Hint}"/>
+              <StackPanel x:Name="SeriesAliasEditor">
+                <TextBlock Text="Shorten really long series names (optional)" Style="{StaticResource Label}" FontSize="16"/>
+                <TextBlock Text="Enter the series title on the left, without v01/ch001, publisher or release tags. Put the shorter name you want on the right. For example: The Hero and the Sage, Reincarnated and Engaged becomes Hero and Sage. Used with Clean filename, Series-first or Number-first for future conversions. Leave both boxes empty if unused." Style="{StaticResource Hint}"/>
+                <StackPanel x:Name="SeriesAliasRows"/>
+                <Button x:Name="AddSeriesAlias" Content="Add another series" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+              </StackPanel>
+            </StackPanel></Border>
+            <Border x:Name="BookBundlesCard" Style="{StaticResource Card}"><StackPanel>
+              <TextBlock Text="Combine chapters or whole volumes" FontSize="20" FontWeight="SemiBold"/>
+              <CheckBox x:Name="BundleChapters" Content="Combine short CBZ chapters into volume-sized books"/>
+              <CheckBox x:Name="BundleVolumes" Content="Combine complete CBZ volumes into fewer books"/>
+              <TextBlock Text="Chapters and volumes form separate groups. Each group keeps complete units in number order, rounding down before a unit would cross your page or size budget. These are reading bundles, which may differ from official published volumes." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Target source pages per book" Style="{StaticResource Label}"/><TextBox x:Name="BundleTargetPages" Text="200" Width="110" HorizontalAlignment="Left"/>
+              <TextBlock Text="Treat files below this many source pages as likely chapters" Style="{StaticResource Label}"/><TextBox x:Name="ChapterPageThreshold" Text="100" Width="110" HorizontalAlignment="Left"/>
+              <TextBlock Text="Target source pages per combined-volume book" Style="{StaticResource Label}"/><TextBox x:Name="VolumeTargetPages" Text="600" Width="110" HorizontalAlignment="Left"/>
+              <TextBlock Text="Filename markers take priority: v01, Vol. 1 or Volume 1 means a volume; ch001, Ch. 1 or Chapter 1 means a chapter. Page count is used when no marker is present. Units above their grouping page target and volumes with unclear numbering convert separately. One source image counts as one page, before spread splitting." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Maximum converted bundle size (MiB)" Style="{StaticResource Label}"/><TextBox x:Name="BundleMaxMiB" Text="350" Width="110" HorizontalAlignment="Left"/>
+              <TextBlock Text="A conservative size budget. If KCC splits a bundle or its output exceeds this budget, the app retries with fewer whole chapters or volumes. A unit that cannot fit stays in Incoming with an explanation." Style="{StaticResource Hint}"/>
+              <CheckBox x:Name="HoldShortBundles" Content="Keep short leftover groups in Incoming until more chapters or volumes arrive" IsChecked="False"/>
+              <TextBlock Text="Turn this off to create short final bundles now. Preview shows the grouping and any inputs waiting. Original handling runs only when every selected input in the folder has verified output. Existing published bundles are kept stable." Style="{StaticResource Hint}"/>
             </StackPanel></Border>
           </StackPanel></ScrollViewer>
         </TabItem>
@@ -184,7 +221,7 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.1.18" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.1.19" Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleUpdateSource" Style="{StaticResource Hint}"/>
               <StackPanel x:Name="AdvancedRepository"><TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
               <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. App and JXL checks use stable releases; KCC checks use the version manually approved for this KCCAutomate release." Style="{StaticResource Hint}"/>
@@ -220,7 +257,7 @@
         </TabItem>
         <TabItem Header="Activity">
           <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <StackPanel><TextBlock Text="Every book, accounted for" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="Preview shows the queue without changing files. Run now converts and then archives successful batches." Style="{StaticResource Hint}"/>
+            <StackPanel><TextBlock Text="Every book, accounted for" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="Preview shows the queue without changing files. Run now converts, verifies successful batches and applies your chosen original-handling policy." Style="{StaticResource Hint}"/>
               <WrapPanel Margin="0,0,0,12"><Button x:Name="OpenLog" Content="Load conversion log"/><Button x:Name="OpenWork" Content="Open working folder"/><Button x:Name="ClearActivity" Content="Clear view"/><Button x:Name="StopAfter" Content="Stop after this file" IsEnabled="False"/></WrapPanel>
             </StackPanel>
             <TextBox x:Name="Activity" Grid.Row="1" Background="#182B23" Foreground="#D7E9CF" FontFamily="Consolas" FontSize="12" Padding="18" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"/>

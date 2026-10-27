@@ -1,11 +1,32 @@
-# KCCAutomate: current status
+﻿# KCCAutomate: current status
 
-**Current version: 0.1.18.** Windows release candidate.
+**Current version: 0.1.19** Windows release candidate.
+This is the first update from 0.1.18, described in the
+[consolidated release overview](RELEASE-NOTES.md).
 
 ## Implemented
 
 - Windows installer and portable ZIP, with a guided first-run setup.
+- Supplied app artwork embedded in the app, installer and uninstaller, with
+  matching window, taskbar and shortcut icons at multiple Windows display sizes.
 - Reader profiles, conversion options and persistent Simple/Advanced views.
+- Optional CBZ chapter grouping with page and converted-size budgets, stable
+  chapter-range titles, metadata/first-image covers, whole-chapter size retries,
+  pending remainders and atomic completion records for every bundle member.
+- Optional whole-volume grouping with a separate page target, whole-unit size
+  retries and immediate leftovers; chapter/volume groups remain distinct.
+- Readable embedded titles and filenames, short series aliases, optional
+  leading numbers and a number strip above existing cover art.
+- Opt-in filename cleaning through v/ch numbers, with explicit markers taking
+  priority over page counts and conflicting metadata when grouping inputs.
+- Leading square-bracketed release-tag cleanup in generated clean filenames,
+  book titles and matching series folders, including repeated tags and aliases.
+- Series titles inferred from the immediate parent folder for v/ch-only CBZ
+  filenames, preserving artist/collection nesting and per-series grouping.
+- Clean series folder names in Converted, with aliases, nested path preservation
+  and collision checks shared by preview and conversion.
+- Archive originals by default, or explicitly acknowledge permanent deletion
+  after conversion verification; unconverted accompanying files stay put.
 - User-supplied KCC CLI, currently verified against version 12.0.0; acquisition
   links open KCC's own GitHub releases page.
 - Automatic checks for installed 7-Zip CLI and likely Kindle Previewer/
@@ -34,7 +55,31 @@ different Previewer installations, normal Windows installation/uninstallation,
 actual scheduled runs and network-account access still need manual acceptance.
 Linux and macOS builds are not implemented.
 
-## Recommended next improvements
+## Current priority: KCC platform parity
+
+The first stage, platform inventory and shared contracts, is implemented:
+see the [inventory](platforms/README.md) and [contract/replay guide](contracts/README.md).
+The next implementation stage is the Linux x86_64 conversion worker. Native
+platform certification remains separate from these source/fixture checks.
+
+Follow the [platform-parity plan](PLATFORM-PARITY-PLAN.md). Linux x86_64 is
+the first new platform, followed by Windows 7 compatibility repair, Linux
+aarch64, macOS Intel/ARM64 and Windows ARM64. Preserve Windows x64 throughout.
+The platform boundary follows KCC's own verified targets; no extra 32-bit Linux
+or Mac support is implied by ambiguous upstream filenames.
+
+Use a shared conversion worker with portable and legacy desktop/runtime
+adapters as needed. The existing WPF base is retained for the Windows
+compatibility path. Windows 7 support needs scheduler, prerequisites and legacy
+converter verification before it can be claimed. These are planned changes;
+The current Windows build has not gained additional platform compatibility.
+
+## UX backlog after platform work
+
+Book organization follow-ups: a cover image chooser/preview, optional reviewed
+database matching, and explicit per-book chapter/volume overrides. Page-count
+classification cannot establish official published volume boundaries. Kindle
+collection membership remains managed through the reader's own controls.
 
 1. **Consistent readiness checks.** Guided setup identifies KindleGen, while
    the main Check setup action checks KCC/JXL startup without establishing that
