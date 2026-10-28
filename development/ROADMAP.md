@@ -1,12 +1,19 @@
-﻿# KCCAutomate: current status
+# KCCAutomate: current status
 
-**Current version: 0.1.19** Windows release candidate.
-This is the first update from 0.1.18, described in the
-[consolidated release overview](RELEASE-NOTES.md).
+**Current version: 0.1.20** Windows build.
+This update follows 0.1.19, improves Store KindleGen discovery and removes the KCC version pin,
+described in the [release overview](RELEASE-NOTES.md).
 
 ## Implemented
 
 - Windows installer and portable ZIP, with a guided first-run setup.
+- Visible immediate Stop for app and background conversions, process-tree
+  termination, retained unconverted inputs and resumable stopped queue items.
+- Optional Scribe 2022/2024 rendering workaround with retained normal settings.
+- Automatic release checks after startup/setup, actionable KCC version notices,
+  user-selected converter replacement and clear offline/unknown-version states.
+- KindleGen discovery supports desktop and Microsoft Store Previewer, registered
+  package locations, post-install rechecks and validated private Store copies.
 - Supplied app artwork embedded in the app, installer and uninstaller, with
   matching window, taskbar and shortcut icons at multiple Windows display sizes.
 - Reader profiles, conversion options and persistent Simple/Advanced views.
@@ -27,7 +34,7 @@ This is the first update from 0.1.18, described in the
   and collision checks shared by preview and conversion.
 - Archive originals by default, or explicitly acknowledge permanent deletion
   after conversion verification; unconverted accompanying files stay put.
-- User-supplied KCC CLI, currently verified against version 12.0.0; acquisition
+- User-supplied KCC CLI, validated without a version pin; acquisition
   links open KCC's own GitHub releases page.
 - Automatic checks for installed 7-Zip CLI and likely Kindle Previewer/
   KindleGen locations, with post-install rechecking and illustrated help.

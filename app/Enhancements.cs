@@ -26,13 +26,14 @@ namespace KCCAutomate {
         readonly ObservableCollection<Preset> presets=new ObservableCollection<Preset>();
         readonly ObservableCollection<FolderRule> rules=new ObservableCollection<FolderRule>();
         readonly ObservableCollection<UpdateRow> updates=new ObservableCollection<UpdateRow>();
-        static readonly string[] OptionFields={"Profile","Format","Cropping","Splitter","MangaStyle","Upscale","Stretch","Autolevel","NoAutocontrast","ForceColor","ForcePng","Webtoon","Gamma","OutputNaming"};
+        static readonly string[] OptionFields={"Profile","Format","Cropping","Splitter","MangaStyle","Upscale","Stretch","Autolevel","NoAutocontrast","ForceColor","ForcePng","Webtoon","Gamma","OutputNaming","ScribeCompatibility"};
         bool asyncBusy,historyBusy;
         DateTime nextPoll=DateTime.MinValue;
         string queueReport;
         Action<int> afterWorker;
         string presetPath { get { return Path.Combine(userDir,"presets.json"); } }
         void InitializeEnhancements(bool testing) {
+            automaticToolChecks=!testing;
             if(!testing && File.Exists(presetPath)) {
                 foreach(var preset in json.Deserialize<List<Preset>>(File.ReadAllText(presetPath))) presets.Add(preset);
             }
@@ -77,6 +78,10 @@ namespace KCCAutomate {
                 Start("Convert-Manga.ps1","-CleanupOnly","Cleaning expired attempts; originals and receipts are preserved.",false,s);
             });
             OnAsync("CheckUpdates",CheckUpdatesAsync); OnAsync("DownloadUpdate",DownloadUpdateAsync);
+            On("NoticeKccReleases",delegate{Process.Start(new ProcessStartInfo(ReleaseClient.KccReleasesPage){UseShellExecute=true});});
+            On("NoticeChooseKcc",ChooseDownloadedKcc);On("NoticeViewUpdates",ShowUpdateDetails);
+            On("DismissToolNotice",delegate{Find<FrameworkElement>("ToolUpdateNotice").Visibility=Visibility.Collapsed;});
+            actionButtons.Add(Find<Button>("NoticeChooseKcc"));
             On("InstallUpdate",InstallSelected); On("RollbackUpdate",RollbackSelected);
             foreach(var name in new[]{"RefreshQueue","RetrySelected","CleanupNow","WorkspaceUsage","CheckUpdates","DownloadUpdate","InstallUpdate","RollbackUpdate","SavePreset","ApplyPreset","DeletePreset","ImportPresets","ExportPresets","GuidedSetup"}) actionButtons.Add(Find<Button>(name));
             foreach(var name in new[]{"BundleTargetPages","ChapterPageThreshold","BundleMaxMiB","OutputNaming","SuccessRetentionDays","FailureRetentionDays","QuietHoursStart","QuietHoursEnd","UpdateRepository"}) Find<TextBox>(name).TextChanged+=delegate {Dirty();};
@@ -201,14 +206,14 @@ namespace KCCAutomate {
             string selected=(Find<DataGrid>("QueueGrid").SelectedItem as QueueRow)==null?null:((QueueRow)Find<DataGrid>("QueueGrid").SelectedItem).SourcePath;
             IEnumerable<QueueRow> rows=queue.Values;
             switch(ComboText("QueueFilter")) {
-                case "Needs attention":rows=rows.Where(r=>r.Status=="Failed" || r.Status=="Conflict" || r.Status=="Review existing output");break;
+                case "Needs attention":rows=rows.Where(r=>r.Status=="Failed" || r.Status=="Conflict" || r.Status=="Review existing output"||r.Status=="Stopped");break;
                 case "Waiting":rows=rows.Where(r=>r.Status.StartsWith("Waiting")||r.Status=="Skipped existing output");break;
                 case "Completed":rows=rows.Where(r=>r.Status=="Converted" || r.Status=="Archived" || r.Status=="Originals deleted");break;
             }
             var items=rows.OrderBy(r=>r.Batch).ThenBy(r=>r.Name).ToList();
             Find<DataGrid>("QueueGrid").ItemsSource=items;
             if(selected!=null) Find<DataGrid>("QueueGrid").SelectedItem=items.FirstOrDefault(r=>r.SourcePath==selected);
-            Find<TextBlock>("QueueSummary").Text=String.Format("{0} books / files · {1} need attention · {2} completed · refreshed {3:t}",queue.Count,queue.Values.Count(r=>r.Status=="Failed" || r.Status=="Conflict"),queue.Values.Count(r=>r.Status=="Archived" || r.Status=="Converted" || r.Status=="Originals deleted"),DateTime.Now);
+            Find<TextBlock>("QueueSummary").Text=String.Format("{0} books / files · {1} need attention · {2} completed · refreshed {3:t}",queue.Count,queue.Values.Count(r=>r.Status=="Failed" || r.Status=="Conflict"||r.Status=="Stopped"),queue.Values.Count(r=>r.Status=="Archived" || r.Status=="Converted" || r.Status=="Originals deleted"),DateTime.Now);
         }
         void RefreshQueue() {
             var s=Save();Start("Convert-Manga.ps1","-Preview","Inspecting filenames, JXL pages and archive companions. No books are changed.",false,s);
@@ -223,7 +228,7 @@ namespace KCCAutomate {
         }
         async void PollQueueHistory() {
             if(historyBusy || running!=null || asyncBusy || DateTime.UtcNow<nextPoll || String.IsNullOrWhiteSpace(saved.WorkFolder)) return;
-            nextPoll=DateTime.UtcNow.AddSeconds(20);historyBusy=true;
+            nextPoll=DateTime.UtcNow.AddSeconds(activeConversion==null?20:2);historyBusy=true;
             try {
                 string path=Path.Combine(saved.WorkFolder,"queue.json");
                 string text=await Task.Run(delegate {return File.Exists(path)?File.ReadAllText(path):null;});
@@ -236,20 +241,10 @@ namespace KCCAutomate {
             var colors=new Dictionary<string,string>{{"CanvasBrush",dark?"#17231E":"#F4F5F1"},{"SurfaceBrush",dark?"#23372D":"#FFFFFF"},{"TextBrush",dark?"#E2EDDF":"#27372F"},{"HintBrush",dark?"#B4C7B9":"#647168"},{"LineBrush",dark?"#486150":"#D5DDD5"},{"SoftBrush",dark?"#304B39":"#E5ECDF"}};
             foreach(var c in colors) Window.Resources[c.Key]=new SolidColorBrush((Color)ColorConverter.ConvertFromString(c.Value));
         }
-        async Task CheckUpdatesAsync() {
-            string repo=Text("UpdateRepository").Length==0?"":ReleaseClient.Repository(Text("UpdateRepository"));
-            string kcc=Text("KccExe"),jxl=Text("DjxlExe");updates.Clear();Find<TextBlock>("UpdateStatus").Text="Checking app/JXL releases and the approved KCC "+ReleaseClient.ApprovedKccVersion+" CLI...";
-            foreach(var component in new[]{"KCCAutomate","KCC","JPEG XL"}) {
-                if(component=="KCCAutomate" && repo.Length==0) {updates.Add(new UpdateRow{Component=component,Installed=ReleaseClient.AppVersion,Latest="—",Status="Set repository first"});continue;}
-                string owner=component=="KCCAutomate"?repo:component=="KCC"?"ciromattia/kcc":"libjxl/libjxl";
-                try {var row=await Task.Run(delegate {return ReleaseClient.Check(component,owner,component=="KCCAutomate"?ReleaseClient.AppVersion:ReleaseClient.InstalledVersion(component=="KCC"?kcc:jxl));});updates.Add(row);}
-                catch(Exception ex) {updates.Add(new UpdateRow{Component=component,Installed="Unknown",Latest="—",Status="Check failed",Notes=ex.Message});}
-            }
-            Find<TextBlock>("UpdateStatus").Text="Checks finished. KCC stays on the approved "+ReleaseClient.ApprovedKccVersion+" CLI until a KCCAutomate update approves another version. Select a component for details.";
-        }
+        Task CheckUpdatesAsync(){return CheckToolUpdatesAsync();}
         async Task DownloadUpdateAsync() {
             var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row==null)throw new Exception("Select a component first.");
-            if(row.Component=="KCC"){Process.Start(new ProcessStartInfo(ReleaseClient.KccReleasesPage){UseShellExecute=true});Find<TextBlock>("UpdateStatus").Text="Download KCC "+ReleaseClient.ApprovedKccVersion+" c2e yourself from its GitHub releases page, then choose the downloaded file in setup.";return;}
+            if(row.Component=="KCC"){Process.Start(new ProcessStartInfo(ReleaseClient.KccReleasesPage){UseShellExecute=true});Find<TextBlock>("UpdateStatus").Text="Download the Windows x64 c2e CLI yourself from KCC's GitHub releases page, then choose the downloaded file in setup.";return;}
             if(row.Asset==null) throw new Exception("Select an available release first.");
             Find<TextBlock>("UpdateStatus").Text="Downloading and checking SHA-256...";
             string directory=Path.Combine(userDir,"Updates",Guid.NewGuid().ToString("N"));
@@ -268,14 +263,13 @@ namespace KCCAutomate {
             Find<DataGrid>("UpdatesGrid").Items.Refresh();Find<TextBlock>("UpdateStatus").Text=row.Status+". Existing installed versions have not changed.";
         }
         void InstallSelected() {
-            var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row!=null&&row.Component=="KCC"){ShowGuidedSetup();return;}if(row==null || String.IsNullOrEmpty(row.VerifiedPath)) throw new Exception("Download and verify a release first.");
+            var row=Find<DataGrid>("UpdatesGrid").SelectedItem as UpdateRow;if(row!=null&&row.Component=="KCC"){ChooseDownloadedKcc();return;}if(row==null || String.IsNullOrEmpty(row.VerifiedPath)) throw new Exception("Download and verify a release first.");
             if(running!=null || asyncBusy) throw new Exception("Wait until the current operation finishes.");
             if(row.Component=="KCCAutomate") {
                 Save();if(MessageBox.Show(Window,"Close KCCAutomate, back up this installation and apply the verified update? Settings and scheduled paths will be retained.","Install update",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;
                 LaunchInstaller(row.VerifiedPath,null,row.VerifiedManifestHash);return;
             }
             if(row.VerifiedToolFiles==null || row.VerifiedToolFiles.Any(file=>!File.Exists(file.Key) || !String.Equals(ReleaseClient.Hash(file.Key),file.Value,StringComparison.OrdinalIgnoreCase))) throw new Exception("The staged tool files changed after verification. Download them again.");
-            if(row.Component=="KCC")ReleaseClient.ValidateKccRelease(row);
             if(row.Component=="KCC") {saved.PreviousKccExe=Text("KccExe");Find<TextBox>("KccExe").Text=row.VerifiedPath;} else {saved.PreviousDjxlExe=Text("DjxlExe");Find<TextBox>("DjxlExe").Text=row.VerifiedPath;}
             Save();Status("Verified tool selected. The previous path is retained for rollback. Test a small book before relying on the new tool.");
         }
@@ -310,12 +304,13 @@ namespace KCCAutomate {
             legacy.UpdateRepository="example/custom";MigrateUpdateSource(legacy);
             if(legacy.UpdateRepository!="example/custom") throw new Exception("Custom update source was changed.");
             results.Add("PASS: old update source migration and custom source preservation");
-            var settings=new Settings {KccExe=@"C:\tools\kcc-c2e.exe",DjxlExe=@"C:\tools\djxl.exe",WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work",KindlegenExe=@"C:\tools\kindlegen.exe"};
+            var settings=new Settings {KccExe=@"C:\tools\kcc-c2e.exe",DjxlExe=@"C:\tools\djxl.exe",WatchFolder=@"C:\test\in",ConvertedFolder=@"C:\test\out",ArchiveFolder=@"C:\test\archive",WorkFolder=@"C:\test\work",KindlegenExe=@"C:\tools\kindlegen.exe",ScribeCompatibility=true,ForcePng=true,Cropping=2};
             Fill(settings);Save();
             var stored=json.Deserialize<Settings>(File.ReadAllText(configPath));
             if(stored.SuccessRetentionDays!=7 || stored.OutputNaming!="{name}" || stored.UpdateRepository!="squishysquidly/KCCAutomate" || stored.KindlegenExe!=settings.KindlegenExe) throw new Exception("Enhanced settings did not persist.");
-            if(stored.ApprovedKccVersion!=ReleaseClient.ApprovedKccVersion || !File.ReadAllText(configPath).Contains("ApprovedKccVersion"))throw new Exception("App settings did not carry the approved KCC version to scheduled conversions.");
-            if(json.Deserialize<Settings>("{\"ApprovedKccVersion\":\"13.0.0\"}").ApprovedKccVersion!=ReleaseClient.ApprovedKccVersion)throw new Exception("Saved JSON replaced the app's compiled KCC approval policy.");
+            if(!stored.ScribeCompatibility||!stored.ForcePng||stored.Cropping!=2)throw new Exception("Scribe compatibility did not retain its underlying image choices.");
+            if(File.ReadAllText(configPath).Contains("ApprovedKccVersion"))throw new Exception("Saved settings still impose a KCC version pin.");
+            if(json.Deserialize<Settings>("{\"ApprovedKccVersion\":\"12.0.0\",\"KccExe\":\"chosen.exe\"}").KccExe!="chosen.exe")throw new Exception("Legacy version-pin settings prevented loading the selected converter.");
             var preset=new Preset{Name="Scribe manga",Options=Options(settings)};ValidatePreset(preset);presets.Add(preset);SavePresets();
             if(preset.Options.ContainsKey("WatchFolder") || json.Deserialize<List<Preset>>(File.ReadAllText(presetPath)).Count<1) throw new Exception("Preset isolation or persistence failed.");
             var unsafePreset=new Preset{Name="Unsafe",Options=new Dictionary<string,object>{{"KccExe","bad.exe"}}};

@@ -7,6 +7,7 @@ using System;
 using System.IO;
 public class MockConverter {
     public static int Main(string[] args) {
+        if (Array.IndexOf(args,"--help") >= 0) { Console.WriteLine("comic2ebook fixture --profile --format"); return 0; }
         if (Array.IndexOf(args,"--help") >= 0) { Console.WriteLine("Mock help"); return 0; }
         int index = Array.IndexOf(args,"--output");
         if (index < 0) return 1;

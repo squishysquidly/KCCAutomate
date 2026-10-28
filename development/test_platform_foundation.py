@@ -85,6 +85,14 @@ class FoundationTests(unittest.TestCase):
         migrated["originalHandling"]["deleteConfirmed"] = "yes"
         self.rejects(contracts.validate_settings, migrated)
 
+    def test_scribe_compatibility_and_stopped_state(self):
+        self.legacy["ScribeCompatibility"] = True
+        migrated = contracts.import_windows_settings(self.legacy)
+        self.assertTrue(migrated["conversion"]["ScribeCompatibility"])
+        migrated["conversion"]["ScribeCompatibility"] = "true"
+        self.rejects(contracts.validate_settings, migrated)
+        self.assertEqual("stopped", contracts.LEGACY_STATES["Stopped"])
+
     def test_clean_filename_style_survives_import(self):
         self.legacy["BookTitleStyle"] = "Clean"
         migrated = contracts.import_windows_settings(self.legacy)
@@ -203,10 +211,8 @@ class FoundationTests(unittest.TestCase):
                 self.assertTrue(asset["url"].startswith("https://github.com/ciromattia/kcc/releases/download/v12.0.0/"))
         linux = next(row for row in inventory["targets"] if row["id"] == "linux-x86_64")
         self.assertEqual(1, linux["deliveryPriority"])
-        services = (ROOT / "app/Services.cs").read_text(encoding="utf-8-sig")
-        approved = re.search(r'ApprovedKccAsset="([^"]+)"', services).group(1)
-        digest = re.search(r'ApprovedKccDigest="sha256:([a-f0-9]+)"', services).group(1)
-        self.assertEqual(digest, assets[approved]["sha256"])
+        # Dated platform evidence is independent of the user's converter choice.
+        self.assertIn("tool_cli_c2e_12.0.0_AMD64.exe", assets)
 
 
 if __name__ == "__main__":

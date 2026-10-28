@@ -1,4 +1,5 @@
 $ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
 $project=Split-Path $PSScriptRoot -Parent
 $corpus=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'contracts\behavior-v1.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($corpus.schemaVersion -ne 1) { throw 'Unsupported behavior corpus.' }

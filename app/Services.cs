@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,8 +11,8 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 
-[assembly: AssemblyVersion("0.1.19.0")]
-[assembly: AssemblyFileVersion("0.1.19.0")]
+[assembly: AssemblyVersion("0.1.20.0")]
+[assembly: AssemblyFileVersion("0.1.20.0")]
 [assembly: AssemblyProduct("KCCAutomate")]
 namespace KCCAutomate {
     public static class ShellIcons {
@@ -105,14 +105,8 @@ namespace KCCAutomate {
         public Dictionary<string,string> VerifiedToolFiles { get; set; }
     }
     public static class ReleaseClient {
-        public const string AppVersion="0.1.19";
-        // Change this policy only after the maintainer tests a full conversion with the new CLI.
-        public const string ApprovedKccVersion="12.0.0";
-        public const string ApprovedKccAsset="tool_cli_c2e_12.0.0_AMD64.exe";
-        public const string ApprovedKccDigest="sha256:8300504c7d6685eaa63a803e490c7ef2f87a4c9e43cc49c3e361fada892d85ff";
-        public const string ApprovedKccPage="https://github.com/ciromattia/kcc/releases/tag/v12.0.0";
+        public const string AppVersion="0.1.20";
         public const string KccReleasesPage="https://github.com/ciromattia/kcc/releases";
-        public const string ApprovedKccDownload="https://github.com/ciromattia/kcc/releases/download/v12.0.0/tool_cli_c2e_12.0.0_AMD64.exe";
         static readonly JavaScriptSerializer json=new JavaScriptSerializer { MaxJsonLength=8000000 };
         public static string Repository(string text) {
             text=(text ?? "").Trim().TrimEnd('/');
@@ -139,7 +133,7 @@ namespace KCCAutomate {
                 throw;
             }
         }
-        public static string ReleaseApiUrl(string component,string repo){return "https://api.github.com/repos/"+Repository(repo)+(component=="KCC"?"/releases/tags/v"+ApprovedKccVersion:"/releases/latest");}
+        public static string ReleaseApiUrl(string component,string repo){return "https://api.github.com/repos/"+Repository(repo)+"/releases/latest";}
         public static UpdateRow Parse(string component,string repo,string installed,string text) {
             var data=json.Deserialize<Dictionary<string,object>>(text);
             var tag=Convert.ToString(data["tag_name"]);
@@ -153,24 +147,22 @@ namespace KCCAutomate {
                 if (match) { row.Asset=new ReleaseAsset {Name=name,Url=Convert.ToString(asset["browser_download_url"]),Digest=asset.ContainsKey("digest") ? Convert.ToString(asset["digest"]) : "",Size=Convert.ToInt64(asset["size"])}; break; }
             }
             Version latest,current;
-            row.Status=Version.TryParse(tag.TrimStart('v','V'),out latest) && Version.TryParse(installed.TrimStart('v','V'),out current) ? (latest>current ? "Update available" : "Up to date") : "Version needs review";
+            if(!Version.TryParse(tag.Trim().TrimStart('v','V'),out latest))row.Status="Version needs review";
+            else if(!Version.TryParse((installed??"").Trim().TrimStart('v','V'),out current))row.Status="Installed version unknown";
+            else row.Status=latest>current?"Update available":"Up to date";
             if (row.Asset==null) row.Status="No matching Windows asset";
             if(component=="KCC") {
-                row.Notes="Latest verified compatible version for this Windows build: KCC "+ApprovedKccVersion+". Download the c2e CLI yourself from KCC's GitHub releases page, then choose it in setup. KCCAutomate does not download KCC binaries. New compatibility approvals follow maintainer testing and a KCCAutomate update. The Windows CLI bundles Python and its libraries.\n\n"+row.Notes;
-                try {ValidateKccRelease(row);row.Status=(installed??"").TrimStart('v','V')==ApprovedKccVersion?"Approved version selected":"Approved version available";}
-                catch(Exception ex){row.Asset=null;row.Status="KCC release not approved";row.Notes=ex.Message+"\n\n"+row.Notes;}
+                row.Notes=KccUpdateInstructions(row)+"\n\n"+row.Notes;
             }
             return row;
         }
-        public static void ValidateKccRelease(UpdateRow row) {
-            if(row.Component!="KCC" || row.Repository!="ciromattia/kcc" || (row.Latest??"").TrimStart('v','V')!=ApprovedKccVersion || row.Asset==null ||
-                row.Asset.Name!=ApprovedKccAsset || row.Asset.Url!=ApprovedKccDownload || !String.Equals(row.Asset.Digest,ApprovedKccDigest,StringComparison.OrdinalIgnoreCase))
-                throw new Exception("Only the approved KCC "+ApprovedKccVersion+" Windows CLI download is supported by this KCCAutomate release. Check for a KCCAutomate update after a new KCC version has been tested.");
+        public static string KccUpdateInstructions(UpdateRow row) {
+            string file=row.Asset==null?"the Windows x64 tool_cli_c2e_VERSION_AMD64.exe":row.Asset.Name;
+            return "Selected KCC: "+(String.IsNullOrWhiteSpace(row.Installed)?"Unknown":row.Installed)+". Latest release: "+row.Latest+".\n\n1. Click Open KCC releases and download "+file+" from the release's Assets list.\n2. Click Choose downloaded KCC and select that file.\n3. Setup opens at the KCC step. Wait for its green check, continue to Finish & save, and KCCAutomate will copy the validated tools into its own folder. Your folders and conversion settings are retained.\n\nKCCAutomate does not download KCC binaries or silently replace your selected converter. Its Windows CLI includes Python and its libraries.";
         }
         public static void ValidateKccHelp(string help) {
-            var version=Regex.Match(help,@"comic2ebook[^\r\n]*?v?(\d+\.\d+\.\d+)(?=\s|$)",RegexOptions.IgnoreCase);
-            if(!version.Success || version.Groups[1].Value!=ApprovedKccVersion || !help.Contains("--profile") || !help.Contains("--format"))
-                throw new Exception("Choose KCC "+ApprovedKccVersion+" c2e, the version approved for this KCCAutomate release. Download "+ApprovedKccAsset+". New KCC versions require maintainer testing and a KCCAutomate update.");
+            if(String.IsNullOrWhiteSpace(help)||help.IndexOf("comic2ebook",StringComparison.OrdinalIgnoreCase)<0||!help.Contains("--profile")||!help.Contains("--format"))
+                throw new Exception("Choose the Windows x64 c2e command-line converter from KCC's releases page. Its help must identify comic2ebook and include --profile and --format.");
         }
         public static string Hash(string file) { using(var sha=SHA256.Create()) using(var stream=File.OpenRead(file)) return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant(); }
         public static void Verify(string path,string digest) {
@@ -178,7 +170,7 @@ namespace KCCAutomate {
             if (!String.Equals(Hash(path),digest.Substring(7),StringComparison.OrdinalIgnoreCase)) throw new Exception("Download checksum failed. Nothing will be installed.");
         }
         public static string Download(UpdateRow row,string directory) {
-            if(row.Component=="KCC"){ValidateKccRelease(row);throw new Exception("KCC downloads are user-managed. Open KCC's GitHub releases page and choose the downloaded CLI in setup: "+KccReleasesPage);}
+            if(row.Component=="KCC")throw new Exception("KCC downloads are user-managed. Open KCC's GitHub releases page and choose the downloaded CLI in setup: "+KccReleasesPage);
             if (row.Asset==null) throw new Exception("No compatible Windows download is available.");
             if (!Regex.IsMatch(row.Asset.Digest ?? "",@"^sha256:[0-9a-fA-F]{64}$")) throw new Exception("GitHub supplied no SHA-256 digest for this asset. Installation is blocked.");
             var uri=new Uri(row.Asset.Url);
@@ -225,13 +217,15 @@ namespace KCCAutomate {
                 return text;
             }
         }
+        public static string VersionFromHelp(string text){
+            var match=Regex.Match(text??"",@"(?:comic2ebook|decoder|djxl)[^\r\n]*?\bv?(\d+\.\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?)(?=\s|$|[)\]])",RegexOptions.IgnoreCase);
+            return match.Success?match.Groups[1].Value:"Unknown";
+        }
         public static string InstalledVersion(string executable) {
             try {
                 string text=ToolHelp(executable);
-                var match=Regex.Match(text,@"(?:comic2ebook|decoder|djxl)[^\r\n]*?v?(\d+\.\d+\.\d+)",RegexOptions.IgnoreCase);
-                if(match.Success) return match.Groups[1].Value;
-                var version=FileVersionInfo.GetVersionInfo(executable).ProductVersion;
-                return String.IsNullOrWhiteSpace(version) ? "Unknown" : version;
+                // A frozen executable's file version can belong to its Python bootloader.
+                return VersionFromHelp(text);
             } catch { return "Unavailable"; }
         }
     }

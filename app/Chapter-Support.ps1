@@ -218,6 +218,7 @@ function Write-BundleSource($Members,[string]$Attempt) {
                 $page=0; $cover=$info.CoverEntry.Replace('\','/')
                 if ($cover -match '(?i)\.jxl$') { $cover=[IO.Path]::ChangeExtension($cover,'.png') }
                 foreach ($entry in @(Image-Entries $zip)) {
+                    Assert-NotCancelled
                     $page++
                     $name=('{0:0000} - {1} {2}/{3:000000}{4}' -f $chapterIndex,$info.Kind,$info.Number.ToString('000.###',[Globalization.CultureInfo]::InvariantCulture),$page,[IO.Path]::GetExtension($entry.Name).ToLowerInvariant())
                     $source=$entry.Open(); $destination=$target.CreateEntry($name,[IO.Compression.CompressionLevel]::NoCompression).Open()
@@ -245,7 +246,7 @@ function Invoke-ChapterGroups($Plan) {
     foreach ($group in @($Plan.Bundles.Groups | Where-Object Ready)) {
         $remaining=@($group.Members)
         while ($remaining.Count) {
-            if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { throw 'Stop requested. Chapter originals were retained.' }
+            if (Get-StopMode) { throw 'Stop requested. Chapter originals were retained.' }
             $members=@($remaining)
             while ($members.Count) {
                 $first=$members[0].File; $currentSource=$first.FullName
@@ -276,6 +277,7 @@ function Invoke-ChapterGroups($Plan) {
                 if ($reservedOutputs.ContainsKey($target) -and @($reservedOutputs[$target] | Where-Object {$_.Source -ne $owner}).Count) { throw ('Multiple inputs would create the same output after size rounding: '+$target) }
                 $reservedOutputs[$target]=@([pscustomobject]@{Plan=$Plan;Source=$owner})
                 New-Item -ItemType Directory -Path $dest -Force | Out-Null
+                Assert-NotCancelled
                 $publication=Publish-ConvertedBooks $virtual $books $dest $duplicateAction
                 if ($publication.Skipped) { foreach ($info in $remaining) {Set-QueueRecord $info.File.FullName 'Skipped existing output' 'Existing bundle kept; incoming originals retained.' $publication.Target}; break }
                 $receipt=@($publication.Receipt)

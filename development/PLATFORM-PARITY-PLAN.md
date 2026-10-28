@@ -1,6 +1,6 @@
 # KCCAutomate platform-parity plan
 
-Planning baseline: 2026-10-24, app 0.1.18. Current app: 0.1.19.
+Planning baseline: 2026-10-24, app 0.1.18. Current app: 0.1.20.
 Status: proposed architecture and implementation sequence; no additional
 platform is certified by this document. Linux x86_64 is the first delivery target.
 
@@ -16,21 +16,20 @@ KCCAutomate may certify a target only when the corresponding KCC conversion
 path works there. An application starting successfully is insufficient evidence.
 Do not add a platform because a UI toolkit happens to support it.
 
-KCC 12.0.0 remains the app's approved converter. The published 12.1.1 assets
-have the same relevant platform families; this observation does not approve
-12.1.1 for conversion. Approval remains manual and specific to each target.
-New upstream releases trigger maintainer review, not an automatic upgrade or
-an automatic increase in KCCAutomate's support claims.
+Users choose KCC from its upstream releases page. Runtime checks validate the
+selected CLI without pinning a release. New KCC releases do not automatically
+replace a user's tools or certify additional KCCAutomate operating systems.
+The inventory's dated release evidence remains a platform research snapshot.
 
 | Target | Upstream evidence | KCCAutomate delivery |
 | --- | --- | --- |
-| Linux x86_64 | `kcc_linux-12.0.0-x86_64.AppImage` | First new platform; portable GUI and unattended worker. |
-| Linux aarch64 / ARM64 | `kcc_linux-12.0.0-aarch64.AppImage` | Reuse the Linux implementation; build and test natively for ARM64. |
-| Windows ARM64 | `KCC_ARM64_12.0.0.exe`, `tool_cli_c2e_12.0.0_ARM64.exe` | Native host and tools; no assumption that x64 emulation establishes parity. |
-| macOS ARM64 | `kcc_macos_arm_12.0.0.dmg` | Apple Silicon application and worker, with native helper checks. |
-| macOS Intel | `kcc_macos_i386_12.0.0.dmg` | Intel build; inspect the Mach-O architecture and minimum OS of the actual upstream asset before declaring its floor. |
-| Windows 7 legacy | `kcc_win7_legacy_12.0.0.exe` | Retain the existing WPF base; repair and test the compatibility gaps below. Inspect the upstream PE architecture; do not imply 32-bit support from the legacy filename. |
-| Windows x64 | `KCC_12.0.0.exe`, `tool_cli_c2e_12.0.0_AMD64.exe` | Preserve the existing product and its tested conversion settings. |
+| Linux x86_64 | `kcc_linux-VERSION-x86_64.AppImage` | First new platform; portable GUI and unattended worker. |
+| Linux aarch64 / ARM64 | `kcc_linux-VERSION-aarch64.AppImage` | Reuse the Linux implementation; build and test natively for ARM64. |
+| Windows ARM64 | `KCC_ARM64_VERSION.exe`, `tool_cli_c2e_VERSION_ARM64.exe` | Native host and tools; no assumption that x64 emulation establishes parity. |
+| macOS ARM64 | `kcc_macos_arm_VERSION.dmg` | Apple Silicon application and worker, with native helper checks. |
+| macOS Intel | `kcc_macos_i386_VERSION.dmg` | Intel build; inspect the Mach-O architecture and minimum OS of the actual upstream asset before declaring its floor. |
+| Windows 7 legacy | `kcc_win7_legacy_VERSION.exe` | Retain the existing WPF base; repair and test the compatibility gaps below. Inspect the upstream PE architecture; do not imply 32-bit support from the legacy filename. |
+| Windows x64 | `KCC_VERSION.exe`, `tool_cli_c2e_VERSION_AMD64.exe` | Preserve the existing product and its tested conversion settings. |
 
 Here, the requested Linux "x86" means KCC's published x86_64 target. No true
 32-bit Linux build is included. KCC's macOS "i386" filename is an upstream
@@ -42,7 +41,7 @@ that the currently published Intel DMG runs on 10.14. The inspected release
 lists no separately named legacy Mac DMG. Verify the actual download and all
 bundled framework minimums before including that older OS in the support table.
 
-For every row, record the approved KCC version, upstream asset/source hash,
+For every row, record the selected KCC version, upstream asset/source hash,
 actual executable architecture, OS minimum, runtime/dependency versions,
 working command-line invocation, tested output formats and test evidence.
 On Linux, include the libc/loader baseline and required CPU instructions.
@@ -154,7 +153,7 @@ explicitly. Test through the same KCC path users will install.
 
 If a prerequisite is missing, identify the affected formats and leave the
 originals in Incoming. Keep formats that do not require that tool usable.
-Full parity is not certified until the features available in the approved KCC
+Full parity is not certified until the features available in the selected KCC
 configuration have passed the corresponding end-to-end tests.
 
 ## Windows 7 audit and repair scope
@@ -197,7 +196,7 @@ upstream converter and every helper have corresponding verified support.
    define the worker/settings protocol. Record Windows 7 gaps without claiming
    they are already repaired. Exit: all target identities and unresolved gates
    are explicit; no new public platform claim.
-2. **Linux x86_64 conversion worker.** Prove approved KCC execution, tool checks,
+2. **Linux x86_64 conversion worker.** Prove selected KCC execution, tool checks,
    CBZ/JXL and PDF handling, requested reader settings, output verification,
    failure retention and archival against the shared scenarios. Exit: unattended
    runs work on the verified Linux baseline without altering normal libraries.

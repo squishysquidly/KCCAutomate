@@ -1,3 +1,4 @@
+param([switch]$CheckInstalledStorePreviewer)
 $ErrorActionPreference='Stop'
 $root=Join-Path $PSScriptRoot ('test-results\tools-'+[guid]::NewGuid().ToString('N').Substring(0,10))
 $source=Join-Path $root 'downloads';New-Item -ItemType Directory -Path $source -Force|Out-Null
@@ -72,7 +73,46 @@ $known=[KCCAutomate.KindleGenGuide]::InstallationRoots($locations,'','')
 Assert (($known-contains(Join-Path $locations 'Amazon\Kindle Previewer 4'))-and($known-contains(Join-Path $locations 'Programs\Kindle Previewer 3'))-and($known-contains(Join-Path $locations 'Amazon\Kindle Comic Creator'))) 'Known installation locations omitted Previewer or Comic Creator'
 Assert ([IO.File]::ReadAllText($locatedKindle)-eq'locator fixture only; never execute') 'Locating KindleGen changed the file'
 'PASS: illustrated-guide folder lookup prefers the selected copy and folders containing KindleGen; supports custom, Previewer and Comic Creator locations; handles absent installations without creating, copying or executing files.'
+$store=Join-Path $locations 'Program Files\WindowsApps'
+$package=Join-Path $store 'KindlePreviewerApp_4.0.3.0_x64__fixture'
+$storeBin=Join-Path $package 'KindlePreviewerApp\Resources\KFXGen\bin'
+$emptyStore=Join-Path $store 'KindlePreviewerApp_4.1.0.0_x64__fixture'
+New-Item -ItemType Directory -Path $storeBin,$emptyStore -Force | Out-Null
+$storeCompiler=Join-Path $storeBin 'kindlegen.exe';[IO.File]::WriteAllText($storeCompiler,'store locator fixture only')
+$neverQuery=[Func[string[]]]{throw 'A working location should not need a registered-package query.'}
+$found=[KCCAutomate.KindleGenGuide]::Locate('',[string[]]@($store),$neverQuery)
+Assert ($found.Compiler-eq$storeCompiler-and$found.PreviewerFolderFound) 'Versioned Store package layout was not found, or an empty package hid the compiler'
+Assert ([KCCAutomate.KindleGenGuide]::FindFolder($package,[string[]]@())-eq$storeBin) 'A selected Store package did not resolve its compiler'
+Assert ([KCCAutomate.SetupChecks]::ResolveToolPath('Kindle',(Join-Path $package 'KindlePreviewerApp'))-eq$storeCompiler) 'Selecting the inner Store application folder did not resolve KindleGen'
+Assert ([KCCAutomate.KindleGenGuide]::Locate($kindle,[string[]]@($store),$neverQuery).Compiler-eq$kindle) 'A Store installation replaced an explicitly selected compiler'
+$registered=Join-Path $locations 'Other drive\KindlePreviewerApp_4.2.0.0_x64__fixture'
+$registeredBin=Join-Path $registered 'KindlePreviewerApp\Resources\KFXGen\bin'
+New-Item -ItemType Directory -Path $registeredBin -Force | Out-Null
+[IO.File]::WriteAllText((Join-Path $registeredBin 'kindlegen.exe'),'registered package fixture only')
+$provider=[Func[string[]]]{[string[]]@($registered)}
+$unlisted=Join-Path $locations 'not-listable\WindowsApps'
+$found=[KCCAutomate.KindleGenGuide]::Locate('',[string[]]@($unlisted),$provider)
+Assert ($found.Compiler-eq(Join-Path $registeredBin 'kindlegen.exe')-and$found.PreviewerFolderFound) 'Registered package fallback depended on listing the WindowsApps parent'
+$unavailable=[Func[string[]]]{throw 'Package query unavailable'}
+Assert ($null-eq[KCCAutomate.KindleGenGuide]::Locate('',[string[]]@($unlisted),$unavailable).Compiler) 'An unavailable package query did not degrade safely'
+Assert (-not(Test-Path -LiteralPath $unlisted)) 'Discovery created a WindowsApps directory'
+Assert (([KCCAutomate.KindleGenGuide]::InstallationRoots('',(Join-Path $locations 'Program Files'),'')-contains$store)) 'Default Store container location was omitted'
+'PASS: Store package versions, Resources/KFXGen/bin, selected copies, registered-location fallback and unavailable-package handling are read-only and bounded.'
 $managed=Join-Path $root 'app-data\Tools'
+Copy-Item -LiteralPath $kindle -Destination $storeCompiler -Force
+$storeHash=(Get-FileHash -LiteralPath $storeCompiler).Hash
+$prepared=[KCCAutomate.ManagedTools]::PrepareKindle($storeCompiler,$managed)
+Assert ($prepared-ne$storeCompiler-and$prepared.StartsWith($managed+'\')-and(Get-FileHash -LiteralPath $prepared).Hash-eq$storeHash) 'Store compiler was not copied and verified in managed tools'
+$storeSettings=New-Object KCCAutomate.Settings;$storeSettings.Format='MOBI';$storeSettings.KindlegenExe=$prepared
+Assert ([KCCAutomate.ToolValidation]::Check($storeSettings,'Kindle').Passed) 'The prepared Store compiler did not validate'
+Assert ([KCCAutomate.ManagedTools]::PrepareKindle($prepared,$managed)-eq$prepared) 'An already prepared compiler was copied again'
+Assert ([KCCAutomate.ManagedTools]::PrepareKindle($kindle,$managed)-eq$kindle) 'A desktop compiler was unnecessarily prepared'
+Assert ((Get-FileHash -LiteralPath $storeCompiler).Hash-eq$storeHash) 'The installed Store source was modified'
+[IO.File]::WriteAllText($storeCompiler,'not an executable')
+$before=@(Get-ChildItem -LiteralPath $managed -Directory).Count
+try{[void][KCCAutomate.ManagedTools]::PrepareKindle($storeCompiler,$managed);throw 'Invalid Store compiler accepted'}catch{Assert ($_.Exception.Message-notlike '*Invalid Store compiler accepted*') 'A non-executable Store compiler passed validation'}
+Assert (@(Get-ChildItem -LiteralPath $managed -Directory).Count-eq$before) 'Failed Store compiler preparation left a partial managed copy'
+'PASS: Store compiler is copied privately and validated without changing its installed source; desktop and prepared copies are reused; invalid copies are rejected and removed.'
 $zip=Join-Path $source 'jxl.zip';[IO.Compression.ZipFile]::CreateFromDirectory($jxlFolder,$zip)
 $settings.DjxlExe=[KCCAutomate.ManagedTools]::PrepareJxl($zip,$seven,$managed)
 $selectedRoot=Split-Path (Split-Path $settings.DjxlExe)
@@ -93,7 +133,7 @@ Assert (-not[KCCAutomate.ToolValidation]::Passed($checks)) 'Graphical KCC execut
 Assert (@($checks|Where-Object Passed).Count-eq 3) 'One failed tool should not conceal the other tool checks'
 $settings.KccExe=$kcc;[IO.File]::WriteAllText((Join-Path $kccFolder 'broken'),'broken package')
 $failure=([KCCAutomate.ToolValidation]::Check($settings)|Where-Object Key -EQ Kcc)
-Assert (-not$failure.Passed-and$failure.Message.Contains('12.0.0')-and$failure.Message.Contains('PySide6')) 'Broken PyInstaller package guidance missing'
+Assert (-not$failure.Passed-and$failure.Message.Contains('startup check')-and$failure.Message.Contains('PySide6')) 'Broken package output and startup guidance missing'
 Remove-Item -LiteralPath (Join-Path $kccFolder 'broken')
 'PASS: wrong KCC executable and PySide6 failure produce specific errors while other checklist results remain available.'
 $sevenArchive=Join-Path $source 'jxl.7z'
@@ -150,8 +190,26 @@ Assert (-not([KCCAutomate.ToolValidation]::Check($inactiveManaged,'Kindle')).Pas
 $result=[KCCAutomate.SetupChecks]::ConvertTest($inactiveManaged,$book,(Join-Path $PSScriptRoot 'dist\KCCAutomate'))
 Assert (-not$result.Passed-and$result.Log.Contains('KindleGen')-and(Test-Path -LiteralPath $book)) 'A missing re-enabled KindleGen was accepted or lost the original'
 'PASS: non-MOBI imports and copied-book conversion ignore inactive KindleGen/JXL paths, preserve them for later and reuse verified bundles; switching to MOBI restores the dependency without losing originals.'
-[IO.File]::WriteAllText((Join-Path (Split-Path $copy.KccExe) 'future'),'unapproved update')
+[IO.File]::WriteAllText((Join-Path (Split-Path $copy.KccExe) 'future'),'new version fixture')
+Assert ([KCCAutomate.ToolValidation]::Check($copy,'Kcc').Passed) 'The app rejected a working newer CLI'
 $result=[KCCAutomate.SetupChecks]::ConvertTest($copy,$book,(Join-Path $PSScriptRoot 'dist\KCCAutomate'))
-Assert (-not$result.Passed-and$result.Log.Contains('requires the approved KCC')-and(Test-Path -LiteralPath $book)) 'Conversion worker accepted an unapproved replacement tool or lost the original'
-'PASS: app-managed scheduled/normal conversion settings also reject an unapproved replacement executable before conversion; originals stay in place.'
+Assert ($result.Passed-and(Test-Path -LiteralPath $book)) 'A working newer converter was rejected, or the selected original was lost'
+$config=Join-Path $result.Root 'test-settings.json';$legacy=Get-Content -LiteralPath $config -Raw|ConvertFrom-Json
+$legacy|Add-Member -NotePropertyName ApprovedKccVersion -NotePropertyValue '12.0.0' -Force
+$legacy|ConvertTo-Json -Depth 12|Set-Content -LiteralPath $config -Encoding utf8
+$log=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'dist\KCCAutomate\Convert-Manga.ps1') -ConfigPath $config -CheckSetup 2>&1
+Assert ($LASTEXITCODE-eq0) ('Legacy saved version pin blocked the newer converter: '+($log|Out-String))
+[IO.File]::WriteAllText((Join-Path (Split-Path $copy.KccExe) 'broken'),'broken startup fixture')
+$result=[KCCAutomate.SetupChecks]::ConvertTest($copy,$book,(Join-Path $PSScriptRoot 'dist\KCCAutomate'))
+Assert (-not$result.Passed-and$result.Log.Contains('could not start')-and$result.Log.Contains('PySide6')-and(Test-Path -LiteralPath $book)) 'A broken converter passed startup validation or lost the original'
+'PASS: newer working CLI versions convert; legacy saved pins are ignored; actual startup failures still block conversion and preserve originals.'
+if($CheckInstalledStorePreviewer){
+ $storeRoots=[string[]]@([KCCAutomate.KindleGenGuide]::InstallationRoots()|Where-Object{(Split-Path $_ -Leaf)-eq'WindowsApps'})
+ $installed=[KCCAutomate.KindleGenGuide]::Locate('',$storeRoots)
+ Assert ($installed.Compiler) 'No installed Store KindleGen was discovered'
+ $prepared=[KCCAutomate.ManagedTools]::PrepareKindle($installed.Compiler,$managed)
+ $nativeSettings=New-Object KCCAutomate.Settings;$nativeSettings.Format='MOBI';$nativeSettings.KindlegenExe=$prepared
+ Assert ([KCCAutomate.ToolValidation]::Check($nativeSettings,'Kindle').Passed) 'Installed Store KindleGen did not validate from its private copy'
+ 'PASS: real installed Store package is discovered and its private compiler copy validates without changing the installation or user settings.'
+}
 "Test fixtures retained at: $root"

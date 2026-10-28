@@ -1,10 +1,10 @@
-﻿# Developing KCCAutomate
+# Developing KCCAutomate
 
 For installation and everyday use, start with the [user guide](../README.md)
 and [published releases](https://github.com/squishysquidly/KCCAutomate/releases).
-The current version is **0.1.19**.
-It is the single consolidated update from **0.1.18**; the
-[release overview](RELEASE-NOTES.md) describes the complete update.
+The current version is **0.1.20**.
+It adds Stop and optional Scribe compatibility, improves Microsoft Store KindleGen setup and removes the KCC version pin; the
+[release overview](RELEASE-NOTES.md) describes the update from 0.1.19.
 
 ## Repository layout
 
@@ -73,6 +73,12 @@ from another current directory. `-SkipBuild`/`-SkipPackage` are available on
 the package/installer scripts when you deliberately reuse a verified build.
 
 ## Generated material
+
+`Test-ToolSetup.ps1` covers classic and Store KindleGen layouts, versioned
+packages, registered-location fallback, private-copy validation and failed-copy
+cleanup. Its optional `-CheckInstalledStorePreviewer` also checks a real
+current-user Store installation using a disposable copy. No app settings,
+installed tools or folder permissions are changed.
 
 Keep the current installer, portable ZIP, checksums and unpacked application in
 `development/dist`. Historical local builds and backup copies are not required.
@@ -161,7 +167,7 @@ file list understood by the published 0.1.18 updater.
 
 The optional `Test-NativeChapterBundles.ps1 -ToolSettingsPath <settings.json>`
 uses only the selected tool locations and generated images in a new fixture.
-It verifies the approved KCC binary, runs a real MOBI conversion and compares
+It checks the selected KCC binary, runs a real MOBI conversion and compares
 archived source hashes. It neither reads real books nor changes the provided
 settings or schedule. Use `-FixtureRoot <new-short-path>` when a long checkout
 path would exceed legacy tool path limits. Without a tool-settings argument,
@@ -173,14 +179,37 @@ acceptance testing before publication.
 
 ## KCC compatibility
 
-This app verifies KCC **12.0.0 c2e**. Change that approval only after testing
-the new upstream Windows CLI and real book conversions. Users acquire it from
-[KCC's releases page](https://github.com/ciromattia/kcc/releases); the app does
-not fetch KCC binaries directly.
+`Test-ImmediateStop.ps1` launches only generated converter/child-process fixtures
+and checks immediate cancellation, unchanged originals in Archive/Delete modes,
+no partial publication, lock/run-record cleanup and successful retry. The shared
+run record is `Working/active-run.json`; requests use its unique run identifier.
+The UI never kills a PID from that record. The worker owns converter termination,
+using a Windows job object with a scoped process-tree fallback on legacy hosts.
+`app/Run-Control.ps1` is merged into the existing packaged Workflow-Support.ps1;
+the established updater file list is retained.
+
+`Test-ScribeCompatibility.ps1` checks the optional effective image settings,
+scope, folder presets and restoration of stored choices when switched off.
+Native Kindle appearance still needs a physical-reader check.
+
+The app accepts working KCC c2e CLI versions without a compiled version or asset
+hash pin. Setup verifies the executable identity, startup and required options;
+the worker checks startup before converting. Legacy saved version-pin fields are
+ignored. Users acquire KCC from its
+[releases page](https://github.com/ciromattia/kcc/releases); the app does not
+fetch KCC binaries directly or silently replace the selected converter.
+
+`app/ToolUpdates.cs` schedules a release check after startup/setup and saved tool
+changes. It waits while other work is active and applies results only if the tool
+selection still matches. Desktop self-tests inject release/version readers to
+check notices, offline behavior and disabled JPEG XL without network requests.
+They also exercise replacement setup starting at the converter page. Checks
+never import or replace tools; an explicit user-selected setup performs that work.
 
 `Test-KccCompatibility.ps1` defaults to offline policy checks. A maintainer may
-pass `-OfficialKccExe <downloaded-cli.exe>` to verify the approved file and run
-a generated CBZ-to-EPUB test, or `-CheckLiveRelease` to check GitHub metadata.
+pass `-OfficialKccExe <downloaded-cli.exe>` to check startup and run a generated
+CBZ-to-EPUB test, optionally adding `-ExpectedSha256 <upstream hash>`, or use
+`-CheckLiveRelease` to check the latest GitHub release metadata.
 Those options do not install Python or change the system PATH.
 
 The app source and both build/package workflows must agree on the runtime

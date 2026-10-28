@@ -10,7 +10,7 @@ registers no tasks, and writes no settings. No Linux worker is shipped yet.
 
 `schemaVersion: 1` versions the settings and receipt objects. `protocolVersion: 1`
 versions the request/event exchange. These are independent of KCCAutomate's app
-version and the approved KCC version. Reject unknown major versions and unknown
+version and the selected KCC version. Reject unknown major schema versions and unknown
 operational fields rather than silently discarding them. Extension/preferences
 data belongs in `extensions`; it must never become executable worker options.
 
@@ -27,6 +27,12 @@ Its required sections are:
 | `folderRules` | Ordered, first-match rules containing Pattern, PatternSyntax, PresetName and Options snapshots. |
 | `schedule` | Daily HH:mm Times, WakeComputer and `Activation: manual`; this is a requested configuration, not proof that a task is installed. |
 | `extensions` | Preserved non-operational data, including the original Windows settings object during import. |
+
+The optional boolean `conversion.ScribeCompatibility` defaults to false. When
+enabled for KS with MOBI/EPUB, effective conversion uses KS1860, cropping 0
+and JPEG instead of forced PNG; the stored image choices remain unchanged.
+The same optional field is allowed in folder-rule Options. Item state
+`stopped` maps to Windows `Stopped` and remains eligible for retry.
 
 An optional `bundling` object adds enabled, targetSourcePages,
 chapterPageThreshold, maxOutputMiB and holdShortGroups. Absence means grouping

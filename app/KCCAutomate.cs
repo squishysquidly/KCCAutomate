@@ -35,6 +35,7 @@ namespace KCCAutomate {
         public bool NoAutocontrast { get; set; }
         public bool ForceColor { get; set; }
         public bool ForcePng { get; set; }
+        public bool ScribeCompatibility {get;set;}
         public bool Webtoon { get; set; }
         public double Gamma { get; set; }
         public bool ConvertJxl { get; set; }
@@ -100,7 +101,7 @@ namespace KCCAutomate {
         Settings saved;
         bool closing;
         bool constructing = true;
-        static readonly string[] BooleanFields = { "MangaStyle", "Upscale", "Stretch", "Autolevel", "NoAutocontrast", "ForceColor", "ForcePng", "Webtoon", "ConvertJxl", "WakeComputer" };
+        static readonly string[] BooleanFields = { "MangaStyle", "Upscale", "Stretch", "Autolevel", "NoAutocontrast", "ForceColor", "ForcePng", "Webtoon", "ConvertJxl", "WakeComputer", "ScribeCompatibility" };
         static readonly string[] PathFields = { "WatchFolder", "ConvertedFolder", "ArchiveFolder", "WorkFolder", "KccExe", "DjxlExe", "KindlegenExe", "SevenZipExe" };
         public Desktop(bool testing = false, string testDirectory = null) {
             userDir = testing ? (testDirectory ?? Path.Combine(baseDir,"test-settings")) : GetSettingsDirectory(baseDir);
@@ -137,7 +138,7 @@ namespace KCCAutomate {
             if (!testing) {
                 timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
                 timer.Tick += Tick; timer.Start();
-                Window.ContentRendered+=async delegate {if(!saved.SetupCompleted)ShowGuidedSetup();await CheckSavedFolders();};
+                Window.ContentRendered+=async delegate {if(!saved.SetupCompleted)ShowGuidedSetup();RequestToolUpdateCheck();await CheckSavedFolders();};
             }
         }
         T Find<T>(string name) where T : class {
@@ -187,7 +188,7 @@ namespace KCCAutomate {
             });
             On("OpenWork", delegate { if (Text("WorkFolder").Length == 0) throw new Exception("Choose a working folder first."); Open(Text("WorkFolder")); });
             On("ClearActivity", delegate { Find<TextBox>("Activity").Clear(); });
-            On("StopAfter", delegate { if (running != null && stopPath != null) { File.WriteAllText(stopPath, "stop"); Status("Stop requested. The current file will finish; remaining originals stay in place."); Find<Button>("StopAfter").IsEnabled = false; } });
+            On("StopAfter",delegate{RequestConversionStop(false);});On("StopNow",delegate{RequestConversionStop(true);});
             foreach (var name in new[] {"SaveSettings","RunNow","Preview","CheckTools","EnableSchedule","DisableSchedule","ScheduleStatus","OpenLog"}) actionButtons.Add(Find<Button>(name));
             foreach (var name in PathFields.Concat(new[] {"Gamma","QuietMinutes","ScheduleTimes"})) Find<TextBox>(name).TextChanged += delegate { Dirty(); };
             foreach (var name in BooleanFields.Concat(new[] {"InputCbz","InputPdf","InputEpub","InputCbr","InputCb7"})) {
@@ -314,11 +315,13 @@ namespace KCCAutomate {
         }
         Settings Save() {
             var s = Read();
+            bool toolsChanged=saved.KccExe!=s.KccExe||saved.DjxlExe!=s.DjxlExe||saved.ConvertJxl!=s.ConvertJxl;
             Directory.CreateDirectory(userDir);
             string temp = configPath + ".tmp";
             File.WriteAllText(temp, json.Serialize(s), new UTF8Encoding(false));
             if (File.Exists(configPath)) File.Replace(temp, configPath, configPath + ".bak"); else File.Move(temp, configPath);
             saved = s; Find<TextBlock>("SavedState").Text = "Saved at " + DateTime.Now.ToString("t");
+            if(toolsChanged)RequestToolUpdateCheck();
             return s;
         }
         public static string Quote(string value) {
@@ -339,6 +342,7 @@ namespace KCCAutomate {
                 extra+=" -ReportPath "+Quote(queueReport);
             }
             stopPath = conversion ? Path.Combine(userDir, "stop-" + Guid.NewGuid().ToString("N")) : null;
+            stopRequested=false;requestedRunId=null;
             var info = new ProcessStartInfo {
                 FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"WindowsPowerShell\v1.0\powershell.exe"),
                 Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File " + Quote(Path.Combine(baseDir, script)) + " -ConfigPath " + Quote(configPath) + " " + extra + (conversion ? " -StopFile " + Quote(stopPath) : ""),
@@ -352,11 +356,14 @@ namespace KCCAutomate {
             running = process; running.BeginOutputReadLine(); running.BeginErrorReadLine();
             foreach (var button in actionButtons) button.IsEnabled = false;
             Find<Button>("StopAfter").IsEnabled = conversion;
+            RefreshStopButton();
             Navigate(script=="Convert-Manga.ps1" && !extra.Contains("-CheckSetup") && !extra.Contains("-CleanupOnly") ? 4 : 3);
             Append("--- " + DateTime.Now.ToString("g") + " ---"); Status(message);
         }
         void Tick(object sender, EventArgs e) {
             PollQueueHistory();
+            PollConversionControl();
+            PollToolUpdates();
             lock (outputGate) while (outputQueue.Count > 0) Append(outputQueue.Dequeue());
             if (running == null || !running.HasExited) return;
             running.WaitForExit();
@@ -364,7 +371,8 @@ namespace KCCAutomate {
             int code = running.ExitCode; running.Dispose(); running = null;
             foreach (var button in actionButtons) button.IsEnabled = true;
             Find<Button>("StopAfter").IsEnabled = false;
-            Status(code == 0 ? "Finished. Review the activity below for results." : code == 2 ? "Stopped after the current file. Remaining originals were kept." : "Finished with an error. Details are in Activity; failed originals stay in place.");
+            if(stopPath!=null){try{File.Delete(stopPath);}catch{}stopPath=null;}stopRequested=false;nextRunCheck=DateTime.MinValue;RefreshStopButton();
+            Status(code == 0 ? "Finished. Review the activity below for results." : code == 2 ? "Stopped. Completed output was kept; unconverted originals remain in Incoming." : "Finished with an error. Details are in Activity; failed originals stay in place.");
             Append("--- " + (code == 0 ? "Finished" : "Exit code " + code) + " ---");
             FinishEnhancements(code);
         }
@@ -383,9 +391,11 @@ namespace KCCAutomate {
             try { NormalizeTimes("28:00"); throw new Exception("Invalid time accepted"); } catch (Exception ex) { if (!ex.Message.Contains("24-hour")) throw; }
             results.Add("PASS: schedule validation and deduplication");
             var roundTrip = desktop.json.Deserialize<Settings>(desktop.json.Serialize(new Settings()));
-            if (roundTrip.Profile != "KS" || !roundTrip.ConvertJxl || roundTrip.Autolevel) throw new Exception("Settings round trip failed");
+            if (roundTrip.Profile != "KS" || !roundTrip.ConvertJxl || roundTrip.Autolevel||roundTrip.ScribeCompatibility) throw new Exception("Settings round trip failed");
             results.Add("PASS: settings round trip and user defaults");
             desktop.TestEnhancements(results,Path.GetDirectoryName(report));
+            desktop.TestConversionControls(results,Path.GetDirectoryName(report));
+            desktop.TestToolUpdateChecks(results,Path.GetDirectoryName(report));
             desktop.TestGuidedSetup(results,Path.GetDirectoryName(report));
             desktop.TestInterfaceModes(results,Path.GetDirectoryName(report));
             results.Add("PASS: XAML loaded and named controls wired");

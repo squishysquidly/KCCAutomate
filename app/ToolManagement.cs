@@ -33,9 +33,10 @@ namespace KCCAutomate {
                 if(!IsC2E(path))throw new Exception("Choose kcc-c2e.exe or tool_cli_c2e_…_AMD64.exe; kcc.exe and kcc-c2c.exe cannot convert books here.");
                 var result=SetupChecks.Run(path,"--help",20000);
                 if(result.Item1!=0 || result.Item2.IndexOf("comic2ebook",StringComparison.OrdinalIgnoreCase)<0 || !result.Item2.Contains("--profile") || !result.Item2.Contains("--format"))
-                    throw new Exception("KCC c2e did not pass its startup check. Choose the approved KCC "+ReleaseClient.ApprovedKccVersion+" Windows CLI .exe. For a missing PySide6/module error, replace the bundled .exe with the approved download; installing Python separately will not repair it.\n"+Limit(result.Item2));
+                    throw new Exception("KCC c2e did not pass its startup check. Choose a working Windows x64 c2e CLI from KCC's releases page. A missing Python module in a packaged executable must be fixed in that KCC package; installing Python separately will not repair it.\n"+Limit(result.Item2));
                 ReleaseClient.ValidateKccHelp(result.Item2);
-                return "Approved KCC c2e validated · "+FirstLine(result.Item2,"comic2ebook");
+                if(settings.ScribeCompatibility&&settings.Profile=="KS"&&(settings.Format=="MOBI"||settings.Format=="EPUB")&&!result.Item2.Contains("KS1860"))throw new Exception("The selected KCC does not list the 1860 × 1920 compatibility profile (KS1860). Choose a working CLI with that profile, or turn off Scribe compatibility mode.");
+                return "KCC c2e validated · "+FirstLine(result.Item2,"comic2ebook");
             });
             if(key=="Jxl")return !settings.ConvertJxl?new ToolCheck{Key="Jxl",Optional=true,Message="JPEG XL preparation is off"}:CheckOne("Jxl",settings.DjxlExe,true,delegate(string path){
                 if(!Path.GetFileName(path).Equals("djxl.exe",StringComparison.OrdinalIgnoreCase))throw new Exception("Choose djxl.exe, the JPEG XL decoder.");
@@ -149,6 +150,17 @@ namespace KCCAutomate {
                 return true;
             }
             return false;
+        }
+        public static string PrepareKindle(string selected,string root) {
+            if(!KindleGenGuide.StoreCompiler(selected))return selected;
+            // Store ACLs can allow reading this standalone compiler but deny launching it.
+            string area=NewArea(root,"kindlegen-");
+            try{
+                string copied=Path.Combine(area,"kindlegen.exe");CopyVerified(selected,copied);
+                var check=ToolValidation.Check(new Settings{Format="MOBI",KindlegenExe=copied},"Kindle");
+                if(!check.Passed)throw new Exception("The copied Store KindleGen could not start. "+check.Message);
+                return copied;
+            }catch{Directory.Delete(area,true);throw;}
         }
         public static Settings Import(Settings original,string root) {
             var checks=ToolValidation.Check(original);if(!ToolValidation.Passed(checks))throw new Exception(ToolValidation.Report(checks));

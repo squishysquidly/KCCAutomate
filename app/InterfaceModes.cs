@@ -68,7 +68,9 @@ namespace KCCAutomate {
             image.Add(Checked("NoAutocontrast")?"automatic contrast off":"automatic contrast");
             if(Checked("Autolevel"))image.Add("stronger blacks");
             if(Checked("ForceColor"))image.Add("keep color");
-            if(Checked("ForcePng"))image.Add("PNG output");
+            bool scribe=Checked("ScribeCompatibility")&&Convert.ToString(Find<ComboBox>("Profile").SelectedValue)=="KS"&&(ComboText("OutputFormat")=="MOBI"||ComboText("OutputFormat")=="EPUB");
+            Find<FrameworkElement>("ScribeCompatibilityCard").Visibility=Convert.ToString(Find<ComboBox>("Profile").SelectedValue)=="KS"?Visibility.Visible:Visibility.Collapsed;
+            if(scribe)image.Add("Scribe compatibility: JPEG, no cropping, 1860 × 1920 limit");else if(Checked("ForcePng"))image.Add("PNG output");
             if(Checked("Webtoon"))image.Add("webtoon mode");
             image.Add(Text("Gamma")=="0"?"automatic gamma":"gamma "+Text("Gamma"));
             Find<TextBlock>("SimpleImageSummary").Text=String.Join(" · ",image)+". These options also apply in Simple view.";
@@ -76,7 +78,7 @@ namespace KCCAutomate {
             Find<TextBlock>("DuplicateDescription").Text=DuplicateDescription();
             Find<TextBlock>("SimpleFileSummary").Text="Naming: "+Text("OutputNaming")+". "+ruleText+".";
             Find<TextBlock>("SimpleSettingsSummary").Text=(Checked("AutoCleanup")?"Temporary cleanup: on (successful attempts "+Text("SuccessRetentionDays")+" days; failed attempts "+Text("FailureRetentionDays")+" days).":"Temporary cleanup: off.")+"\n"+ruleText+".\nNotification quiet hours: "+(Checked("QuietHoursEnabled")?Text("QuietHoursStart")+" to "+Text("QuietHoursEnd"):"off")+". These preferences keep applying in Simple view.";
-            Find<TextBlock>("SimpleUpdateSource").Text="App update source: "+(Text("UpdateRepository").Length>0?Text("UpdateRepository"):"not set")+". KCC is pinned to approved CLI "+ReleaseClient.ApprovedKccVersion+"; JXL checks use its official releases.";
+            Find<TextBlock>("SimpleUpdateSource").Text="App update source: "+(Text("UpdateRepository").Length>0?Text("UpdateRepository"):"not set")+". KCC and JPEG XL checks use their latest official releases. Choose your downloaded KCC CLI in setup to validate it.";
             Find<TextBlock>("SimpleScheduleSummary").Text="Wait after files change: "+Text("QuietMinutes")+" minutes. Move completed downloads into the incoming folder.";
         }
 
@@ -158,6 +160,10 @@ namespace KCCAutomate {
             Fill(new Settings{WatchFolder=@"\\server\share\manga_downloaded",ConvertedFolder=@"\\server\share\manga_kindle",ArchiveFolder=@"\\server\share\manga_sorted",WorkFolder=@"\\server\share\manga_work"});
             foreach(var mode in new[]{"Simple","Advanced"}) {
                 SetViewMode(mode,false);
+                Navigate(1);Find<CheckBox>("ScribeCompatibility").IsChecked=true;RefreshSimpleSummaries();
+                if(Find<FrameworkElement>("ScribeCompatibilityCard").Visibility!=Visibility.Visible||!Checked("ScribeCompatibility")||!Find<TextBlock>("SimpleImageSummary").Text.Contains("1860"))throw new Exception("Scribe compatibility is unavailable or its effective settings are not explained.");
+                RenderSection("ScribeCompatibilityCard",Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-scribe.png"));
+                Find<CheckBox>("ScribeCompatibility").IsChecked=false;RefreshSimpleSummaries();
                 for(int pageNumber=0;pageNumber<6;pageNumber++){Navigate(pageNumber);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-"+pageNumber+".png"),1180,850);}
                 ApplyTheme("Dark");Navigate(1);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-dark.png"),1180,850);ApplyTheme("Light");
                 Navigate(5);RenderInterface(Path.Combine(directory,"screen-"+mode.ToLowerInvariant()+"-small.png"),1040,720);

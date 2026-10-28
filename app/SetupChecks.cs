@@ -9,8 +9,6 @@ using System.Web.Script.Serialization;
 
 namespace KCCAutomate {
     public partial class Settings {
-        // Serialize the approval carried by this app release; saved JSON cannot change it in the GUI.
-        public string ApprovedKccVersion {get{return ReleaseClient.ApprovedKccVersion;}}
         public string KindlegenExe { get; set; }
         public string SevenZipExe { get; set; }
         public bool SetupCompleted { get; set; }
@@ -37,8 +35,8 @@ namespace KCCAutomate {
         public static string ResolveToolPath(string key,string path) {
             path=(path??"").Trim().Trim('"');if(!Directory.Exists(path))return path;
             string name=key=="Kcc"?"kcc-c2e.exe":key=="Jxl"?"djxl.exe":key=="Kindle"?"kindlegen.exe":"7z.exe";
-            if(key=="Kcc"&&File.Exists(Path.Combine(path,ReleaseClient.ApprovedKccAsset)))return Path.Combine(path,ReleaseClient.ApprovedKccAsset);
             if(File.Exists(Path.Combine(path,name)))return Path.Combine(path,name);
+            if(key=="Kindle")return KindleGenGuide.Locate(path,new[]{path}).Compiler??path;
             var found=Discover(new[]{path});return key=="Kcc"?found.Kcc??path:key=="Jxl"?found.Jxl??path:key=="Kindle"?found.Kindlegen??path:found.SevenZip??path;
         }
         public static void ProbeSevenZip(string executable) {

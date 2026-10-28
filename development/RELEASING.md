@@ -1,6 +1,6 @@
-﻿# Publishing KCCAutomate
+# Publishing KCCAutomate
 
-Current version: **0.1.19**. Default repository: **squishysquidly/KCCAutomate**.
+Current version: **0.1.20**. Default repository: **squishysquidly/KCCAutomate**.
 The app reads published GitHub Releases, rather than source commits.
 
 ## Build and validate
@@ -15,13 +15,13 @@ The app reads published GitHub Releases, rather than source commits.
    its runtime scripts, the user README and licence, without personal settings,
    books, third-party converters, test fixtures or build sources.
 4. Verify the compiled assembly/file version, manifest, app label and
-   `ReleaseClient.AppVersion` all say **0.1.19** (four-part fields: **0.1.19.0**).
+   `ReleaseClient.AppVersion` all say **0.1.20** (four-part fields: **0.1.20.0**).
    Future releases must update those fields together.
 
 ## Prepare and publish an immutable release
 
-The current release is **0.1.19**, the first update from **0.1.18**. Its
-consolidated notes are in [RELEASE-NOTES.md](RELEASE-NOTES.md). Later public
+The current release is **0.1.20**, following **0.1.19**. Its
+notes are in [RELEASE-NOTES.md](RELEASE-NOTES.md). Later public
 builds must each use a new, higher version.
 Update the app version fields above and current-version documentation, then
 commit and push the reviewed source. Existing releases and tags stay intact.
@@ -88,23 +88,21 @@ unpublished drafts are not offered to users. Keep published downloads intact
 and choose a new version for every later public build.
 
 A local development installation with a higher version number will need a manual
-installation of the consolidated build once; the updater correctly offers only
-newer versions. This does not affect upgrades from the 0.1.18 release.
+installation of the current build once; the updater correctly offers only
+newer versions. Normal updates from 0.1.19 are supported.
 
-## Approve a later KCC version
+## Working with KCC releases
 
-Users download KCC themselves from its upstream releases page. The app keeps
-KCC release-metadata checks and its converter version policy pinned to 12.0.0.
+Users download KCC themselves from its upstream releases page and select the
+c2e CLI in setup. KCC checks query the latest release. No app release is needed
+to approve a KCC version; startup and required-option checks validate the tool.
+The app never silently changes the selected converter.
 
-1. Download the proposed official c2e CLI yourself, verify its upstream hash,
-   test startup and representative CBZ/JXL/PDF inputs, then inspect real output
-   on supported readers. Check splitting, cropping, names and failure handling.
-2. Update the ApprovedKcc constants in `app/Services.cs`, setup guidance and
-   compatibility fixtures together. Asset URL/hash constants are metadata;
-   acquisition buttons must continue to open KCC's releases page.
-3. Run the full checks and ship a new KCCAutomate release carrying the approval.
-   A new upstream KCC release alone must not silently change users' converter.
+When investigating a regression, test the supplied CLI with
+`Test-KccCompatibility.ps1 -OfficialKccExe <path>` and representative inputs.
+An optional `-ExpectedSha256 <upstream hash>` checks the supplied download.
+Keep errors actionable without recommending a hardcoded release number.
 
-The approved standalone Windows CLI bundles Python and its libraries. Source
-or Python-installed KCC has separate dependencies; direct users to KCC's own
+The standalone Windows CLI bundles Python and its libraries. Source or
+Python-installed KCC has separate dependencies; direct users to KCC's own
 instructions for those installations.

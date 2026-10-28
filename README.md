@@ -1,4 +1,4 @@
-﻿# KCCAutomate
+# KCCAutomate
 
 Automatically turn any comics or manga placed in the a watch folder into books for your e-reader,
 then keep the original files in a separate folder.
@@ -10,13 +10,11 @@ for the portable version. Open the release's **Assets** list to find them.
 The repository's **Code → Download ZIP** is source code; use a release asset
 when you want to run the app.
 
-The current build is **0.1.19**, for **Windows**. Linux and macOS support are
+The current build is **0.1.20**, for **Windows**. Linux and macOS support are
 planned. KCCAutomate uses [Kindle Comic Converter (KCC)](https://github.com/ciromattia/kcc)
 for conversion; you obtain KCC and any required tools separately during setup.
 
-**0.1.19 is the first update from 0.1.18.** It brings chapter/volume grouping,
-clearer book and series-folder names, optional numbered covers, original-handling
-choices and the application icon. See the [0.1.19 release overview](https://github.com/squishysquidly/KCCAutomate/blob/main/development/RELEASE-NOTES.md).
+**0.1.20 adds a Stop button and optional Scribe compatibility mode, improves KindleGen setup and tool-update notices, and removes the fixed KCC version requirement**. See the [release overview](https://github.com/squishysquidly/KCCAutomate/blob/main/development/RELEASE-NOTES.md).
 
 ## Why use it?
 
@@ -67,7 +65,7 @@ and tools in its own `data` folder. Windows 11 is the current tested platform.
 
 | Tool | When you need it | Where to get it |
 | --- | --- | --- |
-| **KCC command-line converter** | All conversions. The latest verified compatible version for this build is **12.0.0**. | [KCC releases](https://github.com/ciromattia/kcc/releases): find 12.0.0 and download `tool_cli_c2e_12.0.0_AMD64.exe`; renaming it to `kcc-c2e.exe` is also supported. |
+| **KCC command-line converter** | All conversions. Setup validates the selected converter without a version pin. | Download the Windows x64 `tool_cli_c2e_VERSION_AMD64.exe` from [KCC releases](https://github.com/ciromattia/kcc/releases); renaming it to `kcc-c2e.exe` is also supported. |
 | **KindleGen** | MOBI output, including any MOBI folder presets. | Install [Amazon Kindle Previewer](https://kdp.amazon.com/en_US/help/topic/G202131170), then let setup check its usual folders. An existing working `kindlegen.exe` is fine. [KCC's KindleGen guide](https://github.com/ciromattia/kcc/wiki/Installation#kindlegen) explains manual locations. |
 | **JPEG XL decoder (`djxl.exe`)** | Comics containing JXL image pages, if JPEG XL support is enabled. | [Windows libjxl releases](https://github.com/libjxl/libjxl/releases). Setup accepts an extracted decoder or a Windows ZIP/7z package. |
 | **7-Zip (`7z.exe`)** | Importing a .7z JXL tool package and some comic archive support. | [Official 7-Zip downloads](https://www.7-zip.org/). Setup first looks for and tests an existing installation. |
@@ -82,8 +80,14 @@ and licence material into KCCAutomate's storage. Original downloads are kept.
 Green checks mean the tools passed their startup checks; trying a real book
 is still the best way to verify your complete setup.
 
-The KindleGen page checks likely Previewer folders automatically. If missing,
-follow the Amazon link, install Previewer, then click **Press this after
+The KindleGen page checks likely desktop and Microsoft Store Previewer folders
+automatically. Store packages use
+`C:\Program Files\WindowsApps\KindlePreviewerApp_(version)\KindlePreviewerApp\Resources\KFXGen\bin\kindlegen.exe`;
+registered package locations are checked when WindowsApps cannot be listed.
+A Store compiler is copied into the KCCAutomate tools folder before validation,
+because Windows may prevent running it directly from WindowsApps. The installed
+Previewer is left intact. If missing, follow the Amazon link, install Previewer,
+then click **Press this after
 installing**. If still missing, use the manual or illustrated instructions.
 
 JXL packages are imported selectively: the decoder, companion libraries and
@@ -322,15 +326,51 @@ The initial manga settings use right-to-left reading, enlargement, no cropping,
 and splitting of double-page spreads, with stretching and autolevel off. Change
 these for your own books and inspect a sample before processing a large library.
 
-**Stop after this file** requests a stop between conversion operations. It
-allows the current file to finish and keeps pending originals in place.
+**Stop** is always visible beside Run now. It stops the active converter and
+its child processes, keeps unconverted originals and leaves partial book output
+in Working rather than publishing it. It also controls a scheduled/background
+run using the same Working folder. A copy or publishing step already in progress
+finishes safely. Stopped books can be retried or picked up on the next scan.
+**Stop after this file** remains on Activity when you want the current book to
+finish first. Stopping a run does not disable future scheduled checks.
+
+### Optional Scribe compatibility mode
+
+Some Scribe 2022/2024 readers show blank pages, missing sections or white lines
+with otherwise valid MOBI/EPUB books. **Conversion → Scribe compatibility mode**
+uses JPEG, disables cropping and limits images to 1860 × 1920, following the
+[KCC maintainer's suggestions](https://github.com/ciromattia/kcc/issues/1475) and
+[reported JPEG/no-cropping results](https://github.com/ciromattia/kcc/issues/1224).
+This is off by default. It may help rendering issues but reduces maximum
+resolution and can retain more margins. It applies only to Scribe 2022/2024
+MOBI/EPUB; other readers and PDF are unaffected. Usual PNG and cropping choices
+are retained underneath it and resume when it is switched off. Reconvert a
+sample and check it on the reader; disable the workaround after an upstream or
+firmware fix. It does not guarantee that every Kindle rendering issue is solved.
 
 ## Updates
 
-Use **Settings & updates → Check GitHub for updates**. App and JXL downloads
-can be verified and applied through the app. KCC uses **Open KCC releases**;
-download the verified compatible CLI yourself, then **Choose downloaded KCC**
-to run guided setup with it. Your tools are not bundled in KCCAutomate releases.
+The app checks the latest KCCAutomate and KCC releases when it opens, including
+after a new installation or app update. It also checks the JPEG XL decoder when
+that feature is enabled. A notice shows selected/latest versions and update
+actions. You can check again with **Settings & updates → Check GitHub for updates**.
+Offline or unidentified-version results are shown clearly; conversions can
+continue with existing working tools.
+
+**Updating KCCAutomate preserves your selected tools; it does not upgrade KCC
+automatically.** When a newer KCC is available:
+
+1. Click **Open KCC releases** and download the Windows x64 c2e file shown in the
+   instructions, `tool_cli_c2e_VERSION_AMD64.exe`, from that release's Assets.
+2. Click **Choose downloaded KCC** and select the new executable.
+3. Setup opens at the KCC step. Wait for its green check, then continue to
+   **Finish & save**. The validated tools are copied into KCCAutomate's tools
+   folder. Your book folders, conversion settings and schedule choices are kept.
+
+App and JXL downloads can be verified and applied through the app. KCC downloads
+remain user-managed through its releases page. 7-Zip and Kindle Previewer are
+maintained through their own installers; select replacement tool files in guided
+setup when needed. Your tools are not bundled in KCCAutomate releases.
 
 The default app update source is this repository's published GitHub releases.
 Pushing source changes alone does not publish an app update. Update backups
@@ -341,9 +381,10 @@ allow restoration of the previous app version.
 - **Nothing converted:** preview the queue; check selected input formats and
   whether files are still within the quiet period. Check folder access and the
   actual enabled schedule. Waiting books are checked on a later scan.
-- **KCC fails its startup check:** choose the verified **12.0.0 c2e** Windows
-  file from [KCC releases](https://github.com/ciromattia/kcc/releases). A missing
-  Python module in a packaged converter calls for the correct CLI package.
+- **KCC fails its startup check:** select the Windows x64 **c2e CLI** from
+  [KCC releases](https://github.com/ciromattia/kcc/releases), then review the
+  reported tool output. Setup checks startup and required options without a
+  version pin. A packaged converter should contain its Python dependencies.
 - **KindleGen is missing:** install Previewer, use the post-install button,
   then the illustrated instructions or select your existing working compiler.
 - **JXL tools take time:** allow the stated preparation/copy checks to finish.

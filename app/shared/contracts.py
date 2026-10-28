@@ -22,10 +22,10 @@ EXIT_CODES = {"completed": 0, "failed": 1, "stopped": 2, "busy": 3,
               "rejected": 4, "tools-unready": 5}
 ITEM_STATES = ("waiting", "waiting-download", "converting", "converted",
                "archived", "conflict", "failed", "skipped-existing",
-               "accompanying", "ignored", "originals-deleted")
+               "accompanying", "ignored", "originals-deleted", "stopped")
 LEGACY_STATES = dict(zip(
     ("Waiting", "Waiting for download", "Converting", "Converted", "Archived",
-     "Conflict", "Failed", "Skipped existing output", "Accompanying", "Ignored", "Originals deleted"),
+     "Conflict", "Failed", "Skipped existing output", "Accompanying", "Ignored", "Originals deleted", "Stopped"),
     ITEM_STATES,
 ))
 POLICIES = ("Review", "Replace", "KeepBoth", "Skip")
@@ -145,7 +145,8 @@ def _naming(value):
 
 
 def _conversion(value, partial=False):
-    _object(value, () if partial else CONVERSION_DEFAULTS, CONVERSION_DEFAULTS if partial else ())
+    _object(value, () if partial else CONVERSION_DEFAULTS,
+            tuple(CONVERSION_DEFAULTS) + ("ScribeCompatibility",) if partial else ("ScribeCompatibility",))
     for key, item in value.items():
         if key == "Profile":
             _require(isinstance(item, str) and re.fullmatch(r"[A-Za-z0-9]+", item), "Invalid reader profile")
@@ -269,6 +270,8 @@ def import_windows_settings(legacy, target_id="windows-x86_64"):
              "Windows settings need an explicit Windows target; remap other OS paths manually")
     conversion = {key: copy.deepcopy(legacy.get(key, default))
                   for key, default in CONVERSION_DEFAULTS.items()}
+    if "ScribeCompatibility" in legacy:
+        conversion["ScribeCompatibility"] = copy.deepcopy(legacy["ScribeCompatibility"])
     workflow = {key: copy.deepcopy(legacy.get(key, default))
                 for key, default in WORKFLOW_DEFAULTS.items()}
     if not legacy.get("DuplicateAction"):
@@ -283,7 +286,7 @@ def import_windows_settings(legacy, target_id="windows-x86_64"):
         _require(isinstance(rule, dict), "Invalid legacy folder rule")
         options = rule.get("Options", {})
         _require(isinstance(options, dict), "Invalid legacy folder-rule options")
-        _require(set(options) <= set(CONVERSION_DEFAULTS) | {"OutputNaming"},
+        _require(set(options) <= set(CONVERSION_DEFAULTS) | {"OutputNaming", "ScribeCompatibility"},
                  "Legacy rule has unsupported options; review before migration")
         rules.append({"Pattern": rule.get("Pattern", ""), "PatternSyntax": "powershell-like-v1",
                       "PresetName": rule.get("PresetName", ""), "Options": copy.deepcopy(options)})

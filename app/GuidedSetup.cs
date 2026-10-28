@@ -22,17 +22,28 @@ namespace KCCAutomate {
                 if(File.Exists(source)&&!File.Exists(target))File.Copy(source,target);
             }
         }
-        void ShowGuidedSetup() {
+        void ShowGuidedSetup(){ShowGuidedSetup(null);}
+        void ChooseDownloadedKcc(){
+            if(running!=null||asyncBusy)throw new Exception("Finish the current operation before choosing a new converter.");
+            var dialog=new Microsoft.Win32.OpenFileDialog{Filter="KCC c2e command-line converter (*.exe)|*.exe",Title="Choose the new KCC c2e download"};
+            if(dialog.ShowDialog(Window)!=true)return;
+            var selection=Read();selection.KccExe=dialog.FileName;ShowGuidedSetup(selection);
+        }
+        void ShowGuidedSetup(Settings converterUpdate) {
             if(running!=null||asyncBusy)throw new Exception("Finish the current operation before changing setup.");
             string books=File.Exists(Path.Combine(baseDir,"portable.flag"))?Path.Combine(userDir,"Books"):Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"KCCAutomate");
-            var wizard=new SetupWizard(Window,saved,Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir,books);
+            var wizard=new SetupWizard(Window,converterUpdate??saved,Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),userDir,books);
+            if(converterUpdate!=null)wizard.RenderStep(2);
             if(wizard.Window.ShowDialog()!=true)return;
+            if(converterUpdate!=null&&wizard.Result.KccExe!=saved.KccExe)saved.PreviousKccExe=saved.KccExe;
             Fill(wizard.Result);if(wizard.OpenFolderSettings)Navigate(0);saved.SetupCompleted=true;var settings=Save();
+            RequestToolUpdateCheck();
             if(wizard.EnableSchedule){Start("Manage-Schedule.ps1","-Action Enable","Saving your automatic-check schedule...",false,settings);if(wizard.OpenFolderSettings)afterWorker=delegate{Navigate(0);};}
             else {if(wizard.OpenFolderSettings)Navigate(0);Status(wizard.OpenFolderSettings?"Setup saved. Choose your folders here, then Create & check folders before enabling automatic checks.":"Setup saved. Preview the queue before your first full run. Existing schedules were not changed.");}
         }
         void TestGuidedSetup(List<string> results,string directory) {
-            string root=Path.Combine(directory,"setup-fixtures-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
+            // Leave room for versioned Store paths within Windows' legacy path limit.
+            string root=Path.Combine(directory,"setup-"+Guid.NewGuid().ToString("N").Substring(0,8));Directory.CreateDirectory(root);
             var settings=new Settings{WatchFolder=Path.Combine(root,"in"),ConvertedFolder=Path.Combine(root,"out"),ArchiveFolder=Path.Combine(root,"archive"),WorkFolder=Path.Combine(root,"work")};
             Directory.CreateDirectory(settings.WatchFolder);File.WriteAllText(Path.Combine(settings.WatchFolder,"keep.cbz"),"keep original");
             SetupChecks.ProbeFolders(settings);
@@ -100,7 +111,12 @@ namespace KCCAutomate {
             await wizard.TestAutomaticTools(tools,results);
             string install=Path.Combine(root,"previewer-check","Kindle Previewer 4");
             foreach(bool simulate in new[]{true,false}){var discovery=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),Path.Combine(root,"previewer-settings"),null,new[]{install});await discovery.TestKindleDiscovery(tools,install,simulate,results);}
+            string store=Path.Combine(root,"store-check","WindowsApps"),package=Path.Combine(store,"KindlePreviewerApp_4.0.3.0_x64__fixture");
+            foreach(bool simulate in new[]{true,false}){var discovery=new SetupWizard(Window,new Settings(),Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),Path.Combine(root,"store-settings"),null,new[]{store});await discovery.TestKindleDiscovery(tools,package,simulate,results,true);}
             string inactive=Path.Combine(root,"inactive-tools");Directory.CreateDirectory(inactive);
+            var replacement=new Settings{KccExe=Path.Combine(tools,"kcc-c2e.exe"),DjxlExe=Path.Combine(tools,"djxl.exe"),KindlegenExe=Path.Combine(tools,@"Kindle Previewer 4\lib\fc\bin\kindlegen.exe"),WatchFolder=Path.Combine(root,"replace-in"),ConvertedFolder=Path.Combine(root,"replace-out"),ArchiveFolder=Path.Combine(root,"replace-originals"),WorkFolder=Path.Combine(root,"replace-work")};
+            var replacementWizard=new SetupWizard(Window,replacement,Find<System.Windows.Controls.ComboBox>("Profile").ItemsSource.Cast<Device>(),Path.Combine(root,"replace-settings"),null,new string[0]);
+            await replacementWizard.TestConverterReplacement(results);
             File.WriteAllText(Path.Combine(inactive,"kindlegen.exe"),"inactive file must never run or be copied");File.WriteAllText(Path.Combine(inactive,"djxl.exe"),"inactive file must never run or be copied");
             foreach(var choice in new[]{Tuple.Create("EPUB",false),Tuple.Create("CBZ",false),Tuple.Create("PDF",false),Tuple.Create("EPUB",true),Tuple.Create("MOBI",false)}){
                 string name=choice.Item1+"-"+choice.Item2;

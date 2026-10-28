@@ -9,7 +9,7 @@ function Select-Conversion($File) {
     foreach ($rule in @($config.FolderRules)) {
         if ($rule.Pattern -and $relative -like $rule.Pattern) {
             foreach ($property in $rule.Options.PSObject.Properties) {
-                if ($property.Name -in @('Profile','Format','Cropping','Splitter','MangaStyle','Upscale','Stretch','Autolevel','NoAutocontrast','ForceColor','ForcePng','Webtoon','Gamma','OutputNaming')) {
+                if ($property.Name -in @('Profile','Format','Cropping','Splitter','MangaStyle','Upscale','Stretch','Autolevel','NoAutocontrast','ForceColor','ForcePng','Webtoon','Gamma','OutputNaming','ScribeCompatibility')) {
                     $effective | Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value -Force
                 }
             }
@@ -20,6 +20,10 @@ function Select-Conversion($File) {
         [int]$effective.Cropping -notin @(0,1,2) -or [int]$effective.Splitter -notin @(0,1,2)) { throw 'Invalid conversion preset.' }
     if ($effective.Profile -notmatch '^K(?!o)' -and $effective.Format -eq 'MOBI') { throw 'The folder preset selects MOBI for a non-Kindle profile.' }
     $script:activeProfile=$effective.Profile
+    if($null -ne $effective.ScribeCompatibility -and $effective.ScribeCompatibility -isnot [bool]){throw 'Scribe compatibility must be true or false.'}
+    if($effective.ScribeCompatibility -eq $true -and $effective.Profile -eq 'KS' -and $effective.Format -in @('MOBI','EPUB')){
+        $effective.Profile='KS1860';$effective.Cropping=0;$effective.ForcePng=$false
+    }
     $script:activeNaming=if ($effective.OutputNaming) { $effective.OutputNaming } else { '{name}' }
     $script:outputExtension='.' + $effective.Format.ToLowerInvariant()
     $script:arguments=@('--profile',$effective.Profile,'--format',$effective.Format,'--cropping',[string]$effective.Cropping,'--splitter',[string]$effective.Splitter,'--tempdir')
@@ -83,7 +87,7 @@ function Set-QueueRecord([string]$Source, [string]$Status, [string]$Detail = '',
     $row = $queueState[$Source]
     $row | Add-Member -NotePropertyName ConflictKind -NotePropertyValue $ConflictKind -Force
     $row.Status=$Status; $row.Detail=$Detail; $row.UpdatedUtc=[DateTime]::UtcNow.ToString('o')
-    $row.Advice = if ($Status -eq 'Failed' -or $Status -eq 'Conflict') { Get-Advice $Detail } else { '' }
+    $row.Advice = if($Status -eq 'Stopped'){'Run now or retry this book to continue. Unconverted originals were retained.'}elseif ($Status -eq 'Failed' -or $Status -eq 'Conflict') { Get-Advice $Detail } else { '' }
     if ($Target) { $row.OutputPath=$Target }
     Write-Host ('@@MF:' + ($row | ConvertTo-Json -Compress -Depth 6))
     Save-QueueHistory

@@ -25,6 +25,7 @@ namespace KCCAutomate {
         readonly string appDirectory;
         readonly string toolsRoot;
         readonly string[] kindleRoots;
+        readonly bool suppliedKindleLocations;
         readonly DispatcherTimer autoTimer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(600)};
         readonly HashSet<string> pendingTools=new HashSet<string>();
         readonly Dictionary<string,int> toolRevisions=new Dictionary<string,int>();
@@ -39,6 +40,7 @@ namespace KCCAutomate {
             SetupChecks.DefaultFolders(draft,bookRoot??Path.Combine(storage,"Books"));
             appDirectory=AppDomain.CurrentDomain.BaseDirectory;
             toolsRoot=Path.Combine(storage,"Tools");
+            suppliedKindleLocations=kindleLocations!=null;
             kindleRoots=(kindleLocations??KindleGenGuide.InstallationRoots()).ToArray();
             using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("KCCAutomate.SetupWizard.xaml"))Window=(Window)XamlReader.Load(stream);
             Window.Icon=AppBranding.Icon;
@@ -48,6 +50,9 @@ namespace KCCAutomate {
             Set("Watch",draft.WatchFolder);Set("Output",draft.ConvertedFolder);Set("Archive",draft.ArchiveFolder);Set("Work",draft.WorkFolder);
             Set("Kcc",draft.KccExe);Set("Jxl",draft.DjxlExe);Set("Kindle",draft.KindlegenExe);Set("SevenZip",draft.SevenZipExe);
             Get<CheckBox>("JxlEnabled").IsChecked=draft.ConvertJxl;
+            Get<CheckBox>("ScribeCompatibility").IsChecked=draft.ScribeCompatibility;
+            Get<ComboBox>("Device").SelectionChanged+=delegate{Get<FrameworkElement>("ScribeSetupCard").Visibility=Convert.ToString(Get<ComboBox>("Device").SelectedValue)=="KS"?Visibility.Visible:Visibility.Collapsed;};
+            Get<FrameworkElement>("ScribeSetupCard").Visibility=draft.Profile=="KS"?Visibility.Visible:Visibility.Collapsed;
             Set("Times",draft.ScheduleTimes);Set("QuietMinutes",draft.QuietMinutes.ToString());Get<CheckBox>("Wake").IsChecked=draft.WakeComputer;
             Get<TextBlock>("StorageInfo").Text="Settings location: "+storage;
             Get<TextBlock>("ManagedToolsInfo").Text="Tools will be kept in: "+toolsRoot;
@@ -57,7 +62,7 @@ namespace KCCAutomate {
             Click("TestBrowse",delegate{BrowseFile("TestBook","Comic files|*.cbz;*.pdf;*.epub;*.cbr;*.cb7");});
             Click("GetKcc",delegate{Open(ReleaseClient.KccReleasesPage);});Click("GetJxl",delegate{Open("https://github.com/libjxl/libjxl/releases");});Click("GetKindle",delegate{Open(KindleGenGuide.GuideUrl);});
             Click("GetPreviewer",delegate{Open(KindleGenGuide.PreviewerUrl);});Async("RecheckKindle",RecheckKindle);
-            Click("GetKccFallback",delegate{Open(ReleaseClient.ApprovedKccPage);});Click("GetDependencies",delegate{Open("https://github.com/ciromattia/kcc/wiki/Installation");});Click("GetSevenZip",delegate{Open("https://www.7-zip.org/");});
+            Click("GetKccFallback",delegate{Open(ReleaseClient.KccReleasesPage);});Click("GetDependencies",delegate{Open("https://github.com/ciromattia/kcc/wiki/Installation");});Click("GetSevenZip",delegate{Open("https://www.7-zip.org/");});
             Click("ShowKindleGuide",delegate{KindleGenGuide.Create(Window,delegate{return Text("Kindle");}).ShowDialog();});
             Click("OpenKindleFolder",delegate{Feedback(KindleGenGuide.OpenFolder(Text("Kindle")));});
             Click("OpenTest",delegate{if(testOutput!=null)Open(testOutput);});
@@ -90,7 +95,7 @@ namespace KCCAutomate {
             toolsPassed=false;testPassed=false;toolChecks.Remove(name);toolRevisions[name]=toolRevisions.ContainsKey(name)?toolRevisions[name]+1:1;
             bool optional=(name=="Jxl"&&Get<CheckBox>("JxlEnabled").IsChecked!=true)||(name=="Kindle"&&!ToolValidation.RequiresKindlegen(Snapshot()))||(name=="SevenZip"&&!(Get<CheckBox>("JxlEnabled").IsChecked==true&&Text("Jxl").EndsWith(".7z",StringComparison.OrdinalIgnoreCase)));
             var text=Get<TextBlock>(name+"Status");text.Text=(optional?"○ ":"✗ ")+new Dictionary<string,string>{{"Kcc","KCC c2e"},{"Jxl","JPEG XL decoder"},{"Kindle","KindleGen"},{"SevenZip","7-Zip"}}[name]+(autoEnabled?" · checking automatically...":optional?" · optional / not checked":" · missing or not checked");text.Foreground=StatusBrush(false,optional);
-            if(name=="Kindle"){Get<TextBlock>("KindleDiscovery").Text="We check your selection and the usual Kindle Previewer folders automatically on this page.";Get<FrameworkElement>("KindleInstall").Visibility=optional?Visibility.Collapsed:Visibility.Visible;}
+            if(name=="Kindle"){Get<TextBlock>("KindleDiscovery").Text="We check your selection, usual Previewer folders and Microsoft Store installations automatically on this page.";Get<FrameworkElement>("KindleInstall").Visibility=optional?Visibility.Collapsed:Visibility.Visible;}
         }
         void ToolChanged(string key){
             InvalidateTool(key);pendingTools.Add(key);
@@ -99,6 +104,7 @@ namespace KCCAutomate {
             if(autoEnabled&&!busy&&pendingTools.Any(ActiveTool)){autoTimer.Stop();autoTimer.Start();}
         }
         string CurrentTool(){return step==1?"SevenZip":step==2?"Kcc":step==3?"Kindle":step==4?"Jxl":null;}
+        KindleGenLocation LocateKindle(string selected){return suppliedKindleLocations?KindleGenGuide.Locate(selected,kindleRoots,delegate{return new string[0];}):KindleGenGuide.Locate(selected,kindleRoots);}
         int[] VisiblePages(){bool kindle=ToolValidation.RequiresKindlegen(Snapshot()),jxl=Get<CheckBox>("JxlEnabled").IsChecked==true;return Enumerable.Range(0,PageCount).Where(p=>(p!=3||kindle)&&(p!=4||jxl)).ToArray();}
         void Back(){if(step>0){step=VisiblePages().Last(p=>p<step);ShowStep();}}
         bool ActiveTool(string key){return key==CurrentTool()||(step==4&&key=="SevenZip"&&Text("Jxl").EndsWith(".7z",StringComparison.OrdinalIgnoreCase)&&String.IsNullOrWhiteSpace(Text("SevenZip")));}
@@ -118,7 +124,10 @@ namespace KCCAutomate {
                         Get<TextBlock>("SevenZipLocation").Text="Checking standard Windows locations and command-line archive support...";
                         resolved=await Task.Run(delegate{return SetupChecks.FindUsableSevenZip(null);});snapshot.SevenZipExe=resolved;searchedSeven=true;
                     }
-                    else if(key=="Kindle"){kindle=await Task.Run(delegate{return File.Exists(snapshot.KindlegenExe)?new KindleGenLocation{Compiler=snapshot.KindlegenExe}:KindleGenGuide.Locate(snapshot.KindlegenExe,kindleRoots);});resolved=kindle.Compiler??snapshot.KindlegenExe;snapshot.KindlegenExe=resolved;}
+                    else if(key=="Kindle"){
+                        kindle=await Task.Run(delegate{return File.Exists(snapshot.KindlegenExe)?new KindleGenLocation{Compiler=snapshot.KindlegenExe}:LocateKindle(snapshot.KindlegenExe);});
+                        resolved=await Task.Run(delegate{return ManagedTools.PrepareKindle(kindle.Compiler??snapshot.KindlegenExe,toolsRoot);});snapshot.KindlegenExe=resolved;
+                    }
                     else {string selected=key=="Kcc"?snapshot.KccExe:key=="Jxl"?snapshot.DjxlExe:snapshot.SevenZipExe;resolved=await Task.Run(delegate{return SetupChecks.ResolveToolPath(key,selected);});if(key=="Kcc")snapshot.KccExe=resolved;else if(key=="Jxl")snapshot.DjxlExe=resolved;else snapshot.SevenZipExe=resolved;}
                     if(key=="Jxl"&&snapshot.ConvertJxl){Get<TextBlock>("JxlStatus").Text="Preparing and checking the JPEG XL decoder. This may take a minute or two...";resolved=await Task.Run(delegate{return ManagedTools.PrepareJxl(snapshot.DjxlExe,snapshot.SevenZipExe,toolsRoot);});snapshot.DjxlExe=resolved;}
                     check=await Task.Run(delegate{return ToolValidation.Check(snapshot,key);});
@@ -139,7 +148,7 @@ namespace KCCAutomate {
         void ShowKindleDiscovery(ToolCheck check,KindleGenLocation location){
             Get<FrameworkElement>("KindleInstall").Visibility=check.Passed||check.Optional?Visibility.Collapsed:Visibility.Visible;
             if(check.Passed)Get<Expander>("KindleHelp").IsExpanded=false;
-            Get<TextBlock>("KindleDiscovery").Text=check.Passed?"KindleGen was found and validated. You can continue.":check.Optional?"KindleGen is not needed for these choices.":location!=null&&location.PreviewerFolderFound?"A Kindle Previewer folder was found, but KindleGen is missing or could not start. Install or reinstall Previewer, then press the button below. You can also select an existing working copy.":"KindleGen was not found in the usual locations or has not passed its check. Download and install Kindle Previewer from Amazon, then check again.";
+            Get<TextBlock>("KindleDiscovery").Text=check.Passed?"KindleGen was found and validated. You can continue.":check.Optional?"KindleGen is not needed for these choices.":location!=null&&location.PreviewerFolderFound?"A Kindle Previewer installation was found, but KindleGen is missing, inaccessible or could not start. Press the button below after installing or updating Previewer, or select an existing working copy.":"KindleGen was not found in the usual desktop or Microsoft Store locations, or has not passed its check. Download and install Kindle Previewer from Amazon, then check again.";
         }
         async Task RecheckKindle(){try{await CheckPageTool("Kindle");}catch(Exception ex){Get<Expander>("KindleHelp").IsExpanded=true;Feedback("KindleGen still needs attention. Use the instructions below to select an existing copy or locate a custom installation.\n"+ex.Message);}}
         void Feedback(string text){Get<TextBlock>("Feedback").Text=text;}
@@ -161,6 +170,7 @@ namespace KCCAutomate {
             draft.Profile=Get<ComboBox>("Device").SelectedValue as string;
             var format=Get<ComboBox>("Format").SelectedItem as ComboBoxItem;if(format==null)throw new Exception("Choose an output format.");draft.Format=Value(format);
             draft.MangaStyle=Get<CheckBox>("Manga").IsChecked==true;
+            draft.ScribeCompatibility=Get<CheckBox>("ScribeCompatibility").IsChecked==true;
             draft.WatchFolder=Text("Watch");draft.ConvertedFolder=Text("Output");draft.ArchiveFolder=Text("Archive");draft.WorkFolder=Text("Work");
             if(String.IsNullOrEmpty(draft.WorkFolder)&&!String.IsNullOrEmpty(draft.WatchFolder)){var parent=Path.GetDirectoryName(draft.WatchFolder.TrimEnd('\\'));if(parent!=null){draft.WorkFolder=Path.Combine(parent,"manga_automation_work");Set("Work",draft.WorkFolder);}}
             draft.KccExe=Text("Kcc");draft.DjxlExe=Text("Jxl");draft.KindlegenExe=Text("Kindle");draft.SevenZipExe=Text("SevenZip");draft.ConvertJxl=Get<CheckBox>("JxlEnabled").IsChecked==true;
@@ -191,7 +201,10 @@ namespace KCCAutomate {
             if(key=="Jxl"&&!selection.ConvertJxl){ShowChecks(new[]{ToolValidation.Check(selection,key)});Feedback("JPEG XL preparation is off. You can continue.");return;}
             string selected=key=="Kcc"?selection.KccExe:key=="Jxl"?selection.DjxlExe:key=="Kindle"?selection.KindlegenExe:selection.SevenZipExe;
             string resolved;
-            if(key=="Kindle"){kindle=await Task.Run(delegate{return File.Exists(selected)?new KindleGenLocation{Compiler=selected}:KindleGenGuide.Locate(selected,kindleRoots);});resolved=kindle.Compiler??selected;}
+            if(key=="Kindle"){
+                kindle=await Task.Run(delegate{return File.Exists(selected)?new KindleGenLocation{Compiler=selected}:LocateKindle(selected);});
+                resolved=await Task.Run(delegate{return ManagedTools.PrepareKindle(kindle.Compiler??selected,toolsRoot);});
+            }
             else resolved=await Task.Run(delegate{return key=="SevenZip"&&String.IsNullOrWhiteSpace(selected)?SetupChecks.FindUsableSevenZip(null):SetupChecks.ResolveToolPath(key,selected);});
             if(key=="Jxl"&&selection.ConvertJxl){resolved=await Task.Run(delegate{return ManagedTools.PrepareJxl(resolved,selection.SevenZipExe,toolsRoot);});}
             SetToolSilently(key,resolved);selection=Snapshot();var check=await Task.Run(delegate{return ToolValidation.Check(selection,key);});ShowChecks(new[]{check});
@@ -216,17 +229,28 @@ namespace KCCAutomate {
         static void Open(string path){Process.Start(new ProcessStartInfo(path){UseShellExecute=true});}
         public void RenderStep(int index){step=index;ShowStep();}
         async Task TestNextPage(){busy=true;autoTimer.Stop();try{await activeAutoCheck;await Next();}finally{busy=false;autoTimer.Stop();}}
-        public async Task TestKindleDiscovery(string fixtures,string installation,bool simulateInstall,List<string> results){
+        public async Task TestConverterReplacement(List<string> results){
+            string selected=Text("Kcc"),watch=draft.WatchFolder,output=draft.ConvertedFolder,archive=draft.ArchiveFolder,times=draft.ScheduleTimes;
+            RenderStep(2);
+            for(int count=0;step<8&&count<8;count++)await TestNextPage();
+            PrepareResult();
+            if(step!=8||!toolsPassed||!Result.KccExe.StartsWith(toolsRoot+"\\",StringComparison.OrdinalIgnoreCase)||ReleaseClient.Hash(Result.KccExe)!=ReleaseClient.Hash(selected)||Result.WatchFolder!=watch||Result.ConvertedFolder!=output||Result.ArchiveFolder!=archive||Result.ScheduleTimes!=times||EnableSchedule)throw new Exception("Choosing a replacement KCC failed to validate/copy tools or changed folders/scheduling.");
+            results.Add("PASS: replacement KCC setup starts at its converter page, validates/copies the selected download and retains folders and schedule choices without registering a new task");
+        }
+        public async Task TestKindleDiscovery(string fixtures,string installation,bool simulateInstall,List<string> results,bool storeInstall=false){
+            string relative=storeInstall?@"KindlePreviewerApp\Resources\KFXGen\bin":@"lib\fc\bin";
             step=3;ShowStep();StartAutomaticChecks();activeAutoCheck=AutoCheckPending();await activeAutoCheck;autoTimer.Stop();
             if(simulateInstall){
                 if(Get<TextBlock>("KindleStatus").Text.StartsWith("✓")||Get<FrameworkElement>("KindleInstall").Visibility!=Visibility.Visible||Directory.Exists(installation))throw new Exception("Missing Kindle Previewer did not offer manual installation or the scan created an installation folder.");
                 await RecheckKindle();if(!Get<Expander>("KindleHelp").IsExpanded)throw new Exception("A failed post-install check did not reveal the existing illustrated/manual instructions.");
-                string bin=Path.Combine(installation,@"lib\fc\bin");Directory.CreateDirectory(bin);await RecheckKindle();
-                if(!Get<TextBlock>("KindleDiscovery").Text.Contains("Previewer folder was found")||Get<TextBlock>("KindleStatus").Text.StartsWith("✓"))throw new Exception("An empty Previewer folder was mistaken for a validated compiler.");
+                string bin=Path.Combine(installation,relative);Directory.CreateDirectory(bin);await RecheckKindle();
+                if(!Get<TextBlock>("KindleDiscovery").Text.Contains("Previewer installation was found")||Get<TextBlock>("KindleStatus").Text.StartsWith("✓"))throw new Exception("An empty Previewer folder was mistaken for a validated compiler.");
                 File.Copy(Path.Combine(fixtures,@"Kindle Previewer 4\lib\fc\bin\kindlegen.exe"),Path.Combine(bin,"kindlegen.exe"));await RecheckKindle();
             }
-            if(!Get<TextBlock>("KindleStatus").Text.StartsWith("✓")||Text("Kindle")!=Path.Combine(installation,@"lib\fc\bin\kindlegen.exe")||Get<FrameworkElement>("KindleInstall").Visibility!=Visibility.Collapsed)throw new Exception("KindleGen was not found, selected and validated automatically in the likely installation folder.");
-            autoEnabled=false;autoTimer.Stop();results.Add("PASS: "+(simulateInstall?"missing Previewer offers its official page; repeated missing/empty-folder checks reveal manual help; post-install recheck finds and validates KindleGen":"existing Previewer KindleGen is found and validated automatically without asking for a path"));
+            string original=Path.Combine(installation,relative+@"\kindlegen.exe");
+            bool correct=storeInstall?Text("Kindle").StartsWith(toolsRoot+"\\",StringComparison.OrdinalIgnoreCase)&&File.Exists(Text("Kindle"))&&ReleaseClient.Hash(Text("Kindle"))==ReleaseClient.Hash(original):Text("Kindle")==original;
+            if(!Get<TextBlock>("KindleStatus").Text.StartsWith("✓")||!correct||Get<FrameworkElement>("KindleInstall").Visibility!=Visibility.Collapsed)throw new Exception("KindleGen discovery failed for "+installation+". Selected: "+Text("Kindle")+". Status: "+Get<TextBlock>("KindleStatus").Text);
+            autoEnabled=false;autoTimer.Stop();results.Add("PASS: "+(storeInstall?"Microsoft Store KindleGen on step 4 is found, validated and rechecked after simulated installation":simulateInstall?"missing Previewer offers its official page; repeated missing/empty-folder checks reveal manual help; post-install recheck finds and validates KindleGen":"existing Previewer KindleGen is found and validated automatically without asking for a path"));
         }
         public async Task TestConditionalPages(string fixtures,List<string> results){
             string format=draft.Format,unusedKindle=Text("Kindle"),unusedJxl=Text("Jxl");bool jxl=draft.ConvertJxl,kindle=ToolValidation.RequiresKindlegen(draft);

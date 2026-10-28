@@ -25,6 +25,7 @@ function Remove-VerifiedOriginals($Plan) {
         $pending+=$file
     }
     foreach($file in $pending){
+        Assert-NotCancelled
         $path=Assert-IncomingFile $file.FullName
         Select-Conversion $file
         if(-not (Test-Receipt $file) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $Plan.SourceHashes[$path]){throw 'Source or output changed before removal; remaining originals retained.'}

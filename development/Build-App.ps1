@@ -22,6 +22,7 @@ foreach ($file in @('Convert-Manga.ps1','Workflow-Support.ps1')) { Copy-Item -Li
 $support=(Get-Content -LiteralPath (Join-Path $appSource 'Workflow-Support.ps1') -Raw -Encoding UTF8)+"`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Chapter-Support.ps1') -Raw -Encoding UTF8)
 $support+="`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Book-Labels.ps1') -Raw -Encoding UTF8)
 $support+="`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Originals-Handling.ps1') -Raw -Encoding UTF8)
+$support+="`r`n"+(Get-Content -LiteralPath (Join-Path $appSource 'Run-Control.ps1') -Raw -Encoding UTF8)
 [IO.File]::WriteAllText((Join-Path $Destination 'Workflow-Support.ps1'),$support,[Text.UTF8Encoding]::new($true))
 foreach ($file in @('MainWindow.xaml','Manage-Schedule.ps1','Read-Log.ps1','Notify-Result.ps1','Apply-Update.ps1','Workspace-Info.ps1')) {
     Copy-Item -LiteralPath (Join-Path $appSource $file) -Destination $Destination -Force

@@ -2,19 +2,19 @@ param([string]$ToolSettingsPath,[string]$FixtureRoot,[switch]$Volumes,[switch]$R
 $ErrorActionPreference='Stop'
 if (-not $ToolSettingsPath) { 'SKIP: native chapter conversion requires -ToolSettingsPath with an existing, user-acquired tool setup. Offline grouping checks run in Test-ChapterBundles.ps1.'; return }
 $tools=Get-Content -LiteralPath $ToolSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-if ((Get-FileHash -LiteralPath $tools.KccExe -Algorithm SHA256).Hash -ne '8300504C7D6685EAA63A803E490C7EF2F87A4C9E43CC49C3E361FADA892D85FF') { throw 'The supplied KCC binary is not the approved 12.0.0 AMD64 CLI.' }
+$sourceDigest=(Get-FileHash -LiteralPath $tools.KccExe -Algorithm SHA256).Hash
 foreach ($name in @('KindlegenExe','SevenZipExe')) { if (-not (Test-Path -LiteralPath $tools.$name -PathType Leaf)) { throw ('Missing tool: '+$name) } }
 if (-not $FixtureRoot) { $FixtureRoot=Join-Path $PSScriptRoot ('test-results\native-'+[Guid]::NewGuid().ToString('N').Substring(0,8)) }
 $root=[IO.Path]::GetFullPath($FixtureRoot)
 if (Test-Path -LiteralPath $root) { throw 'Use a new fixture folder; existing files are never overwritten.' }
 New-Item -ItemType Directory -Path $root | Out-Null
-# The approved CLI is self-contained. A temporary copy keeps its working
+# The standalone CLI is self-contained. A temporary copy keeps its working
 # directory inside the fixture and avoids touching the user's managed tools.
 $toolCopy=Join-Path $root 'kcc-c2e.exe';Copy-Item -LiteralPath $tools.KccExe -Destination $toolCopy
-if((Get-FileHash -LiteralPath $toolCopy -Algorithm SHA256).Hash -ne '8300504C7D6685EAA63A803E490C7EF2F87A4C9E43CC49C3E361FADA892D85FF'){throw 'The copied test tool did not match its approved hash.'}
+if((Get-FileHash -LiteralPath $toolCopy -Algorithm SHA256).Hash -ne $sourceDigest){throw 'The copied test tool did not match its source hash.'}
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$config=[ordered]@{WatchFolder=(Join-Path $root 'in');ConvertedFolder=(Join-Path $root 'out');ArchiveFolder=(Join-Path $root 'orig');WorkFolder=(Join-Path $root 'w');KccExe=$tools.KccExe;KindlegenExe=$tools.KindlegenExe;SevenZipExe=$tools.SevenZipExe;DjxlExe=$tools.DjxlExe;QuietMinutes=0;Profile='KS';Format='MOBI';ApprovedKccVersion='12.0.0';MangaStyle=$true;Cropping=0;Splitter=0;ConvertJxl=$true;InputExtensions=@('.cbz');DuplicateAction='Review';NotificationMode='Off';BundleChapters=$true;BundleTargetPages=50;ChapterPageThreshold=50;BundleMaxMiB=10;HoldShortBundles=$false}
+$config=[ordered]@{WatchFolder=(Join-Path $root 'in');ConvertedFolder=(Join-Path $root 'out');ArchiveFolder=(Join-Path $root 'orig');WorkFolder=(Join-Path $root 'w');KccExe=$tools.KccExe;KindlegenExe=$tools.KindlegenExe;SevenZipExe=$tools.SevenZipExe;DjxlExe=$tools.DjxlExe;QuietMinutes=0;Profile='KS';Format='MOBI';MangaStyle=$true;Cropping=0;Splitter=0;ConvertJxl=$true;InputExtensions=@('.cbz');DuplicateAction='Review';NotificationMode='Off';BundleChapters=$true;BundleTargetPages=50;ChapterPageThreshold=50;BundleMaxMiB=10;HoldShortBundles=$false}
 $config.KccExe=$toolCopy
 if($Volumes){$config.BundleChapters=$false;$config.BundleVolumes=$true;$config.VolumeTargetPages=100}
 if($ReadableLabels){$config.BookTitleStyle='NumberFirst';$config.SeriesAliases=@{'Smoke'='SM'};$config.CoverNumberBadge=$true}
@@ -58,6 +58,6 @@ $bytes=[IO.File]::ReadAllBytes($output)
 if($bytes.Length -lt 100 -or [Text.Encoding]::ASCII.GetString($bytes,60,8) -ne 'BOOKMOBI' -or -not [Text.Encoding]::UTF8.GetString($bytes).Contains($title)){throw 'The native output did not have a MOBI header and expected title.'}
 foreach($path in $hashes.Keys){$archived=Join-Path $config.ArchiveFolder $path.Substring($config.WatchFolder.Length+1);if((Get-FileHash -LiteralPath $archived).Hash -ne $hashes[$path]){throw 'The native test original was not preserved.'}}
 if(Test-Path -LiteralPath $series){throw 'Successful native fixture was not archived.'}
-'PASS: approved real KCC 12.0.0 + selected KindleGen generated one 50-page '+$unit+' MOBI bundle with the expected title; archived CBZ hashes match.'
+'PASS: selected real KCC + KindleGen generated one 50-page '+$unit+' MOBI bundle with the expected title; archived CBZ hashes match.'
 'Fixture: '+$root
 'Rendering and library-cover appearance on the physical Kindle still require reader acceptance.'

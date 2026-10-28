@@ -34,7 +34,7 @@ namespace KCCAutomate {
                 ((row.Status=="Failed"||row.Status=="Conflict")&&((row.Detail??"").Contains("Different output already exists")||(row.Detail??"").Contains("Previously published output")));
         }
         void RetryQueuedBooks() {
-            var selected=Find<DataGrid>("QueueGrid").SelectedItems.Cast<QueueRow>().Where(r=>r.Status=="Failed"||r.Status=="Conflict"||r.Status=="Skipped existing output"||r.Status=="Review existing output").ToArray();
+            var selected=Find<DataGrid>("QueueGrid").SelectedItems.Cast<QueueRow>().Where(r=>r.Status=="Failed"||r.Status=="Conflict"||r.Status=="Skipped existing output"||r.Status=="Review existing output"||r.Status=="Stopped").ToArray();
             if(selected.Length==0)throw new Exception("Select failed, conflicting or skipped books in the queue first.");
             int action=Find<ComboBox>("RetryAction").SelectedIndex;
             if(action<0||action>3)throw new Exception("Choose an action for this retry.");

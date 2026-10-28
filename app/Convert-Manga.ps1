@@ -29,7 +29,6 @@ $duplicateAction = 'Review'
 $convertJxl = $true
 $kindlegenExe = ''
 $sevenZipExe = ''
-$approvedKccVersion = ''
 $originalsAction='Archive'
 if ($ConfigPath) {
     $config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -44,8 +43,6 @@ if ($ConfigPath) {
     $DjxlExe = $config.DjxlExe
     $kindlegenExe = $config.KindlegenExe
     $sevenZipExe = $config.SevenZipExe
-    $approvedKccVersion = [string]$config.ApprovedKccVersion
-    if ($approvedKccVersion -and $approvedKccVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid approved KCC version in settings. Save settings again in KCCAutomate.' }
     $QuietMinutes = [int]$config.QuietMinutes
     $inputExtensions = @($config.InputExtensions)
     $overwriteConverted = [bool]$config.OverwriteConverted
@@ -92,6 +89,7 @@ if($originalsAction -eq 'Delete'){$incoming,$output,$work=$paths}else{$incoming,
 if (-not (Get-Command Get-BundleOptions -ErrorAction SilentlyContinue)) { . (Join-Path $PSScriptRoot 'Chapter-Support.ps1') }
 if(-not (Get-Command Get-LabelStyle -ErrorAction SilentlyContinue)){. (Join-Path $PSScriptRoot 'Book-Labels.ps1')}
 if(-not (Get-Command Remove-VerifiedOriginals -ErrorAction SilentlyContinue)){. (Join-Path $PSScriptRoot 'Originals-Handling.ps1')}
+if(-not (Get-Command Get-StopMode -ErrorAction SilentlyContinue)){. (Join-Path $PSScriptRoot 'Run-Control.ps1')}
 $bundleOptions=Get-BundleOptions
 $selectedPaths = $null
 if ($SelectionPath) {
@@ -133,6 +131,8 @@ function Quote-NativeArgument([string]$Value) {
     '"' + ([regex]::Replace(([regex]::Replace($Value, '(\\*)"', '$1$1\"')), '(\\+)$', '$1$1')) + '"'
 }
 function Invoke-Converter([string]$Executable, [string[]]$Options, [string]$LogFile) {
+    Assert-NotCancelled
+    Initialize-ConverterJobType
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $Executable
     $start.Arguments = (@($Options | ForEach-Object { Quote-NativeArgument $_ }) -join ' ')
@@ -153,16 +153,27 @@ function Invoke-Converter([string]$Executable, [string[]]$Options, [string]$LogF
     }
     $process = New-Object Diagnostics.Process
     $process.StartInfo = $start
+    $jobControl=$null
     try {
+        Assert-NotCancelled
         if (-not $process.Start()) { throw "Could not launch $Executable" }
+        $jobControl=New-ConverterJob $process
         # Drain both streams concurrently. Decoder progress on stderr is normal.
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
+        while(-not $process.WaitForExit(200)){
+            if((Get-StopMode) -eq 'now'){
+                if(Stop-ConverterProcess $process $jobControl){break}
+                Write-Host 'Stop requested. Waiting for the converter to finish stopping; originals stay in place.'
+            }
+        }
         $process.WaitForExit()
+        if($jobControl){$jobControl.Dispose()}
         $text = $stdout.Result + "`r`n" + $stderr.Result
         if ($LogFile) { [IO.File]::WriteAllText($LogFile, $text) }
+        Assert-NotCancelled
         [pscustomobject]@{ ExitCode=$process.ExitCode; Text=$text }
-    } finally { $process.Dispose() }
+    } finally { if($jobControl){$jobControl.Dispose()};$process.Dispose() }
 }
 
 function Prepare-Cbz([string]$Source, [string]$Attempt) {
@@ -183,6 +194,7 @@ function Prepare-Cbz([string]$Source, [string]$Attempt) {
         try {
             $names = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
             foreach ($entry in $zip.Entries) {
+                Assert-NotCancelled
                 if (-not $entry.Name) { continue }
                 $name = $entry.FullName.Replace('\','/')
                 $isJxl = $name -match '(?i)\.jxl$'
@@ -242,6 +254,7 @@ function Archive-Batch($Batch, [string]$Destination, [string]$ExpectedSnapshot) 
     }
     $copied = @()
     foreach ($file in @(BatchFiles $Batch)) {
+        Assert-NotCancelled
         $target = $Destination
         if ($Batch.PSIsContainer) {
             $relative = $file.FullName.Substring($sourcePath.Length).TrimStart('\')
@@ -264,14 +277,13 @@ function Archive-Batch($Batch, [string]$Destination, [string]$ExpectedSnapshot) 
     }
     # The absolute source was checked against Incoming above. Delete only after
     # every archive copy has been verified, leaving sources intact on copy errors.
+    Assert-NotCancelled
     Remove-Item -LiteralPath $sourcePath -Recurse -Force
 }
 
-function Assert-ApprovedKcc($Check) {
-    if (-not $approvedKccVersion) { return }
-    $version = [regex]::Match($Check.Text, '(?im)^comic2ebook[^\r\n]*?v?(\d+\.\d+\.\d+)(?=\s|$)')
-    if ($Check.ExitCode -ne 0 -or -not $version.Success -or $version.Groups[1].Value -ne $approvedKccVersion) {
-        throw "This KCCAutomate release requires the approved KCC $approvedKccVersion c2e executable. Choose its Windows CLI download in guided setup. Newer KCC builds require maintainer testing and a KCCAutomate update. Originals were retained."
+function Assert-KccStartup($Check) {
+    if ($Check.ExitCode -ne 0 -or $Check.Text -notmatch '(?im)^comic2ebook\b') {
+        throw "KCC c2e could not start or identify itself. Choose a working c2e CLI from KCC's releases page. Originals were retained. Tool output: $($Check.Text)"
     }
 }
 
@@ -281,9 +293,9 @@ if ($CheckSetup) {
         else { Write-Output "Folder unavailable or not created yet: $path" }
     }
     if (-not (Test-Path -LiteralPath $KccExe -PathType Leaf)) { throw "Select the KCC command-line converter: $KccExe" }
-    $check = Invoke-Converter $KccExe @('--help') ''
+    try{$check = Invoke-Converter $KccExe @('--help') ''}catch [OperationCanceledException]{Write-Host 'Stopped. Originals were retained.';exit 2}
     Write-Output $check.Text
-    Assert-ApprovedKcc $check
+    Assert-KccStartup $check
     if ($check.ExitCode -ne 0) { throw 'KCC could not start. Check its installation and dependencies above.' }
     if ($convertJxl) {
         if (-not (Test-Path -LiteralPath $DjxlExe -PathType Leaf)) { throw "Select djxl.exe to enable JPEG XL conversion: $DjxlExe" }
@@ -306,9 +318,9 @@ if ($Preview) {
 if (-not $CleanupOnly -and -not (Test-Path -LiteralPath $KccExe -PathType Leaf)) {
     throw "KCC CLI not found: $KccExe. Install the c2e command-line build, or supply -KccExe with its actual path."
 }
-if (-not $CleanupOnly -and $approvedKccVersion) {
-    $check = Invoke-Converter $KccExe @('--help') ''
-    Assert-ApprovedKcc $check
+if (-not $CleanupOnly) {
+    try{$check = Invoke-Converter $KccExe @('--help') ''}catch [OperationCanceledException]{Write-Host 'Stopped. Originals were retained.';exit 2}
+    Assert-KccStartup $check
 }
 foreach ($dir in @($output,$work)+$(if($originalsAction -eq 'Archive'){@($archive)}else{@()})) {
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -318,6 +330,7 @@ try { $lock = [IO.File]::Open((Join-Path $work 'running.lock'), 'OpenOrCreate', 
 catch { throw "Cannot acquire workflow lock (another run may be active): $_" }
 $failed = $false
 try {
+    if(-not $CleanupOnly){Initialize-RunControl}
     Read-QueueHistory
     $queuePersistent = $true
     if ($CleanupOnly) { Remove-ExpiredAttempts; Log 'Workspace cleanup finished. Receipts and originals were retained.'; return }
@@ -326,6 +339,7 @@ try {
         Where-Object { $_.Name -notlike 'KCC-*' -and ($_.PSIsContainer -or $_.Extension.ToLowerInvariant() -in $inputExtensions) })
     $plans = @()
     foreach ($batch in $batches) {
+        Assert-NotCancelled
         $files=@()
         try {
             $files = @(BatchFiles $batch)
@@ -406,9 +420,10 @@ try {
         foreach ($plan in $plans) {
             if ($plan.Failed) { continue }
             if ($bundleOptions.Enabled -and $extension -eq '.cbz') {
-                if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Chapter originals retained.'; exit 2 }
+                if (Get-StopMode) { Log 'STOP requested. Chapter originals retained.'; exit 2 }
                 try { Invoke-ChapterGroups $plan } catch {
-                    if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Chapter originals retained.'; exit 2 }
+                    if ((Get-StopMode) -eq 'now') { throw [OperationCanceledException]::new('Conversion stopped. Chapter originals were retained.') }
+                    if (Get-StopMode) { Log 'STOP requested. Chapter originals retained.'; exit 2 }
                     $plan.Failed=$true; $failed=$true; Log ('ERROR chapter grouping: '+$_)
                     foreach ($group in $plan.Bundles.Groups) { foreach ($member in $group.Members) { Set-QueueRecord $member.File.FullName 'Failed' ([string]$_) } }
                 }
@@ -417,7 +432,7 @@ try {
             foreach ($cbz in @($plan.Files | Where-Object { $_.Extension.ToLowerInvariant() -eq $extension })) {
               if ($bundleOptions.Enabled -and $bundlePlan.States.ContainsKey($cbz.FullName)) { continue }
               if ($selectedPaths -and $cbz.FullName -notin $selectedPaths) { continue }
-              if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Current file finished; remaining inputs stay in place.'; exit 2 }
+              if (Get-StopMode) { Log 'STOP requested. Remaining inputs stay in place.'; exit 2 }
               try {
                 $currentSource=$cbz.FullName
                 Select-Conversion $cbz
@@ -463,6 +478,7 @@ try {
                 if (-not $books.Count -or @($books | Where-Object Length -EQ 0).Count) { throw "KCC produced no usable output: $relative. See $job\kcc.log and any kindlegen-log files in $attempt" }
                 if ((Fingerprint (Get-Item -LiteralPath $cbz.FullName)) -ne (Fingerprint $cbz)) { throw "Source changed during conversion: $relative" }
                 New-Item -ItemType Directory -Path $dest -Force | Out-Null
+                Assert-NotCancelled
                 $publication=Publish-ConvertedBooks $cbz $books $dest $duplicateAction
                 if ($publication.Skipped) {
                     Set-QueueRecord $cbz.FullName 'Skipped existing output' 'Existing split output kept. Incoming originals stay in place until a conversion is verified.' $publication.Target
@@ -473,12 +489,12 @@ try {
                 ConvertTo-Json -InputObject $receipt | Set-Content -LiteralPath $receiptPath -Encoding UTF8
                 [IO.File]::WriteAllText((Join-Path $attempt 'result.json'), '{"Succeeded":true}')
                 Set-QueueRecord $cbz.FullName 'Converted' 'Output verified; waiting for the rest of its batch.' $receipt[0].Path
-              } catch { $plan.Failed = $true; $failed = $true; Log "ERROR $($plan.Batch.Name): $_"; $kind=Get-ConflictKind ([string]$_); Set-QueueRecord $cbz.FullName $(if($kind){'Conflict'}else{'Failed'}) ([string]$_) (Join-Path $dest (Get-OutputName $cbz)) $kind; break }
+              } catch { if((Get-StopMode) -eq 'now'){throw [OperationCanceledException]::new('Conversion stopped by the user.')};$plan.Failed = $true; $failed = $true; Log "ERROR $($plan.Batch.Name): $_"; $kind=Get-ConflictKind ([string]$_); Set-QueueRecord $cbz.FullName $(if($kind){'Conflict'}else{'Failed'}) ([string]$_) (Join-Path $dest (Get-OutputName $cbz)) $kind; break }
             }
         }
     }
     foreach ($plan in $plans) {
-        if ($StopFile -and (Test-Path -LiteralPath $StopFile)) { Log 'STOP requested. Originals retained; verified conversions can resume next time.'; exit 2 }
+        if (Get-StopMode) { Log 'STOP requested. Originals retained; verified conversions can resume next time.'; exit 2 }
         if ($plan.Failed) { continue }
         try {
             $complete=$true
@@ -494,6 +510,7 @@ try {
                 foreach ($file in $plan.Files) { Set-QueueRecord $file.FullName 'Archived' 'Conversion and archive copy verified.' }
             }
         } catch {
+            if((Get-StopMode) -eq 'now'){throw [OperationCanceledException]::new('Stopped before remaining originals were moved or removed.')}
             $failed = $true; Log "ERROR $($plan.Batch.Name): $_"
             foreach ($file in $plan.Files) {
                 # A later removal can fail after an earlier file was removed.
@@ -508,5 +525,9 @@ try {
     if ($config -and $config.NotificationMode -and $config.NotificationMode -ne 'Off') {
         & (Join-Path $PSScriptRoot 'Notify-Result.ps1') -ConfigPath $ConfigPath -Failed:$failed
     }
-} finally { $lock.Dispose() }
+} catch [OperationCanceledException] {
+    foreach($row in @($queueState.Values | Where-Object {$_.Status -in @('Converting','Decoding JXL')})){Set-QueueRecord $row.SourcePath 'Stopped' 'Stopped by the user. Unconverted originals were retained; run or retry to continue.'}
+    Log 'Stopped by the user. Unconverted originals were retained.'
+    exit 2
+} finally { Close-RunControl;$lock.Dispose() }
 if ($failed) { exit 1 }

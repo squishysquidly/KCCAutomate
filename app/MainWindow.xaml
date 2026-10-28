@@ -1,4 +1,4 @@
-﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="KCCAutomate" Width="1180" Height="850" MinWidth="1040" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource CanvasBrush}" FontFamily="Segoe UI" FontSize="14">
@@ -49,6 +49,10 @@
         <TextBlock x:Name="ViewDescription" Text="Everyday controls. Your saved advanced settings still apply." Style="{StaticResource Hint}" Margin="0,8,0,16"/>
       </StackPanel>
       <StackPanel Grid.Row="1"><Border x:Name="FolderErrorBanner" Visibility="Collapsed" Background="#FAE8E7" CornerRadius="7" Padding="13,10" Margin="0,0,0,12"><StackPanel><ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="FolderErrorText" Foreground="#792A25" TextWrapping="Wrap"/></ScrollViewer><WrapPanel Margin="0,10,0,0"><Button x:Name="OpenFoldersFromError" Content="Open folders"/><Button x:Name="RecheckFolders" Content="Check saved folders again"/></WrapPanel></StackPanel></Border>
+      <Border x:Name="ToolUpdateNotice" Visibility="Collapsed" Background="{DynamicResource SoftBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="7" Padding="13,10" Margin="0,0,0,12"><StackPanel>
+        <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="ToolUpdateMessage" TextWrapping="Wrap"/></ScrollViewer>
+        <WrapPanel Margin="0,10,0,0"><Button x:Name="NoticeKccReleases" Content="Open KCC releases"/><Button x:Name="NoticeChooseKcc" Content="Choose downloaded KCC"/><Button x:Name="NoticeViewUpdates" Content="View updates"/><Button x:Name="DismissToolNotice" Content="Dismiss"/></WrapPanel>
+      </StackPanel></Border>
       <Border Background="{DynamicResource SoftBrush}" CornerRadius="7" Padding="13,10" Margin="0,0,0,18">
         <TextBlock x:Name="Status" Text="Start by choosing your folders and converter." TextWrapping="Wrap"/>
       </Border></StackPanel>
@@ -77,7 +81,7 @@
                 <TextBlock Text="Select existing tools once. KCCAutomate remembers them; nothing is downloaded automatically." Style="{StaticResource Hint}"/>
                 <TextBlock Text="KCC command-line converter (c2e)" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="KccBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="KccExe" AutomationProperties.Name="KCC executable"/></DockPanel>
-                <TextBlock Text="Use the approved tool_cli_c2e_12.0.0_AMD64.exe or kcc-c2e.exe. It bundles Python and its Python libraries; the KCC GUI and separate Python installation are unnecessary. Use guided setup to check its version and copy tools." Style="{StaticResource Hint}"/>
+                <TextBlock Text="Use the Windows x64 tool_cli_c2e_VERSION_AMD64.exe or kcc-c2e.exe from KCC releases. It bundles Python and its Python libraries; the KCC GUI and separate Python installation are unnecessary. Use guided setup to validate it and copy tools." Style="{StaticResource Hint}"/>
                 <TextBlock Text="KindleGen executable (optional if KCC already finds it)" Style="{StaticResource Label}"/>
                 <DockPanel><Button x:Name="KindlegenBrowse" DockPanel.Dock="Right" Content="Choose .exe" Margin="10,0,0,0"/><TextBox x:Name="KindlegenExe" AutomationProperties.Name="KindleGen executable"/></DockPanel>
                 <CheckBox x:Name="ConvertJxl" Content="Automatically convert JPEG XL pages to PNG"/>
@@ -113,6 +117,9 @@
                 <StackPanel Grid.Column="2"><TextBlock Text="Cropping" Style="{StaticResource Label}"/><ComboBox x:Name="Cropping"><ComboBoxItem Content="Preserve the entire page"/><ComboBoxItem Content="Remove margins"/><ComboBoxItem Content="Remove margins and page numbers"/></ComboBox></StackPanel>
               </Grid>
               <CheckBox x:Name="Upscale" Content="Enlarge smaller pages to fit the reader"/>
+              <StackPanel x:Name="ScribeCompatibilityCard" Margin="0,12,0,8"><CheckBox x:Name="ScribeCompatibility" Content="Scribe compatibility mode (optional)"/>
+                <TextBlock Text="For blank, cut-off or striped pages on Scribe 2022/2024 using MOBI/EPUB: use JPEG, disable cropping and limit images to 1860 × 1920. This may help Kindle rendering bugs, with lower maximum resolution and possibly larger margins. Your usual PNG/cropping choices are retained and resume when you switch this off. Try a sample on your reader; turn it off after an upstream fix." Style="{StaticResource Hint}"/>
+              </StackPanel>
               <StackPanel x:Name="SimpleImageNote"><TextBlock x:Name="SimpleImageSummary" Style="{StaticResource Hint}"/><Button x:Name="ShowAdvancedConversion" Content="Show image and file settings" HorizontalAlignment="Left"/></StackPanel>
               <StackPanel x:Name="AdvancedImageControls">
               <CheckBox x:Name="Stretch" Content="Stretch pages to fill the screen (changes proportions)"/>
@@ -180,6 +187,7 @@
           <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel><TextBlock Text="Your books, at a glance" FontSize="20" FontWeight="SemiBold"/>
               <TextBlock x:Name="QueueSummary" Text="Refresh to inspect incoming books and recent results." Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="QueueRunStatus" Text="" Style="{StaticResource Hint}" Margin="0,0,0,8"/>
               <TextBlock x:Name="QueueNetwork" Text="Folder availability has not been checked yet." Style="{StaticResource Hint}" Margin="0,0,0,8"/>
               <TextBlock x:Name="QueueSchedule" Text="Check schedule to see the next automatic run." Style="{StaticResource Hint}"/>
               <WrapPanel Margin="0,0,0,12"><Button x:Name="RefreshQueue" Content="Refresh queue"/><Button x:Name="RetrySelected" Content="Retry selected"/><ComboBox x:Name="QueueFilter" Width="160"><ComboBoxItem Content="All books" IsSelected="True"/><ComboBoxItem Content="Needs attention"/><ComboBoxItem Content="Waiting"/><ComboBoxItem Content="Completed"/></ComboBox><StackPanel Orientation="Horizontal" Margin="12,0,0,0"><TextBlock Text="On retry" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="RetryAction" Width="190" ToolTip="One-run choice for selected output conflicts. Your saved default is unchanged." AutomationProperties.Name="One-run action for selected output conflicts"><ComboBoxItem Content="Saved default" IsSelected="True"/><ComboBoxItem Content="Replace existing"/><ComboBoxItem Content="Keep both"/><ComboBoxItem Content="Skip; keep incoming"/></ComboBox></StackPanel></WrapPanel>
@@ -221,10 +229,10 @@
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Updates, on your terms" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.1.19" Style="{StaticResource Hint}"/>
+              <TextBlock x:Name="AppVersion" Text="KCCAutomate 0.1.20" Style="{StaticResource Hint}"/>
               <TextBlock x:Name="SimpleUpdateSource" Style="{StaticResource Hint}"/>
               <StackPanel x:Name="AdvancedRepository"><TextBlock Text="KCCAutomate GitHub repository (owner/repository)" Style="{StaticResource Label}"/><TextBox x:Name="UpdateRepository"/>
-              <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. App and JXL checks use stable releases; KCC checks use the version manually approved for this KCCAutomate release." Style="{StaticResource Hint}"/>
+              <TextBlock Text="Use the trusted repository publishing KCCAutomate releases. App, KCC and JPEG XL checks use their latest stable releases. KCC downloads remain user-managed through its releases page." Style="{StaticResource Hint}"/>
               </StackPanel>
               <Button x:Name="CheckUpdates" Content="Check GitHub for updates" HorizontalAlignment="Left"/>
               <DataGrid x:Name="UpdatesGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Height="150" Margin="0,14,0,10" HeadersVisibility="Column"><DataGrid.Columns><DataGridTextColumn Header="Component" Binding="{Binding Component}" Width="*"/><DataGridTextColumn Header="Installed" Binding="{Binding Installed}" Width="100"/><DataGridTextColumn Header="Offered" Binding="{Binding Latest}" Width="100"/><DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*"/></DataGrid.Columns></DataGrid>
@@ -267,7 +275,7 @@
       </TabControl>
       <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,12,0,0">
         <DockPanel><TextBlock x:Name="SavedState" Text="Settings stay on this PC." Foreground="{DynamicResource HintBrush}" VerticalAlignment="Center"/>
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="SaveSettings" Content="Save settings"/><Button x:Name="Preview" Content="Preview queue"/><Button x:Name="RunNow" Content="Run now" Style="{StaticResource Primary}" Margin="0"/></StackPanel>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="SaveSettings" Content="Save settings"/><Button x:Name="Preview" Content="Preview queue"/><Button x:Name="StopNow" Content="Stop" IsEnabled="False" BorderBrush="#A7443B"/><Button x:Name="RunNow" Content="Run now" Style="{StaticResource Primary}" Margin="0"/></StackPanel>
         </DockPanel>
       </Border>
     </Grid>

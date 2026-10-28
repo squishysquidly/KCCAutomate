@@ -1,47 +1,50 @@
-# KCCAutomate 0.1.19
+# KCCAutomate 0.1.20
 
-The first update from **0.1.18**, bringing the current book-organization and
-application improvements together in one release.
+This update from **0.1.19** makes KindleGen easier to find, accepts working KCC
+CLI releases without a version pin and shows when newer tools are available.
+It also adds Stop and an optional workaround for Scribe rendering problems.
 
-## Organize books for your reader
+## Easier KindleGen setup
 
-- Optionally combine short CBZ chapters or complete volumes into fewer books,
-  with configurable page targets and a converted-size budget. Units stay whole,
-  and short leftovers can convert on the current scan.
-- Create readable filenames and embedded book titles using v/ch numbering,
-  removing leading square-bracketed tags and trailing release information.
-- Shorten matching series folders in Converted, and define optional short series
-  names with paired original/shortened-name fields.
-- Use the containing series folder for inputs named only v1, v2 or ch001,
-  retaining artist/collection folders above each series.
-- Add an optional chapter/volume number strip above the cover artwork, and
-  choose series-first or number-first titles for easier library sorting.
-- Detect naming collisions before conversion, including when different releases
-  shorten to the same filename or folder.
+- Step 4 checks Microsoft Store Kindle Previewer installations as well as
+  existing desktop installation locations.
+- Setup finds versioned WindowsApps packages and checks registered installation
+  locations when Windows blocks folder browsing. The post-install check uses
+  the same search, and users can also select a package folder manually.
+- Store KindleGen compilers are copied into KCCAutomate's tools folder and
+  validated there, because Windows may block running them directly inside
+  WindowsApps. The installed Previewer files and permissions are left intact.
 
-## Original handling and application polish
+## Reader compatibility and stopping
 
-- Moving verified originals to Originals remains the default. Users can instead
-  explicitly acknowledge permanent removal after conversion verification;
-  failed, skipped and unconverted inputs are retained.
-- The supplied transparent artwork is embedded in the application, setup,
-  uninstaller and shortcuts. Targeted Windows icon refreshes help replaced
-  executables display the current artwork.
-- Existing Simple/Advanced views, guided tool setup, saved settings, scheduling,
-  duplicate policies and local/network folder support remain available.
+- A visible **Stop** button halts the active converter tree, including a
+  scheduled/background run on the same Working folder. Unconverted originals
+  are retained, partial book output is not published, and stopped books can resume.
+- An optional Scribe compatibility switch uses JPEG, no cropping and an
+  1860 × 1920 limit for Scribe 2022/2024 MOBI/EPUB. It is off by default and
+  can be switched off after a KCC or firmware fix; usual image choices are retained.
 
-## Installation and compatibility
+## Use your preferred KCC release
 
-Download **KCCAutomate-Setup.exe** for installation, or extract
-**KCCAutomate-Windows.zip** for portable use, from the
-[GitHub releases page](https://github.com/squishysquidly/KCCAutomate/releases).
-Both downloads are listed in **SHA256SUMS**.
+- Choose a working Windows x64 c2e CLI from KCC's releases page without waiting
+  for a KCCAutomate update to approve a particular version.
+- Setup still checks tool identity, startup and required conversion options.
+  Scheduled conversions also check startup and retain unconverted originals
+  if the tool fails.
+- Old saved version-pin settings are ignored, so users do not need to recreate
+  their setup or schedule.
+- Update checks show the latest KCC release. Downloads remain user-managed
+  through KCC's GitHub releases page; selected tools are not silently replaced.
+- The app checks releases when it opens, including after installation or an app
+  update, and checks JPEG XL when enabled. A visible notice shows selected/latest
+  versions, download instructions and actions to choose the replacement KCC.
+- Choosing a new KCC download starts setup at its converter page, validates and
+  copies the tools, and retains folders, conversion options and schedule choices.
+- Offline checks and unknown installed versions are reported without claiming
+  the tools are current or interrupting conversions.
 
-Updates from 0.1.18 preserve the established runtime file set, settings and
-installation mode. KCC and its dependencies remain separately obtained tools;
-the currently verified KCC CLI is **12.0.0**. The Windows build has not gained
-Linux, macOS or Windows 7 certification. The shared platform foundation is in
-place; the next platform implementation is the Linux x86_64 conversion worker.
-
-See the [user guide](../README.md) for installation, usage and settings, and the
-[current status](ROADMAP.md) for remaining validation and planned work.
+Download **KCCAutomate-Setup.exe** for installation or
+**KCCAutomate-Windows.zip** for portable use from the
+[releases page](https://github.com/squishysquidly/KCCAutomate/releases).
+**SHA256SUMS** lists both downloads. Updating preserves settings and installation
+mode. KCC and Amazon's KindleGen remain separately obtained tools.
