@@ -50,7 +50,8 @@ described in the [release overview](RELEASE-NOTES.md).
   verified output and archival only after a successful batch.
 - Existing-output policies: review, replace, keep both or skip; selected retries.
 - Saved presets, per-folder rules, filename templates, queue/history views,
-  Activity logs, optional attempt cleanup, notifications and light/dark themes.
+  Activity logs, automatic completed-scratch cleanup, optional diagnostic expiry,
+  notifications and light/dark themes.
 - User-triggered app/JXL updates with hash checks and rollback; KCC downloads
   remain manual. Licence notices are included in fresh packages and updates.
 

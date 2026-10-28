@@ -74,8 +74,8 @@ namespace KCCAutomate {
             On("WorkspaceUsage",delegate {Start("Workspace-Info.ps1","","Checking working-folder usage...",false,Save());});
             On("CleanupNow",delegate {
                 var s=Save();
-                if(!s.AutoCleanup) throw new Exception("Enable temporary-attempt cleanup first, then save your retention periods.");
-                Start("Convert-Manga.ps1","-CleanupOnly","Cleaning expired attempts; originals and receipts are preserved.",false,s);
+                Start("Convert-Manga.ps1","-CleanupOnly","Clearing completed temporary files; originals and completion records are preserved.",false,s);
+                afterWorker=delegate(int code){if(code==0)Start("Workspace-Info.ps1","","Checking working-folder usage after cleanup...",false,s);};
             });
             OnAsync("CheckUpdates",CheckUpdatesAsync); OnAsync("DownloadUpdate",DownloadUpdateAsync);
             On("NoticeKccReleases",delegate{Process.Start(new ProcessStartInfo(ReleaseClient.KccReleasesPage){UseShellExecute=true});});

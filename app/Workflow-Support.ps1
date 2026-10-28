@@ -213,25 +213,118 @@ function Get-PreviewQueue {
         [IO.File]::WriteAllText($ReportPath, (ConvertTo-Json -InputObject @($queueState.Values | Sort-Object Batch,Name) -Depth 8))
     }
 }
+function Get-WorkspaceAttemptTree([string]$Path) {
+    # Only our hash/GUID attempt directories are eligible. Walk explicitly so
+    # junctions are rejected before traversing them, including on SMB shares.
+    $root=[IO.Path]::GetFullPath($work).TrimEnd('\')
+    $full=[IO.Path]::GetFullPath($Path).TrimEnd('\')
+    if(-not$full.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)){return}
+    if($full.Substring($root.Length+1) -notmatch '^[A-F0-9]{64}\\[a-f0-9]{32}$'){return}
+    foreach($ancestor in @($root,(Split-Path $full -Parent),$full)){
+        if((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){return}
+    }
+    $files=New-Object 'System.Collections.Generic.List[IO.FileInfo]'
+    $directories=New-Object 'System.Collections.Generic.List[IO.DirectoryInfo]'
+    $pending=New-Object 'System.Collections.Generic.Stack[string]';$pending.Push($full)
+    while($pending.Count){
+        foreach($item in @(Get-ChildItem -LiteralPath $pending.Pop() -Force)){
+            if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){return}
+            if(-not[IO.Path]::GetFullPath($item.FullName).StartsWith($full+'\',[StringComparison]::OrdinalIgnoreCase)){return}
+            if($item.PSIsContainer){$directories.Add($item);$pending.Push($item.FullName)}else{$files.Add($item)}
+        }
+    }
+    [pscustomobject]@{Path=$full;Files=@($files.ToArray());Directories=@($directories.ToArray())}
+}
+function Get-CleanupOutputs($Result,[string]$Job) {
+    if($Result.PSObject.Properties['Outputs']){return @($Result.Outputs)}
+    $path=Join-Path $Job 'receipt.json'
+    if(Test-Path -LiteralPath $path -PathType Leaf){
+        if((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){return}
+        return @(Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json)
+    }
+    # Older chapter/volume bundles keep their receipts in the shared ledger.
+    $path=Join-Path $work 'chapter-receipts.json'
+    if(Test-Path -LiteralPath $path -PathType Leaf){
+        if((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){return}
+        $ledger=Get-Content -LiteralPath $path -Raw -Encoding UTF8|ConvertFrom-Json
+        if($ledger.Version -eq 1 -and $ledger.Entries){
+            $entry=$ledger.Entries.PSObject.Properties[(Split-Path $Job -Leaf)]
+            if($entry){return @($entry.Value)}
+        }
+    }
+}
+function Test-CleanupOutputs($Outputs) {
+    if(-not@($Outputs).Count){return $false}
+    $prefix=[IO.Path]::GetFullPath($output).TrimEnd('\')+'\'
+    foreach($book in @($Outputs)){
+        if($book.Path -isnot [string] -or $book.Hash -notmatch '^[a-fA-F0-9]{64}$' -or -not[IO.Path]::IsPathRooted($book.Path)){return $false}
+        $path=[IO.Path]::GetFullPath($book.Path)
+        if(-not$path.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)-or-not(Test-Path -LiteralPath $path -PathType Leaf)){return $false}
+        if((Get-Item -LiteralPath $path -Force).Length -lt 1 -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $book.Hash){return $false}
+    }
+    return $true
+}
+function Clear-CompletedAttempt([string]$Attempt) {
+    try{
+        $tree=Get-WorkspaceAttemptTree $Attempt;if(-not$tree){return}
+        $path=Join-Path $tree.Path 'result.json'
+        if(-not(Test-Path -LiteralPath $path -PathType Leaf)){return}
+        $result=Get-Content -LiteralPath $path -Raw -Encoding UTF8|ConvertFrom-Json
+        if($result.Succeeded -isnot [bool] -or -not$result.Succeeded){return}
+        $scratch=@($tree.Files|Where-Object {$_.Name -notin @('result.json','kcc.log','djxl.log')})
+        if(-not$scratch.Count){return}
+        $outputs=@(Get-CleanupOutputs $result (Split-Path $tree.Path -Parent))
+        if(-not(Test-CleanupOutputs $outputs)){Log "CLEANUP retained temporary files because published output could not be verified: $Attempt";return}
+        $bytes=0L
+        foreach($file in $scratch){
+            Assert-NotCancelled
+            Remove-Item -LiteralPath $file.FullName -Force
+            $bytes+=$file.Length
+        }
+        foreach($directory in @($tree.Directories|Sort-Object {$_.FullName.Length} -Descending)){
+            if(-not@(Get-ChildItem -LiteralPath $directory.FullName -Force).Count){Remove-Item -LiteralPath $directory.FullName -Force}
+        }
+        $result|Add-Member -NotePropertyName Outputs -NotePropertyValue @($outputs) -Force
+        $result|Add-Member -NotePropertyName ScratchCleaned -NotePropertyValue $true -Force
+        [IO.File]::WriteAllText($path,($result|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+        Log ('CLEANED completed temporary files ({0:N1} MiB): {1}' -f ($bytes/1MB),$Attempt)
+    }catch [OperationCanceledException]{throw}
+    catch{Log "CLEANUP could not finish; conversion records were retained: $Attempt - $_"}
+}
+function Complete-ConversionAttempt([string]$Attempt,$Receipt) {
+    # Record the exact published outputs before releasing any scratch files.
+    $result=@{Succeeded=$true;Outputs=@($Receipt)}
+    [IO.File]::WriteAllText((Join-Path $Attempt 'result.json'),($result|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+    Clear-CompletedAttempt $Attempt
+}
 function Remove-ExpiredAttempts {
-    if (-not $config -or -not $config.AutoCleanup) { return }
-    $successDays=[int]$config.SuccessRetentionDays; $failureDays=[int]$config.FailureRetentionDays
-    if ($successDays -lt 1 -or $failureDays -lt 1) { throw 'Retention periods must be at least one day.' }
-    $rootPath=[IO.Path]::GetFullPath($work).TrimEnd('\') + '\'
-    foreach ($jobDir in @(Get-ChildItem -LiteralPath $work -Directory -Force | Where-Object { $_.Name -match '^[A-F0-9]{64}$' })) {
-        if ($jobDir.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
-        foreach ($attemptDir in @(Get-ChildItem -LiteralPath $jobDir.FullName -Directory -Force | Where-Object { $_.Name -match '^[a-f0-9]{32}$' })) {
-            $resultPath=Join-Path $attemptDir.FullName 'result.json'
-            $succeeded=$false
-            if (Test-Path -LiteralPath $resultPath) { try { $succeeded=[bool]((Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json).Succeeded) } catch { continue } }
-            $days = if ($succeeded) { $successDays } else { $failureDays }
-            if ($attemptDir.LastWriteTimeUtc -gt [DateTime]::UtcNow.AddDays(-$days)) { continue }
-            $resolved = [IO.Path]::GetFullPath($attemptDir.FullName)
-            if (-not $resolved.StartsWith($rootPath,[StringComparison]::OrdinalIgnoreCase) -or
-                ($attemptDir.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
-                @(Get-ChildItem -LiteralPath $resolved -Recurse -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { continue }
-            Remove-Item -LiteralPath $resolved -Recurse -Force
-            Log "CLEANED temporary attempt: $resolved"
+    $expire=$config -and $config.AutoCleanup
+    if($expire){
+        $successDays=[int]$config.SuccessRetentionDays;$failureDays=[int]$config.FailureRetentionDays
+        if($successDays -lt 1 -or $failureDays -lt 1){throw 'Retention periods must be at least one day.'}
+    }
+    foreach($jobDir in @(Get-ChildItem -LiteralPath $work -Directory -Force|Where-Object Name -Match '^[A-F0-9]{64}$')){
+        if($jobDir.Attributes -band [IO.FileAttributes]::ReparsePoint){continue}
+        foreach($attemptDir in @(Get-ChildItem -LiteralPath $jobDir.FullName -Directory -Force|Where-Object Name -Match '^[a-f0-9]{32}$')){
+            Assert-NotCancelled
+            try{
+                Clear-CompletedAttempt $attemptDir.FullName
+                if(-not$expire){continue}
+                $tree=Get-WorkspaceAttemptTree $attemptDir.FullName;if(-not$tree){continue}
+                $resultPath=Join-Path $tree.Path 'result.json';$succeeded=$false
+                if(Test-Path -LiteralPath $resultPath){
+                    $result=Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8|ConvertFrom-Json
+                    if($result.Succeeded -isnot [bool]){continue};$succeeded=$result.Succeeded
+                }
+                # If a successful output is missing or changed, keep its last
+                # temporary copy rather than expiring it as diagnostic material.
+                if($succeeded -and @($tree.Files|Where-Object {$_.Name -notin @('result.json','kcc.log','djxl.log')}).Count){continue}
+                $days=if($succeeded){$successDays}else{$failureDays}
+                if((Get-Item -LiteralPath $tree.Path).LastWriteTimeUtc -gt [DateTime]::UtcNow.AddDays(-$days)){continue}
+                Remove-Item -LiteralPath $tree.Path -Recurse -Force
+                Log "CLEANED expired attempt diagnostics: $($tree.Path)"
+            }catch [OperationCanceledException]{throw}
+            catch{Log "CLEANUP retained an unreadable attempt: $($attemptDir.FullName) - $_"}
         }
     }
 }

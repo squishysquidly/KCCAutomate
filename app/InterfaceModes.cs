@@ -17,7 +17,7 @@ namespace KCCAutomate {
         string viewMode="Simple";
         bool interfaceReady;
         string interfacePath {get{return Path.Combine(userDir,"interface.json");}}
-        static readonly string[] AdvancedOnly={"AdvancedWork","AdvancedToolsCard","AdvancedPresetManagement","AdvancedImageControls","AdvancedFileControls","AdvancedCleanupCard","AdvancedQuietHours","AdvancedRulesCard","AdvancedRepository","AdvancedScheduleControls","RollbackUpdate"};
+        static readonly string[] AdvancedOnly={"AdvancedWork","AdvancedToolsCard","AdvancedPresetManagement","AdvancedImageControls","AdvancedFileControls","AdvancedCleanupOptions","AdvancedQuietHours","AdvancedRulesCard","AdvancedRepository","AdvancedScheduleControls","RollbackUpdate"};
         static readonly string[] SimpleOnly={"SimpleWorkSummary","SimpleToolsCard","SimpleImageNote","SimpleFileSummary","SimpleSettingsCard","SimpleUpdateSource","SimpleScheduleSummary"};
 
         public static string LoadInterfaceMode(string path) {
@@ -77,7 +77,7 @@ namespace KCCAutomate {
             string ruleText=rules.Count+" folder rule"+(rules.Count==1?"":"s")+" configured";
             Find<TextBlock>("DuplicateDescription").Text=DuplicateDescription();
             Find<TextBlock>("SimpleFileSummary").Text="Naming: "+Text("OutputNaming")+". "+ruleText+".";
-            Find<TextBlock>("SimpleSettingsSummary").Text=(Checked("AutoCleanup")?"Temporary cleanup: on (successful attempts "+Text("SuccessRetentionDays")+" days; failed attempts "+Text("FailureRetentionDays")+" days).":"Temporary cleanup: off.")+"\n"+ruleText+".\nNotification quiet hours: "+(Checked("QuietHoursEnabled")?Text("QuietHoursStart")+" to "+Text("QuietHoursEnd"):"off")+". These preferences keep applying in Simple view.";
+            Find<TextBlock>("SimpleSettingsSummary").Text="Completed conversion scratch files: cleared automatically.\n"+(Checked("AutoCleanup")?"Diagnostic expiry: on (successful logs "+Text("SuccessRetentionDays")+" days; unsuccessful attempts "+Text("FailureRetentionDays")+" days).":"Diagnostic expiry: off; logs and unsuccessful attempts are retained.")+"\n"+ruleText+".\nNotification quiet hours: "+(Checked("QuietHoursEnabled")?Text("QuietHoursStart")+" to "+Text("QuietHoursEnd"):"off")+". These preferences keep applying in Simple view.";
             Find<TextBlock>("SimpleUpdateSource").Text="App update source: "+(Text("UpdateRepository").Length>0?Text("UpdateRepository"):"not set")+". KCC and JPEG XL checks use their latest official releases. Choose your downloaded KCC CLI in setup to validate it.";
             Find<TextBlock>("SimpleScheduleSummary").Text="Wait after files change: "+Text("QuietMinutes")+" minutes. Move completed downloads into the incoming folder.";
         }

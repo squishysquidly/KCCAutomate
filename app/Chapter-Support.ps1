@@ -285,7 +285,7 @@ function Invoke-ChapterGroups($Plan) {
                 foreach ($info in $members) {
                     Set-QueueRecord $info.File.FullName 'Converted' ('Chapter bundle verified: '+$title) $receipt[0].Path
                 }
-                [IO.File]::WriteAllText((Join-Path $attempt 'result.json'),'{"Succeeded":true}')
+                Complete-ConversionAttempt $attempt $receipt
                 $remaining=@($remaining | Select-Object -Skip $members.Count)
                 break
             }

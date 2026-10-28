@@ -312,7 +312,7 @@ when you want future scheduled runs to use them.
 | **Output naming** | Use a filename template with `{name}`, `{profile}` and `{format}`. |
 | **Existing converted files** | Review conflicts, replace, keep both using numbered names, or skip while retaining Incoming originals. Selected retries can use a one-run choice. |
 | **Queue and retries** | Inspect waiting, completed, failed and conflicting items; retry selected books after resolving a problem. |
-| **Temporary-file cleanup** | Optionally remove old attempts. Default retention is 7 days for successful attempts and 30 for failed ones; originals and converted books are retained. |
+| **Temporary-file cleanup** | Large completed conversion files are cleared automatically after output verification. Logs and completion receipts remain. Optional diagnostic expiry keeps successful logs for 7 days and unsuccessful attempts for 30 days. |
 | **Appearance and notifications** | Light/dark themes; notifications off, errors only or every check; optional quiet hours. |
 
 For the detailed meaning of **KCC-specific image settings, profiles and output
@@ -333,6 +333,21 @@ run using the same Working folder. A copy or publishing step already in progress
 finishes safely. Stopped books can be retried or picked up on the next scan.
 **Stop after this file** remains on Activity when you want the current book to
 finish first. Stopping a run does not disable future scheduled checks.
+
+### Working-folder cleanup
+
+Expanded images, prepared CBZs and temporary books are cleared immediately after
+the published output is verified, including chapter/volume bundles. This runs
+even when optional diagnostic expiry is off. Logs, queue history and completion
+receipts stay available, so a partly completed batch can resume without converting
+its finished books again.
+
+To clear completed files accumulated by earlier builds, use **Settings & updates
+→ Keep things tidy → Clean completed temporary files now** in either view. Normal
+scans also clear this backlog. Successful attempts whose published output is
+missing or changed are retained for review. Failed and stopped attempts are kept
+unless you enable their expiry in Advanced view. The Working folder therefore
+normally retains a small amount of diagnostic and completion information.
 
 ### Optional Scribe compatibility mode
 

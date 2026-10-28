@@ -78,6 +78,11 @@ on, cropping 0, splitter 0, stretching/autolevel off, JXL preparation on,
 CBZ-only input, Review duplicate policy, 30-minute quiet period and daily
 08:00/14:00/20:00 checks. Gamma 0 means no explicit gamma argument.
 
+Successful scratch cleanup is always enabled after published-output verification,
+independently of `AutoCleanup`. That existing preference controls optional expiry
+of successful logs/compact attempt markers and unsuccessful attempts, using
+`SuccessRetentionDays` and `FailureRetentionDays`. Completion receipts are kept.
+
 `import_windows_settings` returns a new object. It preserves unknown preferences,
 does not mutate the supplied object, retains paths verbatim, maps the older
 OverwriteConverted preference when DuplicateAction is absent, and requires

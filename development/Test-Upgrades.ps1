@@ -53,7 +53,7 @@ if($workerCode -ne 0 -or @($rows|Where-Object {$_.Name -eq 'jxl.cbz' -and $_.Jxl
 'PASS: read-only preview detects JXL pages and unselected companions.'
 $job=Join-Path $work ('D'*64);New-Item -ItemType Directory -Path $job|Out-Null
 $success=Join-Path $job ('a'*32);$recentFailure=Join-Path $job ('b'*32);$expiredFailure=Join-Path $job ('c'*32)
-foreach($path in @($success,$recentFailure,$expiredFailure)){New-Item -ItemType Directory -Path $path|Out-Null;[IO.File]::WriteAllText((Join-Path $path 'scratch'),'scratch')}
+foreach($path in @($success,$recentFailure,$expiredFailure)){New-Item -ItemType Directory -Path $path|Out-Null;[IO.File]::WriteAllText((Join-Path $path $(if($path-eq$success){'kcc.log'}else{'scratch'})),'retained diagnostic')}
 [IO.File]::WriteAllText((Join-Path $success 'result.json'),'{"Succeeded":true}')
 [IO.File]::WriteAllText((Join-Path $job 'receipt.json'),'keep receipt')
 [IO.Directory]::SetLastWriteTimeUtc($success,[DateTime]::UtcNow.AddDays(-10));[IO.Directory]::SetLastWriteTimeUtc($recentFailure,[DateTime]::UtcNow.AddDays(-10));[IO.Directory]::SetLastWriteTimeUtc($expiredFailure,[DateTime]::UtcNow.AddDays(-40))

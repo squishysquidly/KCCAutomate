@@ -44,6 +44,14 @@ an icon change at the same path using only a disposable fixture.
 
 ## Build the installer and portable version
 
+Completed conversion scratch is removed after verifying its exact published
+outputs; compact result markers, logs and completion receipts remain. The same
+cleanup handles older single-book receipts and the chapter ledger under the
+workflow lock. `Test-WorkspaceCleanup.ps1` covers automatic cleanup with optional
+expiry disabled, older data, output verification, retry records and retention.
+Its `-RequireLinkTest` switch requires the native Windows junction-safety check
+instead of allowing it to be skipped when the environment denies link creation.
+
 Use Windows with the .NET Framework C# compiler/WPF assemblies and Windows
 PowerShell 5.1 available. This project uses the Windows Framework compiler;
 an additional dotnet SDK is not required. KCC binaries are not bundled.

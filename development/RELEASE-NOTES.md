@@ -17,6 +17,12 @@ It also adds Stop and an optional workaround for Scribe rendering problems.
 
 ## Reader compatibility and stopping
 
+- Successful conversions now clear their large temporary files immediately,
+  including grouped books, regardless of the diagnostic-expiry preference.
+  Logs and completion receipts remain; old completed files can be cleared from
+  Settings in either view. Failed/stopped work and unverifiable output copies
+  are retained. Optional retention applies to old logs and unsuccessful attempts.
+
 - A visible **Stop** button halts the active converter tree, including a
   scheduled/background run on the same Working folder. Unconverted originals
   are retained, partial book output is not published, and stopped books can resume.

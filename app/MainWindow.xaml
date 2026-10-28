@@ -203,13 +203,16 @@
             <Border x:Name="SimpleSettingsCard" Style="{StaticResource Card}"><StackPanel><TextBlock Text="Your saved preferences" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="SimpleSettingsSummary" Style="{StaticResource Hint}"/><Button x:Name="ShowAdvancedSettings" Content="Show all preferences" HorizontalAlignment="Left"/></StackPanel></Border>
             <Border x:Name="AdvancedCleanupCard" Style="{StaticResource Card}"><StackPanel>
               <TextBlock Text="Keep things tidy" FontSize="20" FontWeight="SemiBold"/>
-              <CheckBox x:Name="AutoCleanup" Content="Clean old temporary attempts after conversion checks"/>
+              <TextBlock Text="Large temporary files are cleared automatically once the converted book is verified. Logs and completion records are kept. You can also clear completed files left by earlier versions." Style="{StaticResource Hint}"/>
+              <StackPanel x:Name="AdvancedCleanupOptions">
+              <CheckBox x:Name="AutoCleanup" Content="Also remove old diagnostic logs and unsuccessful attempts"/>
               <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <StackPanel><TextBlock Text="Keep successful attempts (days)" Style="{StaticResource Label}"/><TextBox x:Name="SuccessRetentionDays" Text="7"/></StackPanel>
-                <StackPanel Grid.Column="2"><TextBlock Text="Keep failed attempts (days)" Style="{StaticResource Label}"/><TextBox x:Name="FailureRetentionDays" Text="30"/></StackPanel>
+                <StackPanel><TextBlock Text="Keep successful logs (days)" Style="{StaticResource Label}"/><TextBox x:Name="SuccessRetentionDays" Text="7"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Keep unsuccessful attempts (days)" Style="{StaticResource Label}"/><TextBox x:Name="FailureRetentionDays" Text="30"/></StackPanel>
               </Grid>
-              <TextBlock Text="Cleanup removes only old attempt subfolders. Originals, converted books, logs and completion receipts stay." Style="{StaticResource Hint}"/>
-              <WrapPanel><Button x:Name="WorkspaceUsage" Content="Check space usage"/><Button x:Name="CleanupNow" Content="Clean expired attempts"/></WrapPanel>
+              <TextBlock Text="Diagnostic expiry is optional. Originals, converted books and completion receipts are preserved. Failed or stopped work stays available until its chosen retention period expires." Style="{StaticResource Hint}"/>
+              </StackPanel>
+              <WrapPanel><Button x:Name="WorkspaceUsage" Content="Check space usage"/><Button x:Name="CleanupNow" Content="Clean completed temporary files now"/></WrapPanel>
               <TextBlock x:Name="SpaceUsage" Text="Space usage has not been checked." Style="{StaticResource Hint}"/>
             </StackPanel></Border>
             <Border Style="{StaticResource Card}"><StackPanel>

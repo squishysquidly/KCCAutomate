@@ -333,7 +333,8 @@ try {
     if(-not $CleanupOnly){Initialize-RunControl}
     Read-QueueHistory
     $queuePersistent = $true
-    if ($CleanupOnly) { Remove-ExpiredAttempts; Log 'Workspace cleanup finished. Receipts and originals were retained.'; return }
+    if ($CleanupOnly) { Remove-ExpiredAttempts; Log 'Workspace cleanup finished. Completed scratch files were cleared; logs, receipts and originals were retained unless diagnostic expiry was enabled.'; return }
+    Remove-ExpiredAttempts
     Log 'Starting scan.'
     $batches = @(Get-ChildItem -LiteralPath $incoming -Force |
         Where-Object { $_.Name -notlike 'KCC-*' -and ($_.PSIsContainer -or $_.Extension.ToLowerInvariant() -in $inputExtensions) })
@@ -487,7 +488,7 @@ try {
                 }
                 $receipt=@($publication.Receipt)
                 ConvertTo-Json -InputObject $receipt | Set-Content -LiteralPath $receiptPath -Encoding UTF8
-                [IO.File]::WriteAllText((Join-Path $attempt 'result.json'), '{"Succeeded":true}')
+                Complete-ConversionAttempt $attempt $receipt
                 Set-QueueRecord $cbz.FullName 'Converted' 'Output verified; waiting for the rest of its batch.' $receipt[0].Path
               } catch { if((Get-StopMode) -eq 'now'){throw [OperationCanceledException]::new('Conversion stopped by the user.')};$plan.Failed = $true; $failed = $true; Log "ERROR $($plan.Batch.Name): $_"; $kind=Get-ConflictKind ([string]$_); Set-QueueRecord $cbz.FullName $(if($kind){'Conflict'}else{'Failed'}) ([string]$_) (Join-Path $dest (Get-OutputName $cbz)) $kind; break }
             }
