@@ -88,3 +88,5 @@ if([IO.File]::ReadAllText((Join-Path $target 'license.txt')) -ne 'old license.tx
 Invoke-Installer @('-StageDirectory',$stage,'-ManifestHash',$manifestHash)
 if($installCode -eq 0 -or [IO.File]::ReadAllText((Join-Path $target 'KCCAutomate.exe')) -ne 'old KCCAutomate.exe'){throw 'Tampered update accepted'}
 'PASS: tampered staged update rejected without changing installed files.'
+# A correctly rejected tampered update is a passing test, not a failed CI step.
+$global:LASTEXITCODE=0

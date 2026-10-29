@@ -156,6 +156,7 @@ try{New-Item -ItemType Junction -Path $link -Target $protected | Out-Null}catch{
     if($RequireJunction){throw}
     'PASS: removal rejects paths outside Incoming.'
     'SKIP: this environment does not allow creating a junction fixture. Use -RequireJunction on a capable Windows host.'
+    $global:LASTEXITCODE=0
     return
 }
 try{
@@ -166,4 +167,6 @@ try{
     [IO.Directory]::Delete($link)
 }
 'PASS: removal rejects outside paths and linked directories, retaining the protected fixture.'
+# All expected worker failures have been checked, including changed output.
+$global:LASTEXITCODE=0
 

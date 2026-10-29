@@ -131,6 +131,15 @@ views and setup pages. Installer/scheduler fixtures avoid real task, shortcut
 and registry registration. Results and disposable fixtures stay under
 development/, separate from normal app settings and books.
 
+`Test-CiExitStatus.ps1` runs the parity suite inside the same PowerShell wrapper
+used by GitHub Actions, including its final `LASTEXITCODE` check. It also verifies
+that the next command runs after a passing suite and that an invalid-corpus
+assertion still fails the step. This catches expected negative-fixture exits
+leaking into an otherwise successful job. Other suites can be checked with
+`-SuiteNames @('Test-ChapterBundles.ps1','Test-OriginalHandling.ps1')`.
+Tests clear the native exit status only after their assertions have passed;
+they do not suppress exceptions or change conversion-worker exit codes.
+
 `Test-ChapterBundles.ps1` additionally exercises page-based grouping, whole-chapter
 size retries, completed-group stability, pending/released remainders, source
 hashes, metadata-selected covers, natural page ordering, JXL preparation, unclear

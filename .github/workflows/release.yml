@@ -25,7 +25,7 @@ jobs:
         shell: powershell
         run: |
           ./development/Test-PlatformFoundation.ps1
-          ./development/Test-BehaviorParity.ps1
+          ./development/Test-CiExitStatus.ps1
       - name: Check release preparation safeguards
         shell: powershell
         run: ./development/Test-ReleasePreparation.ps1

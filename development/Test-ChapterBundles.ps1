@@ -175,4 +175,6 @@ Run
 Require ($code -ne 0 -and -not (Outputs).Count -and -not @(Calls).Count -and (Test-Path -LiteralPath (Join-Path $config.WatchFolder 'Series'))) 'Damaged completion records silently regrouped a published book.'
 'PASS: damaged shared completion records stop grouping rather than guessing prior bundle membership.'
 'Chapter grouping checks passed. Converter fixtures verify orchestration, not ebook rendering or a Kindle hardware size limit.'
+# The final damaged-record test expects a nonzero worker exit, not a failed suite.
+$global:LASTEXITCODE=0
 

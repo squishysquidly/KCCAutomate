@@ -156,4 +156,6 @@ Run
 Require ($code -eq 1 -and -not (Outputs).Count -and -not @(Calls).Count -and @(Get-ChildItem -LiteralPath $config.WatchFolder -File -Recurse).Count -eq 2) 'Inferred naming overwrote a duplicate or removed originals.'
 'PASS: inferred and explicit names that target the same book are blocked before conversion.'
 'Only generated fixtures were used: '+$root
+# Expected collision failures must not become the GitHub step's exit status.
+$global:LASTEXITCODE=0
 

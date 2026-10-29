@@ -9,6 +9,7 @@ on:
       - 'development/*Foundation*'
       - 'development/test_platform_foundation.py'
       - 'development/Test-BehaviorParity.ps1'
+      - 'development/Test-CiExitStatus.ps1'
       - 'app/Convert-Manga.ps1'
       - 'app/Workflow-Support.ps1'
       - 'app/Chapter-Support.ps1'
@@ -29,6 +30,7 @@ on:
       - 'development/*Foundation*'
       - 'development/test_platform_foundation.py'
       - 'development/Test-BehaviorParity.ps1'
+      - 'development/Test-CiExitStatus.ps1'
       - 'app/Convert-Manga.ps1'
       - 'app/Workflow-Support.ps1'
       - 'app/Chapter-Support.ps1'
@@ -61,7 +63,7 @@ jobs:
       - name: Replay shared corpus against current Windows worker
         if: runner.os == 'Windows' && matrix.python == '3.11'
         shell: powershell
-        run: ./development/Test-BehaviorParity.ps1
+        run: ./development/Test-CiExitStatus.ps1
       - name: Check chapter grouping and retained originals
         if: runner.os == 'Windows' && matrix.python == '3.11'
         shell: powershell

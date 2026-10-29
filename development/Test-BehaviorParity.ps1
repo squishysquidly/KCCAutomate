@@ -115,3 +115,6 @@ foreach ($scenario in $corpus.scenarios) {
  'PASS: '+$scenario.id
 }
 'Behavior parity: '+$number+' shared scenarios, '+$runs+' Windows worker runs; originals and existing outputs verified by hash.'
+# Expected worker failures were asserted above. GitHub forwards LASTEXITCODE;
+# report the suite's success instead of the final negative fixture's result.
+$global:LASTEXITCODE=0
